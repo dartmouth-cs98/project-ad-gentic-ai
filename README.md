@@ -5,6 +5,7 @@
 ---
 
 ## Architecture
+<img width="732" height="350" alt="Screenshot 2026-02-07 at 3 40 45 PM" src="https://github.com/user-attachments/assets/159dc873-8bcc-4c50-a8f4-f942d60e95d6" />
 
 Our project uses a **Micro-services Architecture** to separate high-performance data processing from user-facing interfaces. We have chosen to use one repository with multiple folders which you could think of as almost being their own repos within the larger repo, each carrying out a specific service.
 

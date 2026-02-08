@@ -19,3 +19,19 @@ python3 main.py
 ```
 
 The API will be available at `http://localhost:8000` with auto-generated docs at `/docs`.
+
+## Services
+
+All services run on **port 8000** with different route prefixes:
+
+1. **Ad Job Worker** - `/ad-job-worker/hello`
+2. **Ad Post Worker** - `/ad-post-worker/hello`
+3. **Script Creation Worker** - `/script-creation-worker/hello`
+
+## Testing Hello Endpoints
+
+```bash
+curl http://localhost:8000/ad-job-worker/hello
+curl http://localhost:8000/ad-post-worker/hello
+curl http://localhost:8000/script-creation-worker/hello
+```

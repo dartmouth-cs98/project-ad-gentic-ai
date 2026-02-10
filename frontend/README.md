@@ -2,6 +2,20 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Setup
+
+1. Copy the example environment file and configure your backend URL:
+
+```bash
+cp .env.local.example .env.local
+```
+
+2. Edit `.env.local` and set the `BACKEND_URL` to your backend API URL:
+   - For local development: `BACKEND_URL=http://localhost:8000`
+   - For production: `BACKEND_URL=https://your-backend-api.com`
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash

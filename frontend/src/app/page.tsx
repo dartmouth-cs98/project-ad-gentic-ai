@@ -13,7 +13,7 @@ export default function Home() {
     setHealthStatus(null);
 
     try {
-      const response = await fetch('http://localhost:8000/health');
+      const response = await fetch('/api/health');
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function Home() {
   const [healthStatus, setHealthStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -13,7 +15,7 @@ export default function Home() {
     setHealthStatus(null);
 
     try {
-      const response = await fetch('http://localhost:8000/health');
+      const response = await fetch(`${API_URL}/health`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

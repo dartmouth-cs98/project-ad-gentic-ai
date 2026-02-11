@@ -47,13 +47,51 @@ Our project uses a **Micro-services Architecture** to separate high-performance 
 3. **Backend Installation:**
    - **Python Services:**
      ```bash
-     cd backend-python && pip install -r requirements.txt
+     cd backend && pip install -r requirements.txt && python3 main.py
      ```
    - **Node Services:**
      ```bash
      cd backend-node && npm install
      ```
 4. **Environment Variables:** Copy `.env.example` to `.env` in each service directory and fill in your local credentials.
+
+---
+
+## Quick Start (Docker)
+
+We use Docker to containerize our application. 
+
+**Prerequisites:**
+- Docker Desktop installed
+- Make (optional, but recommended for simplicity)
+
+**Commands:**
+
+1.  **Start Everything:**
+    ```bash
+    make up
+    ```
+    - Backend: http://localhost:8000
+    - Frontend: http://localhost:3000
+
+2.  **Stop Everything:**
+    ```bash
+    make down
+    ```
+
+3.  **Rebuild Containers:**
+    ```bash
+    make build
+    ```
+
+4.  **View Logs:**
+    ```bash
+    make logs
+    ```
+
+5.  **Run Independently:**
+    - Backend only: `make backend`
+    - Frontend only: `make frontend`
 
 ---
 

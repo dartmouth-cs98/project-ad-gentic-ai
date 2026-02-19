@@ -1,39 +1,39 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { HealthBadge } from '../ui/HealthBadge';
 import { Link, useLocation } from 'react-router-dom';
 import { useCompany } from '../../contexts/CompanyContext';
 import {
   LayoutDashboardIcon,
   FolderIcon,
   SparklesIcon,
-  UserIcon,
-  UsersIcon,
   ChevronLeftIcon,
   LogOutIcon,
   DatabaseIcon,
-  SettingsIcon } from
-'lucide-react';
+  SettingsIcon
+} from
+  'lucide-react';
 const navItems = [
-{
-  path: '/dashboard',
-  label: 'Dashboard',
-  icon: LayoutDashboardIcon
-},
-{
-  path: '/campaigns',
-  label: 'Campaigns',
-  icon: FolderIcon
-},
-{
-  path: '/generate',
-  label: 'Generate Ads',
-  icon: SparklesIcon,
-  highlight: true
-},
-{
-  path: '/customer-data',
-  label: 'Customer Data',
-  icon: DatabaseIcon
-}];
+  {
+    path: '/dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboardIcon
+  },
+  {
+    path: '/campaigns',
+    label: 'Campaigns',
+    icon: FolderIcon
+  },
+  {
+    path: '/generate',
+    label: 'Generate Ads',
+    icon: SparklesIcon,
+    highlight: true
+  },
+  {
+    path: '/customer-data',
+    label: 'Customer Data',
+    icon: DatabaseIcon
+  }];
 
 export function Sidebar() {
   const location = useLocation();
@@ -50,7 +50,7 @@ export function Sidebar() {
       {/* Logo / Company Name */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-white/10">
         {!collapsed &&
-        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
               <SparklesIcon className="w-4 h-4 text-white" />
             </div>
@@ -60,16 +60,16 @@ export function Sidebar() {
                   {profile.companyName}
                 </span>
                 {profile.plan !== 'basic' &&
-              <span className="px-1.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-[10px] font-bold rounded text-white shadow-sm capitalize">
+                  <span className="px-1.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-[10px] font-bold rounded text-white shadow-sm capitalize">
                     {profile.plan === 'enterprise' ? 'ENT' : 'PRO'}
                   </span>
-              }
+                }
               </div>
             </div>
           </div>
         }
         {collapsed &&
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto">
             <SparklesIcon className="w-4 h-4 text-white" />
           </div>
         }
@@ -90,9 +90,9 @@ export function Sidebar() {
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto dark-scrollbar">
         {navItems.map((item) => {
           const isActive =
-          location.pathname === item.path ||
-          item.path === '/campaigns' &&
-          location.pathname.startsWith('/campaign');
+            location.pathname === item.path ||
+            item.path === '/campaigns' &&
+            location.pathname.startsWith('/campaign');
           const Icon = item.icon;
           return (
             <Link
@@ -111,7 +111,7 @@ export function Sidebar() {
                 className={`w-5 h-5 flex-shrink-0 ${item.highlight && !isActive ? 'text-blue-400' : ''}`} />
 
               {!collapsed &&
-              <span className="font-medium text-sm">{item.label}</span>
+                <span className="font-medium text-sm">{item.label}</span>
               }
             </Link>);
 
@@ -137,7 +137,7 @@ export function Sidebar() {
 
       {/* Upgrade CTA for non-premium */}
       {!collapsed && profile.plan === 'basic' &&
-      <div className="px-4 pb-4">
+        <div className="px-4 pb-4">
           <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl p-4 text-center">
             <p className="text-sm font-semibold mb-1">Upgrade to Pro</p>
             <p className="text-xs text-white/80 mb-3">
@@ -152,6 +152,11 @@ export function Sidebar() {
         </div>
       }
 
+      {/* Health Badge */}
+      <div className="px-2 pb-1">
+        <HealthBadge collapsed={collapsed} />
+      </div>
+
       {/* User section */}
       <div className="p-2 border-t border-white/10">
         <div
@@ -161,7 +166,7 @@ export function Sidebar() {
             {profile.userName.charAt(0)}
           </div>
           {!collapsed &&
-          <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{profile.userName}</p>
               <p className="text-xs text-white/50 truncate capitalize">
                 {profile.plan} Plan
@@ -169,9 +174,9 @@ export function Sidebar() {
             </div>
           }
           {!collapsed &&
-          <Link
-            to="/"
-            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/50 hover:text-white">
+            <Link
+              to="/"
+              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/50 hover:text-white">
 
               <LogOutIcon className="w-4 h-4" />
             </Link>

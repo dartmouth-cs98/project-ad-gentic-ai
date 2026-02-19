@@ -1,4 +1,4 @@
-import React from 'react';
+import { HTMLAttributes } from 'react';
 type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;

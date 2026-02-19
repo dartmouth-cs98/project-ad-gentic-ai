@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef, SelectHTMLAttributes } from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 interface SelectOption {
   value: string;
@@ -16,7 +16,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label &&
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
             {label}
           </label>
         }
@@ -34,12 +34,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {...props}>
 
             {placeholder &&
-            <option value="" disabled>
+              <option value="" disabled>
                 {placeholder}
               </option>
             }
             {options.map((option) =>
-            <option key={option.value} value={option.value}>
+              <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             )}

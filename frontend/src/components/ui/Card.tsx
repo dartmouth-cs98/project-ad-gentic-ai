@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef, HTMLAttributes } from 'react';
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'glass' | 'elevated';
   padding?: 'none' | 'sm' | 'md' | 'lg';
@@ -16,9 +16,8 @@ const paddingStyles = {
 };
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   (
-  { variant = 'default', padding = 'md', className = '', children, ...props },
-  ref) =>
-  {
+    { variant = 'default', padding = 'md', className = '', children, ...props },
+    ref) => {
     return (
       <div
         ref={ref}

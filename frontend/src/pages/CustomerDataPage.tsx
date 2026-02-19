@@ -7,7 +7,6 @@ import {
   UploadIcon,
   FileIcon,
   CheckCircleIcon,
-  AlertCircleIcon,
   DownloadIcon,
   UsersIcon,
   PieChartIcon,
@@ -26,8 +25,9 @@ import {
   ZapIcon,
   ShieldIcon,
   SearchIcon,
-  HeartIcon } from
-'lucide-react';
+  HeartIcon
+} from
+  'lucide-react';
 interface PersonaProfile {
   name: string;
   color: string;
@@ -46,197 +46,197 @@ interface PersonaProfile {
   icon: React.ElementType;
 }
 const personas: PersonaProfile[] = [
-{
-  name: 'The Skeptic',
-  color: 'bg-sky-500',
-  colorBg: 'bg-sky-50',
-  colorText: 'text-sky-600',
-  percentage: 34,
-  count: '4,368',
-  traits: [
-  'Analytical',
-  'Risk-averse',
-  'Detail-oriented',
-  'Comparison-driven'],
-
-  adFormats: [
-  'Data-heavy infographics',
-  'Comparison tables',
-  'Testimonial videos',
-  'Case studies'],
-
-  messagingTone:
-  'Transparent, evidence-based, and direct. Avoid hype — lead with proof, stats, and third-party validation.',
-  description:
-  'Skeptics need to see hard evidence before committing. They research extensively, read reviews, and distrust flashy marketing.',
-  exampleAds: [
   {
-    headline: "Stop Wasting Money on Ads That Don't Convert",
-    ctr: '4.2%'
+    name: 'The Skeptic',
+    color: 'bg-sky-500',
+    colorBg: 'bg-sky-50',
+    colorText: 'text-sky-600',
+    percentage: 34,
+    count: '4,368',
+    traits: [
+      'Analytical',
+      'Risk-averse',
+      'Detail-oriented',
+      'Comparison-driven'],
+
+    adFormats: [
+      'Data-heavy infographics',
+      'Comparison tables',
+      'Testimonial videos',
+      'Case studies'],
+
+    messagingTone:
+      'Transparent, evidence-based, and direct. Avoid hype — lead with proof, stats, and third-party validation.',
+    description:
+      'Skeptics need to see hard evidence before committing. They research extensively, read reviews, and distrust flashy marketing.',
+    exampleAds: [
+      {
+        headline: "Stop Wasting Money on Ads That Don't Convert",
+        ctr: '4.2%'
+      },
+      {
+        headline: "12,847 Verified Reviews Can't Be Wrong",
+        ctr: '4.5%'
+      }],
+
+    icon: ShieldIcon
   },
   {
-    headline: "12,847 Verified Reviews Can't Be Wrong",
-    ctr: '4.5%'
-  }],
+    name: 'Impulse Buyer',
+    color: 'bg-orange-500',
+    colorBg: 'bg-orange-50',
+    colorText: 'text-orange-600',
+    percentage: 28,
+    count: '3,597',
+    traits: [
+      'Spontaneous',
+      'Emotion-driven',
+      'FOMO-susceptible',
+      'Visual-first'],
 
-  icon: ShieldIcon
-},
-{
-  name: 'Impulse Buyer',
-  color: 'bg-orange-500',
-  colorBg: 'bg-orange-50',
-  colorText: 'text-orange-600',
-  percentage: 28,
-  count: '3,597',
-  traits: [
-  'Spontaneous',
-  'Emotion-driven',
-  'FOMO-susceptible',
-  'Visual-first'],
+    adFormats: [
+      'Flash sale banners',
+      'Countdown timers',
+      'Short-form video',
+      'Story ads'],
 
-  adFormats: [
-  'Flash sale banners',
-  'Countdown timers',
-  'Short-form video',
-  'Story ads'],
+    messagingTone:
+      'Urgent, exciting, and emotionally charged. Use scarcity, social proof, and bold visuals to trigger action.',
+    description:
+      'Impulse Buyers act on emotion and urgency. They respond to limited-time offers, social proof, and visually striking creative.',
+    exampleAds: [
+      {
+        headline: "🔥 Flash Sale: 48 Hours Only — Don't Miss Out",
+        ctr: '5.8%'
+      },
+      {
+        headline: 'Last Chance — 73% Already Sold Out',
+        ctr: '6.2%'
+      }],
 
-  messagingTone:
-  'Urgent, exciting, and emotionally charged. Use scarcity, social proof, and bold visuals to trigger action.',
-  description:
-  'Impulse Buyers act on emotion and urgency. They respond to limited-time offers, social proof, and visually striking creative.',
-  exampleAds: [
-  {
-    headline: "🔥 Flash Sale: 48 Hours Only — Don't Miss Out",
-    ctr: '5.8%'
+    icon: ZapIcon
   },
   {
-    headline: 'Last Chance — 73% Already Sold Out',
-    ctr: '6.2%'
-  }],
+    name: 'The Researcher',
+    color: 'bg-violet-500',
+    colorBg: 'bg-violet-50',
+    colorText: 'text-violet-600',
+    percentage: 22,
+    count: '2,826',
+    traits: [
+      'Methodical',
+      'Patient',
+      'Feature-focused',
+      'Long consideration cycle'],
 
-  icon: ZapIcon
-},
-{
-  name: 'The Researcher',
-  color: 'bg-violet-500',
-  colorBg: 'bg-violet-50',
-  colorText: 'text-violet-600',
-  percentage: 22,
-  count: '2,826',
-  traits: [
-  'Methodical',
-  'Patient',
-  'Feature-focused',
-  'Long consideration cycle'],
+    adFormats: [
+      'Feature comparison charts',
+      'Long-form content',
+      'Whitepapers',
+      'Product demos'],
 
-  adFormats: [
-  'Feature comparison charts',
-  'Long-form content',
-  'Whitepapers',
-  'Product demos'],
+    messagingTone:
+      'Informative, thorough, and structured. Provide comprehensive details, specs, and side-by-side comparisons.',
+    description:
+      'Researchers take their time. They compare every option, read documentation, and want to understand the full picture before deciding.',
+    exampleAds: [
+      {
+        headline: 'Side-by-Side: How We Compare to 5 Competitors',
+        ctr: '3.1%'
+      },
+      {
+        headline: '14-Feature Comparison: The Complete Breakdown',
+        ctr: '2.9%'
+      }],
 
-  messagingTone:
-  'Informative, thorough, and structured. Provide comprehensive details, specs, and side-by-side comparisons.',
-  description:
-  'Researchers take their time. They compare every option, read documentation, and want to understand the full picture before deciding.',
-  exampleAds: [
-  {
-    headline: 'Side-by-Side: How We Compare to 5 Competitors',
-    ctr: '3.1%'
+    icon: SearchIcon
   },
   {
-    headline: '14-Feature Comparison: The Complete Breakdown',
-    ctr: '2.9%'
-  }],
+    name: 'The Loyalist',
+    color: 'bg-slate-400',
+    colorBg: 'bg-slate-50',
+    colorText: 'text-slate-600',
+    percentage: 16,
+    count: '2,056',
+    traits: [
+      'Brand-attached',
+      'Repeat buyer',
+      'Community-oriented',
+      'Referral-prone'],
 
-  icon: SearchIcon
-},
-{
-  name: 'The Loyalist',
-  color: 'bg-slate-400',
-  colorBg: 'bg-slate-50',
-  colorText: 'text-slate-600',
-  percentage: 16,
-  count: '2,056',
-  traits: [
-  'Brand-attached',
-  'Repeat buyer',
-  'Community-oriented',
-  'Referral-prone'],
+    adFormats: [
+      'Loyalty rewards',
+      'Referral programs',
+      'Behind-the-scenes content',
+      'Exclusive previews'],
 
-  adFormats: [
-  'Loyalty rewards',
-  'Referral programs',
-  'Behind-the-scenes content',
-  'Exclusive previews'],
+    messagingTone:
+      'Warm, appreciative, and exclusive. Make them feel valued — insider access, early releases, and community belonging.',
+    description:
+      "Loyalists already love your brand. They buy repeatedly, refer friends, and engage with community content. Nurture, don't sell.",
+    exampleAds: [
+      {
+        headline: "You're One of Our First 1,000 — Here's a Thank You",
+        ctr: '3.8%'
+      },
+      {
+        headline: 'Exclusive Early Access: See It Before Anyone Else',
+        ctr: '4.1%'
+      }],
 
-  messagingTone:
-  'Warm, appreciative, and exclusive. Make them feel valued — insider access, early releases, and community belonging.',
-  description:
-  "Loyalists already love your brand. They buy repeatedly, refer friends, and engage with community content. Nurture, don't sell.",
-  exampleAds: [
-  {
-    headline: "You're One of Our First 1,000 — Here's a Thank You",
-    ctr: '3.8%'
-  },
-  {
-    headline: 'Exclusive Early Access: See It Before Anyone Else',
-    ctr: '4.1%'
-  }],
-
-  icon: HeartIcon
-}];
+    icon: HeartIcon
+  }];
 
 const uploadFiles = [
-{
-  name: 'q1_leads_2026.csv',
-  date: '2 days ago',
-  status: 'Processed' as const,
-  size: '2.4 MB'
-},
-{
-  name: 'newsletter_subs.xlsx',
-  date: '1 week ago',
-  status: 'Processed' as const,
-  size: '1.1 MB'
-},
-{
-  name: 'raw_export_jan.json',
-  date: '2 weeks ago',
-  status: 'Failed' as const,
-  size: '5.2 MB',
-  errorReason:
-  'File contains malformed JSON at line 4,218. Fix the syntax error or re-export from your CRM.'
-}];
+  {
+    name: 'q1_leads_2026.csv',
+    date: '2 days ago',
+    status: 'Processed' as const,
+    size: '2.4 MB'
+  },
+  {
+    name: 'newsletter_subs.xlsx',
+    date: '1 week ago',
+    status: 'Processed' as const,
+    size: '1.1 MB'
+  },
+  {
+    name: 'raw_export_jan.json',
+    date: '2 weeks ago',
+    status: 'Failed' as const,
+    size: '5.2 MB',
+    errorReason:
+      'File contains malformed JSON at line 4,218. Fix the syntax error or re-export from your CRM.'
+  }];
 
 const completenessScore = 72;
 const completenessItems = [
-{
-  label: 'Contact info',
-  done: true
-},
-{
-  label: 'Purchase history',
-  done: true
-},
-{
-  label: 'Engagement data',
-  done: true
-},
-{
-  label: 'Demographic data',
-  done: false
-},
-{
-  label: 'Behavioral signals',
-  done: false
-}];
+  {
+    label: 'Contact info',
+    done: true
+  },
+  {
+    label: 'Purchase history',
+    done: true
+  },
+  {
+    label: 'Engagement data',
+    done: true
+  },
+  {
+    label: 'Demographic data',
+    done: false
+  },
+  {
+    label: 'Behavioral signals',
+    done: false
+  }];
 
 export function CustomerDataPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<
     'idle' | 'uploading' | 'success'>(
-    'idle');
+      'idle');
   const [selectedPersona, setSelectedPersona] = useState<PersonaProfile | null>(
     null
   );
@@ -314,17 +314,17 @@ export function CustomerDataPage() {
             </div>
             <div className="flex items-center gap-4">
               {completenessItems.map((item) =>
-              <div
-                key={item.label}
-                className="flex items-center gap-1.5 text-xs">
+                <div
+                  key={item.label}
+                  className="flex items-center gap-1.5 text-xs">
 
                   {item.done ?
-                <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-500" /> :
+                    <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-500" /> :
 
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-300" />
-                }
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-300" />
+                  }
                   <span
-                  className={item.done ? 'text-slate-600' : 'text-slate-400'}>
+                    className={item.done ? 'text-slate-600' : 'text-slate-400'}>
 
                     {item.label}
                   </span>
@@ -452,14 +452,14 @@ export function CustomerDataPage() {
               </div>
               <div className="space-y-2">
                 {personas.map((persona) =>
-                <button
-                  key={persona.name}
-                  onClick={() => setSelectedPersona(persona)}
-                  className="w-full flex items-center justify-between text-sm p-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer">
+                  <button
+                    key={persona.name}
+                    onClick={() => setSelectedPersona(persona)}
+                    className="w-full flex items-center justify-between text-sm p-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer">
 
                     <div className="flex items-center gap-2">
                       <div
-                      className={`w-3 h-3 rounded-full ${persona.color}`} />
+                        className={`w-3 h-3 rounded-full ${persona.color}`} />
 
                       <span className="text-slate-600 group-hover:text-slate-900 transition-colors">
                         {persona.name}
@@ -489,7 +489,7 @@ export function CustomerDataPage() {
                   onClick={handleUpload}>
 
                   {uploadStatus === 'uploading' ?
-                  <>
+                    <>
                       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Loader2Icon className="w-6 h-6 text-blue-600 animate-spin" />
                       </div>
@@ -500,30 +500,30 @@ export function CustomerDataPage() {
                         Analyzing and building persona segments
                       </p>
                     </> :
-                  uploadStatus === 'success' ?
-                  <>
-                      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <CheckCircleIcon className="w-6 h-6 text-emerald-600" />
-                      </div>
-                      <h3 className="font-semibold text-slate-900">
-                        Upload complete!
-                      </h3>
-                      <p className="text-slate-500 text-sm mt-1">
-                        Persona segments updated successfully
-                      </p>
-                    </> :
+                    uploadStatus === 'success' ?
+                      <>
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <CheckCircleIcon className="w-6 h-6 text-emerald-600" />
+                        </div>
+                        <h3 className="font-semibold text-slate-900">
+                          Upload complete!
+                        </h3>
+                        <p className="text-slate-500 text-sm mt-1">
+                          Persona segments updated successfully
+                        </p>
+                      </> :
 
-                  <>
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <UploadIcon className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <h3 className="font-semibold text-slate-900">
-                        Upload Customer File
-                      </h3>
-                      <p className="text-slate-500 text-sm mt-1">
-                        Drag & drop CSV, JSON, or Excel
-                      </p>
-                    </>
+                      <>
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <UploadIcon className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <h3 className="font-semibold text-slate-900">
+                          Upload Customer File
+                        </h3>
+                        <p className="text-slate-500 text-sm mt-1">
+                          Drag & drop CSV, JSON, or Excel
+                        </p>
+                      </>
                   }
                 </div>
 
@@ -532,9 +532,9 @@ export function CustomerDataPage() {
                 </h3>
                 <div className="space-y-3">
                   {uploadFiles.map((file, i) =>
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
 
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center">
@@ -551,57 +551,57 @@ export function CustomerDataPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         {file.status === 'Failed' ?
-                      <>
+                          <>
                             <div className="relative">
                               <button
-                            onMouseEnter={() =>
-                            setShowErrorTooltip(file.name)
-                            }
-                            onMouseLeave={() => setShowErrorTooltip(null)}
-                            className="p-1 rounded hover:bg-red-50 transition-colors">
+                                onMouseEnter={() =>
+                                  setShowErrorTooltip(file.name)
+                                }
+                                onMouseLeave={() => setShowErrorTooltip(null)}
+                                className="p-1 rounded hover:bg-red-50 transition-colors">
 
                                 <InfoIcon className="w-4 h-4 text-red-400" />
                               </button>
                               {showErrorTooltip === file.name &&
-                          file.errorReason &&
-                          <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl z-20">
-                                    <p className="font-medium mb-1">
-                                      Upload failed
-                                    </p>
-                                    <p className="text-slate-300 leading-relaxed">
-                                      {file.errorReason}
-                                    </p>
-                                    <div className="absolute bottom-0 right-4 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-900" />
-                                  </div>
-                          }
+                                file.errorReason &&
+                                <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl z-20">
+                                  <p className="font-medium mb-1">
+                                    Upload failed
+                                  </p>
+                                  <p className="text-slate-300 leading-relaxed">
+                                    {file.errorReason}
+                                  </p>
+                                  <div className="absolute bottom-0 right-4 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-900" />
+                                </div>
+                              }
                             </div>
                             <Badge variant="danger">Failed</Badge>
                             <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleRetry(file.name)}
-                          disabled={retryingFile === file.name}>
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleRetry(file.name)}
+                              disabled={retryingFile === file.name}>
 
                               {retryingFile === file.name ?
-                          <Loader2Icon className="w-3.5 h-3.5 animate-spin" /> :
+                                <Loader2Icon className="w-3.5 h-3.5 animate-spin" /> :
 
-                          <RefreshCwIcon className="w-3.5 h-3.5" />
-                          }
+                                <RefreshCwIcon className="w-3.5 h-3.5" />
+                              }
                               <span className="ml-1">
                                 {retryingFile === file.name ?
-                            'Retrying...' :
-                            'Retry'}
+                                  'Retrying...' :
+                                  'Retry'}
                               </span>
                             </Button>
                           </> :
 
-                      <>
+                          <>
                             <Badge variant="success">{file.status}</Badge>
                             <Button variant="ghost" size="sm">
                               <DownloadIcon className="w-4 h-4" />
                             </Button>
                           </>
-                      }
+                        }
                       </div>
                     </div>
                   )}
@@ -614,28 +614,28 @@ export function CustomerDataPage() {
 
       {/* Persona Detail Modal */}
       {selectedPersona &&
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-          className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-          onClick={() => setSelectedPersona(null)} />
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setSelectedPersona(null)} />
 
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
             {/* Header */}
             <div
-            className={`${selectedPersona.colorBg} px-8 pt-8 pb-6 rounded-t-2xl relative`}>
+              className={`${selectedPersona.colorBg} px-8 pt-8 pb-6 rounded-t-2xl relative`}>
 
               <button
-              onClick={() => setSelectedPersona(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-black/5 transition-colors">
+                onClick={() => setSelectedPersona(null)}
+                className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-black/5 transition-colors">
 
                 <XIcon className="w-5 h-5 text-slate-500" />
               </button>
               <div className="flex items-center gap-4">
                 <div
-                className={`w-14 h-14 rounded-2xl ${selectedPersona.colorBg} border-2 border-white shadow-sm flex items-center justify-center`}>
+                  className={`w-14 h-14 rounded-2xl ${selectedPersona.colorBg} border-2 border-white shadow-sm flex items-center justify-center`}>
 
                   <selectedPersona.icon
-                  className={`w-7 h-7 ${selectedPersona.colorText}`} />
+                    className={`w-7 h-7 ${selectedPersona.colorText}`} />
 
                 </div>
                 <div>
@@ -644,7 +644,7 @@ export function CustomerDataPage() {
                       {selectedPersona.name}
                     </h2>
                     <span
-                    className={`text-sm font-bold ${selectedPersona.colorText}`}>
+                      className={`text-sm font-bold ${selectedPersona.colorText}`}>
 
                       {selectedPersona.percentage}% of audience
                     </span>
@@ -670,13 +670,13 @@ export function CustomerDataPage() {
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedPersona.traits.map((trait) =>
-                <span
-                  key={trait}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium ${selectedPersona.colorBg} ${selectedPersona.colorText} border border-current/10`}>
+                    <span
+                      key={trait}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium ${selectedPersona.colorBg} ${selectedPersona.colorText} border border-current/10`}>
 
                       {trait}
                     </span>
-                )}
+                  )}
                 </div>
               </div>
 
@@ -688,14 +688,14 @@ export function CustomerDataPage() {
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   {selectedPersona.adFormats.map((format) =>
-                <div
-                  key={format}
-                  className="flex items-center gap-2 text-sm text-slate-600 p-2 bg-slate-50 rounded-lg">
+                    <div
+                      key={format}
+                      className="flex items-center gap-2 text-sm text-slate-600 p-2 bg-slate-50 rounded-lg">
 
                       <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                       {format}
                     </div>
-                )}
+                  )}
                 </div>
               </div>
 
@@ -720,16 +720,16 @@ export function CustomerDataPage() {
                 </h3>
                 <div className="space-y-3">
                   {selectedPersona.exampleAds.map((ad, idx) =>
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl">
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl">
 
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div
-                      className={`w-8 h-8 rounded-lg ${selectedPersona.colorBg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                          className={`w-8 h-8 rounded-lg ${selectedPersona.colorBg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
 
                           <SparklesIcon
-                        className={`w-4 h-4 ${selectedPersona.colorText}`} />
+                            className={`w-4 h-4 ${selectedPersona.colorText}`} />
 
                         </div>
                         <p className="text-sm font-medium text-slate-900 leading-snug">
@@ -745,7 +745,7 @@ export function CustomerDataPage() {
                         </p>
                       </div>
                     </div>
-                )}
+                  )}
                 </div>
               </div>
 
@@ -755,8 +755,8 @@ export function CustomerDataPage() {
                   Based on {selectedPersona.count} contacts in this segment
                 </p>
                 <Button
-                size="sm"
-                leftIcon={<SparklesIcon className="w-3.5 h-3.5" />}>
+                  size="sm"
+                  leftIcon={<SparklesIcon className="w-3.5 h-3.5" />}>
 
                   Generate Ads for {selectedPersona.name.replace('The ', '')}
                 </Button>

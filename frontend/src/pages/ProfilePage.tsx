@@ -7,18 +7,16 @@ import { Badge } from '../components/ui/Badge';
 import { Select } from '../components/ui/Select';
 import { useCompany } from '../contexts/CompanyContext';
 import {
-  UserIcon,
-  MailIcon,
   BuildingIcon,
   BriefcaseIcon,
   PackageIcon,
   Edit2Icon,
   CheckIcon,
-  PlusIcon,
   TrashIcon,
   ShieldIcon,
-  MoreVerticalIcon } from
-'lucide-react';
+  UsersIcon
+} from
+  'lucide-react';
 export function ProfilePage() {
   const { profile, updateProfile } = useCompany();
   const [isEditing, setIsEditing] = useState(false);
@@ -53,26 +51,26 @@ export function ProfilePage() {
               </p>
             </div>
             {!isEditing ?
-            <Button
-              onClick={() => setIsEditing(true)}
-              leftIcon={<Edit2Icon className="w-4 h-4" />}>
+              <Button
+                onClick={() => setIsEditing(true)}
+                leftIcon={<Edit2Icon className="w-4 h-4" />}>
 
                 Edit Profile
               </Button> :
 
-            <div className="flex gap-3">
+              <div className="flex gap-3">
                 <Button
-                variant="ghost"
-                onClick={() => {
-                  setEditForm(profile);
-                  setIsEditing(false);
-                }}>
+                  variant="ghost"
+                  onClick={() => {
+                    setEditForm(profile);
+                    setIsEditing(false);
+                  }}>
 
                   Cancel
                 </Button>
                 <Button
-                onClick={handleSave}
-                leftIcon={<CheckIcon className="w-4 h-4" />}>
+                  onClick={handleSave}
+                  leftIcon={<CheckIcon className="w-4 h-4" />}>
 
                   Save Changes
                 </Button>
@@ -96,17 +94,17 @@ export function ProfilePage() {
                         Company Name
                       </label>
                       {isEditing ?
-                      <Input
-                        value={editForm.companyName}
-                        onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          companyName: e.target.value
-                        })
-                        } /> :
+                        <Input
+                          value={editForm.companyName}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              companyName: e.target.value
+                            })
+                          } /> :
 
 
-                      <div className="text-lg font-medium text-slate-900 py-2">
+                        <div className="text-lg font-medium text-slate-900 py-2">
                           {profile.companyName}
                         </div>
                       }
@@ -116,17 +114,17 @@ export function ProfilePage() {
                         Industry
                       </label>
                       {isEditing ?
-                      <Input
-                        value={editForm.industry}
-                        onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          industry: e.target.value
-                        })
-                        } /> :
+                        <Input
+                          value={editForm.industry}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              industry: e.target.value
+                            })
+                          } /> :
 
 
-                      <div className="text-lg font-medium text-slate-900 py-2">
+                        <div className="text-lg font-medium text-slate-900 py-2">
                           {profile.industry}
                         </div>
                       }
@@ -138,17 +136,17 @@ export function ProfilePage() {
                       Primary Product
                     </label>
                     {isEditing ?
-                    <Input
-                      value={editForm.primaryProduct}
-                      onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        primaryProduct: e.target.value
-                      })
-                      } /> :
+                      <Input
+                        value={editForm.primaryProduct}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            primaryProduct: e.target.value
+                          })
+                        } /> :
 
 
-                    <div className="text-lg font-medium text-slate-900 py-2">
+                      <div className="text-lg font-medium text-slate-900 py-2">
                         {profile.primaryProduct}
                       </div>
                     }
@@ -186,18 +184,18 @@ export function ProfilePage() {
                     <div className="w-40">
                       <Select
                         options={[
-                        {
-                          value: 'admin',
-                          label: 'Admin'
-                        },
-                        {
-                          value: 'editor',
-                          label: 'Editor'
-                        },
-                        {
-                          value: 'viewer',
-                          label: 'Viewer'
-                        }]
+                          {
+                            value: 'admin',
+                            label: 'Admin'
+                          },
+                          {
+                            value: 'editor',
+                            label: 'Editor'
+                          },
+                          {
+                            value: 'viewer',
+                            label: 'Viewer'
+                          }]
                         }
                         value={inviteRole}
                         onChange={(e) => setInviteRole(e.target.value)}
@@ -207,7 +205,7 @@ export function ProfilePage() {
                     <Button disabled={!inviteEmail}>Send Invite</Button>
                   </div>
                   {showInviteSuccess &&
-                  <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600 animate-in fade-in slide-in-from-top-1">
+                    <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600 animate-in fade-in slide-in-from-top-1">
                       <CheckIcon className="w-4 h-4" />
                       Invitation sent successfully!
                     </div>
@@ -228,52 +226,52 @@ export function ProfilePage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {[
-                      {
-                        name: profile.userName,
-                        email: profile.email,
-                        role: 'Admin',
-                        isMe: true
-                      },
-                      {
-                        name: 'Sarah Chen',
-                        email: 'sarah@acme.inc',
-                        role: 'Editor',
-                        isMe: false
-                      },
-                      {
-                        name: 'Mike Ross',
-                        email: 'mike@acme.inc',
-                        role: 'Viewer',
-                        isMe: false
-                      }].
-                      map((member, i) =>
-                      <tr key={i} className="hover:bg-slate-50">
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-slate-900">
-                              {member.name} {member.isMe && '(You)'}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {member.email}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Badge
-                            variant={
-                            member.role === 'Admin' ? 'info' : 'default'
-                            }>
+                        {
+                          name: profile.userName,
+                          email: profile.email,
+                          role: 'Admin',
+                          isMe: true
+                        },
+                        {
+                          name: 'Sarah Chen',
+                          email: 'sarah@acme.inc',
+                          role: 'Editor',
+                          isMe: false
+                        },
+                        {
+                          name: 'Mike Ross',
+                          email: 'mike@acme.inc',
+                          role: 'Viewer',
+                          isMe: false
+                        }].
+                        map((member, i) =>
+                          <tr key={i} className="hover:bg-slate-50">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-slate-900">
+                                {member.name} {member.isMe && '(You)'}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {member.email}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge
+                                variant={
+                                  member.role === 'Admin' ? 'info' : 'default'
+                                }>
 
-                              {member.role}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {!member.isMe &&
-                          <button className="text-slate-400 hover:text-red-600 transition-colors">
-                                <TrashIcon className="w-4 h-4" />
-                              </button>
-                          }
-                          </td>
-                        </tr>
-                      )}
+                                {member.role}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {!member.isMe &&
+                                <button className="text-slate-400 hover:text-red-600 transition-colors">
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
+                              }
+                            </td>
+                          </tr>
+                        )}
                     </tbody>
                   </table>
                 </div>

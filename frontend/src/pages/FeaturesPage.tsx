@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -7,12 +7,11 @@ import {
   BrainIcon,
   Share2Icon,
   ShieldCheckIcon,
-  ArrowRightIcon,
   TwitterIcon,
   LinkedinIcon,
   GithubIcon,
-  CheckIcon } from
-'lucide-react';
+  CheckIcon
+} from 'lucide-react';
 export function FeaturesPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -106,16 +105,16 @@ export function FeaturesPage() {
               </p>
               <ul className="space-y-4">
                 {[
-                '10+ distinct persona types including The Skeptic, The Impulse Buyer, and The Researcher',
-                'Real-time adaptation based on current market trends and sentiment',
-                'Cultural context awareness for global campaigns',
-                'Emotional trigger mapping for higher conversion rates'].
-                map((item, i) =>
-                <li key={i} className="flex items-start gap-3">
-                    <CheckIcon className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-700">{item}</span>
-                  </li>
-                )}
+                  '10+ distinct persona types including The Skeptic, The Impulse Buyer, and The Researcher',
+                  'Real-time adaptation based on current market trends and sentiment',
+                  'Cultural context awareness for global campaigns',
+                  'Emotional trigger mapping for higher conversion rates'].
+                  map((item, i) =>
+                    <li key={i} className="flex items-start gap-3">
+                      <CheckIcon className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-slate-700">{item}</span>
+                    </li>
+                  )}
               </ul>
             </div>
             <div className="relative">
@@ -208,40 +207,40 @@ export function FeaturesPage() {
 
                   {/* Connected Platforms */}
                   {[
-                  {
-                    icon: 'M',
-                    color: 'bg-blue-600',
-                    pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-16'
-                  },
-                  {
-                    icon: 'Tk',
-                    color: 'bg-black',
-                    pos: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-16'
-                  },
-                  {
-                    icon: 'G',
-                    color: 'bg-green-500',
-                    pos: 'top-1/2 right-0 translate-x-16 -translate-y-1/2'
-                  },
-                  {
-                    icon: 'Y',
-                    color: 'bg-red-600',
-                    pos: 'top-1/2 left-0 -translate-x-16 -translate-y-1/2'
-                  }].
-                  map((p, i) =>
-                  <Fragment key={i}>
-                      <div
-                      className={`absolute ${p.pos} w-16 h-16 rounded-xl ${p.color} flex items-center justify-center text-white font-bold shadow-lg z-10`}>
-
-                        {p.icon}
-                      </div>
-                      <div className="absolute inset-0 flex items-center justify-center">
+                    {
+                      icon: 'M',
+                      color: 'bg-blue-600',
+                      pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-16'
+                    },
+                    {
+                      icon: 'Tk',
+                      color: 'bg-black',
+                      pos: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-16'
+                    },
+                    {
+                      icon: 'G',
+                      color: 'bg-green-500',
+                      pos: 'top-1/2 right-0 translate-x-16 -translate-y-1/2'
+                    },
+                    {
+                      icon: 'Y',
+                      color: 'bg-red-600',
+                      pos: 'top-1/2 left-0 -translate-x-16 -translate-y-1/2'
+                    }].
+                    map((p, i) =>
+                      <Fragment key={i}>
                         <div
-                        className={`w-32 h-0.5 bg-slate-200 absolute ${i === 0 ? 'rotate-90 -translate-y-12' : i === 1 ? 'rotate-90 translate-y-12' : i === 2 ? 'translate-x-12' : '-translate-x-12'}`} />
+                          className={`absolute ${p.pos} w-16 h-16 rounded-xl ${p.color} flex items-center justify-center text-white font-bold shadow-lg z-10`}>
 
-                      </div>
-                    </Fragment>
-                  )}
+                          {p.icon}
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                            className={`w-32 h-0.5 bg-slate-200 absolute ${i === 0 ? 'rotate-90 -translate-y-12' : i === 1 ? 'rotate-90 translate-y-12' : i === 2 ? 'translate-x-12' : '-translate-x-12'}`} />
+
+                        </div>
+                      </Fragment>
+                    )}
                 </div>
               </Card>
             </div>
@@ -260,16 +259,16 @@ export function FeaturesPage() {
               </p>
               <ul className="space-y-4">
                 {[
-                'One-click publishing to Meta, TikTok, Instagram, YouTube, and Google',
-                'Automatic aspect ratio adjustment (9:16, 1:1, 16:9)',
-                'Platform-specific caption and hashtag generation',
-                'Unified analytics dashboard for all channels'].
-                map((item, i) =>
-                <li key={i} className="flex items-start gap-3">
-                    <CheckIcon className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-700">{item}</span>
-                  </li>
-                )}
+                  'One-click publishing to Meta, TikTok, Instagram, YouTube, and Google',
+                  'Automatic aspect ratio adjustment (9:16, 1:1, 16:9)',
+                  'Platform-specific caption and hashtag generation',
+                  'Unified analytics dashboard for all channels'].
+                  map((item, i) =>
+                    <li key={i} className="flex items-start gap-3">
+                      <CheckIcon className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-slate-700">{item}</span>
+                    </li>
+                  )}
               </ul>
             </div>
           </div>
@@ -295,16 +294,16 @@ export function FeaturesPage() {
               </p>
               <ul className="space-y-4">
                 {[
-                'Expert human review for every campaign',
-                'Brand safety and compliance checks',
-                'Tone and voice consistency verification',
-                'Quality scoring before any ad goes live'].
-                map((item, i) =>
-                <li key={i} className="flex items-start gap-3">
-                    <CheckIcon className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-slate-700">{item}</span>
-                  </li>
-                )}
+                  'Expert human review for every campaign',
+                  'Brand safety and compliance checks',
+                  'Tone and voice consistency verification',
+                  'Quality scoring before any ad goes live'].
+                  map((item, i) =>
+                    <li key={i} className="flex items-start gap-3">
+                      <CheckIcon className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-slate-700">{item}</span>
+                    </li>
+                  )}
               </ul>
             </div>
             <div className="relative">

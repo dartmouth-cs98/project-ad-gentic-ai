@@ -34,9 +34,9 @@ import {
   AwardIcon,
   ActivityIcon,
   HeartIcon,
-  ThumbsUpIcon,
-  ShoppingCartIcon } from
-'lucide-react';
+  ShoppingCartIcon
+} from
+  'lucide-react';
 export function LandingPage() {
   const [contactForm, setContactForm] = useState({
     name: '',
@@ -51,39 +51,39 @@ export function LandingPage() {
   });
   const heroRef = useRef<HTMLDivElement>(null);
   const personas = [
-  {
-    id: 0,
-    name: 'The Skeptic',
-    color: 'teal',
-    theme: {
-      primary: 'from-teal-500 to-cyan-600',
-      accent: 'text-teal-500',
-      bg: 'bg-teal-50',
-      border: 'border-teal-200'
-    }
-  },
-  {
-    id: 1,
-    name: 'The Impulse Buyer',
-    color: 'orange',
-    theme: {
-      primary: 'from-orange-500 to-red-600',
-      accent: 'text-orange-500',
-      bg: 'bg-orange-50',
-      border: 'border-orange-200'
-    }
-  },
-  {
-    id: 2,
-    name: 'The Researcher',
-    color: 'blue',
-    theme: {
-      primary: 'from-blue-500 to-indigo-600',
-      accent: 'text-blue-500',
-      bg: 'bg-blue-50',
-      border: 'border-blue-200'
-    }
-  }];
+    {
+      id: 0,
+      name: 'The Skeptic',
+      color: 'teal',
+      theme: {
+        primary: 'from-teal-500 to-cyan-600',
+        accent: 'text-teal-500',
+        bg: 'bg-teal-50',
+        border: 'border-teal-200'
+      }
+    },
+    {
+      id: 1,
+      name: 'The Impulse Buyer',
+      color: 'orange',
+      theme: {
+        primary: 'from-orange-500 to-red-600',
+        accent: 'text-orange-500',
+        bg: 'bg-orange-50',
+        border: 'border-orange-200'
+      }
+    },
+    {
+      id: 2,
+      name: 'The Researcher',
+      color: 'blue',
+      theme: {
+        primary: 'from-blue-500 to-indigo-600',
+        accent: 'text-blue-500',
+        bg: 'bg-blue-50',
+        border: 'border-blue-200'
+      }
+    }];
 
   const currentTheme = personas[activePersona].theme;
   useEffect(() => {
@@ -178,11 +178,11 @@ export function LandingPage() {
             left: mousePos.x - 128,
             top: mousePos.y - 128,
             background:
-            activePersona === 0 ?
-            '#14b8a6' :
-            activePersona === 1 ?
-            '#f97316' :
-            '#3b82f6'
+              activePersona === 0 ?
+                '#14b8a6' :
+                activePersona === 1 ?
+                  '#f97316' :
+                  '#3b82f6'
           }} />
 
 
@@ -331,10 +331,10 @@ export function LandingPage() {
               {/* Persona Tabs */}
               <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 relative z-20">
                 {personas.map((persona, index) =>
-                <button
-                  key={persona.id}
-                  onClick={() => handlePersonaClick(index)}
-                  className={`
+                  <button
+                    key={persona.id}
+                    onClick={() => handlePersonaClick(index)}
+                    className={`
                       px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300
                       ${activePersona === index ? `bg-gradient-to-r ${persona.theme.primary} text-white shadow-lg scale-105` : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}
                     `}>
@@ -353,13 +353,13 @@ export function LandingPage() {
                     ${activePersona === 0 ? 'opacity-100 scale-100 z-30 translate-x-0 persona-glow' : 'opacity-40 scale-90 z-10 translate-x-12 translate-y-4 blur-[1px]'}
                   `}
                   style={
-                  {
-                    '--persona-glow': 'rgba(20, 184, 166, 0.3)',
-                    backgroundColor: '#0f1d2e',
-                    backgroundImage:
-                    'linear-gradient(to bottom right, #0f172a, #042f2e), linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px)',
-                    backgroundSize: '100% 100%, 20px 20px, 20px 20px'
-                  } as React.CSSProperties
+                    {
+                      '--persona-glow': 'rgba(20, 184, 166, 0.3)',
+                      backgroundColor: '#0f1d2e',
+                      backgroundImage:
+                        'linear-gradient(to bottom right, #0f172a, #042f2e), linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px)',
+                      backgroundSize: '100% 100%, 20px 20px, 20px 20px'
+                    } as React.CSSProperties
                   }>
 
                   <div className="hidden sm:flex absolute top-4 right-4 items-center gap-1">
@@ -403,9 +403,9 @@ export function LandingPage() {
                     </div>
                     <div className="flex justify-between mt-1 opacity-50">
                       {[...Array(10)].map((_, i) =>
-                      <div
-                        key={i}
-                        className="w-px h-0.5 sm:h-1 bg-teal-900" />
+                        <div
+                          key={i}
+                          className="w-px h-0.5 sm:h-1 bg-teal-900" />
 
                       )}
                     </div>
@@ -428,9 +428,9 @@ export function LandingPage() {
                     ${activePersona === 1 ? 'opacity-100 scale-100 z-30 translate-x-0 persona-glow' : activePersona === 0 ? 'opacity-40 scale-90 z-10 translate-x-12 translate-y-4 blur-[1px]' : 'opacity-40 scale-90 z-10 -translate-x-12 translate-y-4 blur-[1px]'}
                   `}
                   style={
-                  {
-                    '--persona-glow': 'rgba(249, 115, 22, 0.3)'
-                  } as React.CSSProperties
+                    {
+                      '--persona-glow': 'rgba(249, 115, 22, 0.3)'
+                    } as React.CSSProperties
                   }>
 
                   <div className="flex items-center gap-2 mb-2 sm:mb-4 text-orange-600">
@@ -469,9 +469,9 @@ export function LandingPage() {
                     ${activePersona === 2 ? 'opacity-100 scale-100 z-30 translate-x-0 persona-glow' : 'opacity-40 scale-90 z-10 -translate-x-12 translate-y-4 blur-[1px]'}
                   `}
                   style={
-                  {
-                    '--persona-glow': 'rgba(59, 130, 246, 0.3)'
-                  } as React.CSSProperties
+                    {
+                      '--persona-glow': 'rgba(59, 130, 246, 0.3)'
+                    } as React.CSSProperties
                   }>
 
                   <div className="flex items-center gap-2 mb-2 sm:mb-4 text-blue-600">
@@ -1199,10 +1199,10 @@ export function LandingPage() {
                   placeholder="John Smith"
                   value={contactForm.name}
                   onChange={(e) =>
-                  setContactForm({
-                    ...contactForm,
-                    name: e.target.value
-                  })
+                    setContactForm({
+                      ...contactForm,
+                      name: e.target.value
+                    })
                   } />
 
                 <Input
@@ -1211,10 +1211,10 @@ export function LandingPage() {
                   placeholder="john@company.com"
                   value={contactForm.email}
                   onChange={(e) =>
-                  setContactForm({
-                    ...contactForm,
-                    email: e.target.value
-                  })
+                    setContactForm({
+                      ...contactForm,
+                      email: e.target.value
+                    })
                   } />
 
                 <Textarea
@@ -1223,10 +1223,10 @@ export function LandingPage() {
                   rows={4}
                   value={contactForm.message}
                   onChange={(e) =>
-                  setContactForm({
-                    ...contactForm,
-                    message: e.target.value
-                  })
+                    setContactForm({
+                      ...contactForm,
+                      message: e.target.value
+                    })
                   } />
 
                 <Button className="w-full">Request a Call</Button>

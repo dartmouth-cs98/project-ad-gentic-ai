@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Button } from '../components/ui/Button';
@@ -9,7 +9,6 @@ import { Textarea } from '../components/ui/Textarea';
 import { Badge } from '../components/ui/Badge';
 import {
   SparklesIcon,
-  PlusIcon,
   TrendingUpIcon,
   TrendingDownIcon,
   EyeIcon,
@@ -25,135 +24,133 @@ import {
   MousePointerClickIcon,
   RocketIcon,
   UploadIcon,
-  CalendarIcon,
-  BarChart3Icon,
-  UsersIcon,
-  TargetIcon } from
-'lucide-react';
+  BarChart3Icon
+} from
+  'lucide-react';
 // Mock Data for returning users
 const recentActivity = [
-{
-  id: 1,
-  type: 'created',
-  title: 'Campaign Launched',
-  text: 'Summer Sale 2026 is now live across Meta and TikTok.',
-  time: '2 hours ago',
-  icon: PlayCircleIcon,
-  color: 'text-emerald-600',
-  bg: 'bg-emerald-50',
-  linkTo: '/campaign/1',
-  linkLabel: 'Summer Sale 2026'
-},
-{
-  id: 2,
-  type: 'generated',
-  title: 'New Variants Generated',
-  text: 'AI created 12 new hooks for "Product Launch" targeting The Researcher.',
-  time: '5 hours ago',
-  icon: SparklesIcon,
-  color: 'text-blue-600',
-  bg: 'bg-blue-50',
-  linkTo: '/campaign/2',
-  linkLabel: 'Product Launch'
-},
-{
-  id: 3,
-  type: 'approved',
-  title: 'Creative Approved',
-  text: '3 video variants approved for "Brand Awareness" campaign.',
-  time: '1 day ago',
-  icon: CheckIcon,
-  color: 'text-purple-600',
-  bg: 'bg-purple-50',
-  linkTo: '/campaign/3',
-  linkLabel: 'Brand Awareness'
-}];
+  {
+    id: 1,
+    type: 'created',
+    title: 'Campaign Launched',
+    text: 'Summer Sale 2026 is now live across Meta and TikTok.',
+    time: '2 hours ago',
+    icon: PlayCircleIcon,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    linkTo: '/campaign/1',
+    linkLabel: 'Summer Sale 2026'
+  },
+  {
+    id: 2,
+    type: 'generated',
+    title: 'New Variants Generated',
+    text: 'AI created 12 new hooks for "Product Launch" targeting The Researcher.',
+    time: '5 hours ago',
+    icon: SparklesIcon,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    linkTo: '/campaign/2',
+    linkLabel: 'Product Launch'
+  },
+  {
+    id: 3,
+    type: 'approved',
+    title: 'Creative Approved',
+    text: '3 video variants approved for "Brand Awareness" campaign.',
+    time: '1 day ago',
+    icon: CheckIcon,
+    color: 'text-purple-600',
+    bg: 'bg-purple-50',
+    linkTo: '/campaign/3',
+    linkLabel: 'Brand Awareness'
+  }];
 
 const topCampaigns = [
-{
-  id: '1',
-  name: 'Summer Sale 2026',
-  status: 'active',
-  metricLabel: 'Conversions',
-  metricValue: '1,240',
-  platform: 'Meta',
-  trend: 'up' as const,
-  trendValue: '+12%'
-},
-{
-  id: '2',
-  name: 'Product Launch',
-  status: 'active',
-  metricLabel: 'CTR',
-  metricValue: '4.8%',
-  platform: 'TikTok',
-  trend: 'up' as const,
-  trendValue: '+0.6%'
-},
-{
-  id: '3',
-  name: 'Brand Awareness',
-  status: 'completed',
-  metricLabel: 'Reach',
-  metricValue: '450K',
-  platform: 'YouTube',
-  trend: 'down' as const,
-  trendValue: '-3%'
-}];
+  {
+    id: '1',
+    name: 'Summer Sale 2026',
+    status: 'active',
+    metricLabel: 'Conversions',
+    metricValue: '1,240',
+    platform: 'Meta',
+    trend: 'up' as const,
+    trendValue: '+12%'
+  },
+  {
+    id: '2',
+    name: 'Product Launch',
+    status: 'active',
+    metricLabel: 'CTR',
+    metricValue: '4.8%',
+    platform: 'TikTok',
+    trend: 'up' as const,
+    trendValue: '+0.6%'
+  },
+  {
+    id: '3',
+    name: 'Brand Awareness',
+    status: 'completed',
+    metricLabel: 'Reach',
+    metricValue: '450K',
+    platform: 'YouTube',
+    trend: 'down' as const,
+    trendValue: '-3%'
+  }];
 
 const timeRanges = [
-{
-  value: '7d',
-  label: 'Last 7 days'
-},
-{
-  value: '30d',
-  label: 'Last 30 days'
-},
-{
-  value: '90d',
-  label: 'Last 90 days'
-},
-{
-  value: 'all',
-  label: 'All time'
-}];
+  {
+    value: '7d',
+    label: 'Last 7 days'
+  },
+  {
+    value: '30d',
+    label: 'Last 30 days'
+  },
+  {
+    value: '90d',
+    label: 'Last 90 days'
+  },
+  {
+    value: 'all',
+    label: 'All time'
+  }];
 
 const platforms = [
-{
-  id: 'meta',
-  label: 'Meta'
-},
-{
-  id: 'tiktok',
-  label: 'TikTok'
-},
-{
-  id: 'youtube',
-  label: 'YouTube'
-},
-{
-  id: 'linkedin',
-  label: 'LinkedIn'
-}];
+  {
+    id: 'meta',
+    label: 'Meta'
+  },
+  {
+    id: 'tiktok',
+    label: 'TikTok'
+  },
+  {
+    id: 'youtube',
+    label: 'YouTube'
+  },
+  {
+    id: 'linkedin',
+    label: 'LinkedIn'
+  }];
 
 const regions = [
-{
-  id: 'na',
-  label: 'North America'
-},
-{
-  id: 'eu',
-  label: 'Europe'
-},
-{
-  id: 'apac',
-  label: 'Asia Pacific'
-},
-{
-  id: 'global',
-  label: 'Global'
-}];
+  {
+    id: 'na',
+    label: 'North America'
+  },
+  {
+    id: 'eu',
+    label: 'Europe'
+  },
+  {
+    id: 'apac',
+    label: 'Asia Pacific'
+  },
+  {
+    id: 'global',
+    label: 'Global'
+  }];
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -178,8 +175,8 @@ export function DashboardPage() {
     setNewCampaign({
       ...newCampaign,
       platforms: newCampaign.platforms.includes(platformId) ?
-      newCampaign.platforms.filter((p) => p !== platformId) :
-      [...newCampaign.platforms, platformId]
+        newCampaign.platforms.filter((p) => p !== platformId) :
+        [...newCampaign.platforms, platformId]
     });
   };
   const handleAutofill = () => {
@@ -191,7 +188,7 @@ export function DashboardPage() {
         region: 'na',
         goal: 'sales',
         targetAudience:
-        'Tech-savvy millennials interested in productivity tools.'
+          'Tech-savvy millennials interested in productivity tools.'
       });
       setIsAutofilling(false);
     }, 1500);
@@ -201,7 +198,7 @@ export function DashboardPage() {
     if (!newCampaign.name) newErrors.name = 'Campaign name is required';
     if (!newCampaign.product) newErrors.product = 'Product/Service is required';
     if (!newCampaign.targetAudience)
-    newErrors.targetAudience = 'Target audience is required';
+      newErrors.targetAudience = 'Target audience is required';
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -221,7 +218,7 @@ export function DashboardPage() {
       <Sidebar />
       <main className="ml-64 p-8 max-w-[1600px] mx-auto">
         {isReturningUser /* ===================== RETURNING USER DASHBOARD ===================== */ ?
-        <>
+          <>
             {/* Header */}
             <div className="mb-8 flex items-end justify-between">
               <div>
@@ -235,18 +232,18 @@ export function DashboardPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center bg-white border border-slate-200 rounded-full p-0.5 shadow-sm">
                   {timeRanges.map((range) =>
-                <button
-                  key={range.value}
-                  onClick={() => setTimeRange(range.value)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${timeRange === range.value ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                    <button
+                      key={range.value}
+                      onClick={() => setTimeRange(range.value)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${timeRange === range.value ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
 
                       {range.label}
                     </button>
-                )}
+                  )}
                 </div>
                 <button
-                onClick={() => navigate('/generate')}
-                className="px-6 py-3 rounded-full bg-slate-900 text-white font-medium shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 group">
+                  onClick={() => navigate('/generate')}
+                  className="px-6 py-3 rounded-full bg-slate-900 text-white font-medium shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 group">
 
                   <SparklesIcon className="w-4 h-4 group-hover:animate-pulse" />
                   Generate New Ad
@@ -302,41 +299,41 @@ export function DashboardPage() {
                         strategies this week.
                       </p>
                       <svg
-                      className="w-48 h-16 text-blue-500"
-                      viewBox="0 0 100 40"
-                      preserveAspectRatio="none">
+                        className="w-48 h-16 text-blue-500"
+                        viewBox="0 0 100 40"
+                        preserveAspectRatio="none">
 
                         <defs>
                           <linearGradient
-                          id="gradientReach"
-                          x1="0"
-                          x2="0"
-                          y1="0"
-                          y2="1">
+                            id="gradientReach"
+                            x1="0"
+                            x2="0"
+                            y1="0"
+                            y2="1">
 
                             <stop
-                            offset="0%"
-                            stopColor="currentColor"
-                            stopOpacity="0.2" />
+                              offset="0%"
+                              stopColor="currentColor"
+                              stopOpacity="0.2" />
 
                             <stop
-                            offset="100%"
-                            stopColor="currentColor"
-                            stopOpacity="0" />
+                              offset="100%"
+                              stopColor="currentColor"
+                              stopOpacity="0" />
 
                           </linearGradient>
                         </defs>
                         <path
-                        d="M0 35 Q 10 30, 20 32 T 40 20 T 60 25 T 80 10 T 100 5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        vectorEffect="non-scaling-stroke" />
+                          d="M0 35 Q 10 30, 20 32 T 40 20 T 60 25 T 80 10 T 100 5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          vectorEffect="non-scaling-stroke" />
 
                         <path
-                        d="M0 35 Q 10 30, 20 32 T 40 20 T 60 25 T 80 10 T 100 5 V 40 H 0 Z"
-                        fill="url(#gradientReach)"
-                        stroke="none" />
+                          d="M0 35 Q 10 30, 20 32 T 40 20 T 60 25 T 80 10 T 100 5 V 40 H 0 Z"
+                          fill="url(#gradientReach)"
+                          stroke="none" />
 
                       </svg>
                     </div>
@@ -369,23 +366,23 @@ export function DashboardPage() {
                     <div className="relative w-32 h-32 flex-shrink-0">
                       <svg className="w-full h-full transform -rotate-90">
                         <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        fill="none"
-                        stroke="#e2e8f0"
-                        strokeWidth="8" />
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          fill="none"
+                          stroke="#e2e8f0"
+                          strokeWidth="8" />
 
                         <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        fill="none"
-                        stroke="#0d9488"
-                        strokeWidth="8"
-                        strokeDasharray="351.86"
-                        strokeDashoffset="77.4"
-                        strokeLinecap="round" />
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          fill="none"
+                          stroke="#0d9488"
+                          strokeWidth="8"
+                          strokeDasharray="351.86"
+                          strokeDashoffset="77.4"
+                          strokeLinecap="round" />
 
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -404,14 +401,14 @@ export function DashboardPage() {
                       </p>
                       <div className="flex gap-2">
                         <Badge
-                        variant="info"
-                        className="bg-teal-50 text-teal-700 border-teal-100">
+                          variant="info"
+                          className="bg-teal-50 text-teal-700 border-teal-100">
 
                           Data-Driven
                         </Badge>
                         <Badge
-                        variant="info"
-                        className="bg-teal-50 text-teal-700 border-teal-100">
+                          variant="info"
+                          className="bg-teal-50 text-teal-700 border-teal-100">
 
                           High Intent
                         </Badge>
@@ -448,15 +445,15 @@ export function DashboardPage() {
                     </p>
                   </div>
                   <svg
-                  className="w-24 h-12 text-emerald-500 opacity-50"
-                  viewBox="0 0 64 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2">
+                    className="w-24 h-12 text-emerald-500 opacity-50"
+                    viewBox="0 0 64 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2">
 
                     <path
-                    d="M0 20 L10 15 L20 18 L30 10 L40 12 L50 5 L64 2"
-                    vectorEffect="non-scaling-stroke" />
+                      d="M0 20 L10 15 L20 18 L30 10 L40 12 L50 5 L64 2"
+                      vectorEffect="non-scaling-stroke" />
 
                   </svg>
                 </div>
@@ -485,15 +482,15 @@ export function DashboardPage() {
                     </p>
                   </div>
                   <svg
-                  className="w-24 h-12 text-purple-500 opacity-50"
-                  viewBox="0 0 64 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2">
+                    className="w-24 h-12 text-purple-500 opacity-50"
+                    viewBox="0 0 64 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2">
 
                     <path
-                    d="M0 18 L15 15 L25 20 L35 10 L45 8 L64 4"
-                    vectorEffect="non-scaling-stroke" />
+                      d="M0 18 L15 15 L25 20 L35 10 L45 8 L64 4"
+                      vectorEffect="non-scaling-stroke" />
 
                   </svg>
                 </div>
@@ -512,15 +509,15 @@ export function DashboardPage() {
                     <div className="absolute top-4 bottom-4 left-[19px] w-0.5 bg-slate-100" />
                     <div className="space-y-8">
                       {recentActivity.map((activity) =>
-                    <div
-                      key={activity.id}
-                      className="relative flex gap-4 group">
+                        <div
+                          key={activity.id}
+                          className="relative flex gap-4 group">
 
                           <div
-                        className={`w-10 h-10 rounded-xl border border-white shadow-sm flex items-center justify-center flex-shrink-0 z-10 ${activity.bg}`}>
+                            className={`w-10 h-10 rounded-xl border border-white shadow-sm flex items-center justify-center flex-shrink-0 z-10 ${activity.bg}`}>
 
                             <activity.icon
-                          className={`w-5 h-5 ${activity.color}`} />
+                              className={`w-5 h-5 ${activity.color}`} />
 
                           </div>
                           <div className="pt-1">
@@ -536,15 +533,15 @@ export function DashboardPage() {
                               {activity.text}
                             </p>
                             <Link
-                          to={activity.linkTo}
-                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium mt-1.5 group/link">
+                              to={activity.linkTo}
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium mt-1.5 group/link">
 
                               View {activity.linkLabel}
                               <ArrowUpRightIcon className="w-3 h-3 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                             </Link>
                           </div>
                         </div>
-                    )}
+                      )}
                     </div>
                   </div>
                 </div>
@@ -557,10 +554,10 @@ export function DashboardPage() {
                 </h2>
                 <div className="space-y-4">
                   {topCampaigns.map((campaign) =>
-                <div
-                  key={campaign.id}
-                  className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_4px_16px_rgba(0,0,0,0.04)] rounded-2xl p-5 flex items-center justify-between group hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => navigate(`/campaign/${campaign.id}`)}>
+                    <div
+                      key={campaign.id}
+                      className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_4px_16px_rgba(0,0,0,0.04)] rounded-2xl p-5 flex items-center justify-between group hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => navigate(`/campaign/${campaign.id}`)}>
 
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
@@ -572,11 +569,11 @@ export function DashboardPage() {
                               {campaign.name}
                             </h3>
                             <Badge
-                          variant={
-                          campaign.status === 'active' ?
-                          'success' :
-                          'default'
-                          }>
+                              variant={
+                                campaign.status === 'active' ?
+                                  'success' :
+                                  'default'
+                              }>
 
                               {campaign.status}
                             </Badge>
@@ -596,13 +593,13 @@ export function DashboardPage() {
                               {campaign.metricValue}
                             </p>
                             <span
-                          className={`inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full ${campaign.trend === 'up' ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'}`}>
+                              className={`inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full ${campaign.trend === 'up' ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'}`}>
 
                               {campaign.trend === 'up' ?
-                          <TrendingUpIcon className="w-3 h-3" /> :
+                                <TrendingUpIcon className="w-3 h-3" /> :
 
-                          <TrendingDownIcon className="w-3 h-3" />
-                          }
+                                <TrendingDownIcon className="w-3 h-3" />
+                              }
                               {campaign.trendValue}
                             </span>
                           </div>
@@ -615,13 +612,13 @@ export function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                )}
+                  )}
                 </div>
               </div>
             </div>
           </> /* ===================== NEW USER ONBOARDING DASHBOARD ===================== */ :
 
-        <>
+          <>
             {/* Header */}
             <div className="mb-8 flex items-end justify-between">
               <div>
@@ -633,8 +630,8 @@ export function DashboardPage() {
                 </p>
               </div>
               <button
-              onClick={() => navigate('/generate')}
-              className="px-6 py-3 rounded-full bg-slate-900 text-white font-medium shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 group">
+                onClick={() => navigate('/generate')}
+                className="px-6 py-3 rounded-full bg-slate-900 text-white font-medium shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 group">
 
                 <SparklesIcon className="w-4 h-4 group-hover:animate-pulse" />
                 Generate New Ad
@@ -674,8 +671,8 @@ export function DashboardPage() {
               </p>
               <div className="grid grid-cols-3 gap-6">
                 <div
-                className="bg-white rounded-2xl border border-slate-200 p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
-                onClick={() => navigate('/customer-data')}>
+                  className="bg-white rounded-2xl border border-slate-200 p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
+                  onClick={() => navigate('/customer-data')}>
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
@@ -697,8 +694,8 @@ export function DashboardPage() {
                   </span>
                 </div>
                 <div
-                className="bg-white rounded-2xl border border-slate-200 p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
-                onClick={() => navigate('/generate')}>
+                  className="bg-white rounded-2xl border border-slate-200 p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
+                  onClick={() => navigate('/generate')}>
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -720,8 +717,8 @@ export function DashboardPage() {
                   </span>
                 </div>
                 <div
-                className="bg-white rounded-2xl border border-slate-200 p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
-                onClick={() => navigate('/campaigns')}>
+                  className="bg-white rounded-2xl border border-slate-200 p-6 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
+                  onClick={() => navigate('/campaigns')}>
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -764,8 +761,8 @@ export function DashboardPage() {
                     metrics for reach, conversions, CTR, and ad spend here.
                   </p>
                   <button
-                  onClick={() => navigate('/generate')}
-                  className="px-4 py-2 bg-slate-900 text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-2">
+                    onClick={() => navigate('/generate')}
+                    className="px-4 py-2 bg-slate-900 text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-2">
 
                     <SparklesIcon className="w-4 h-4" />
                     Create your first ad
@@ -797,126 +794,126 @@ export function DashboardPage() {
 
       {/* Create Campaign Modal */}
       {showCreateModal &&
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-          className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-          onClick={() => setShowCreateModal(false)} />
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setShowCreateModal(false)} />
 
           <Card
-          variant="elevated"
-          padding="lg"
-          className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            variant="elevated"
+            padding="lg"
+            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto">
 
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-slate-900">
                 Create New Campaign
               </h2>
               <button
-              onClick={() => setShowCreateModal(false)}
-              className="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 transition-colors">
 
                 <XIcon className="w-5 h-5 text-slate-500" />
               </button>
             </div>
             <div className="space-y-4">
               <button
-              onClick={handleAutofill}
-              disabled={isAutofilling}
-              className="w-full flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors font-medium mb-4 disabled:opacity-50">
+                onClick={handleAutofill}
+                disabled={isAutofilling}
+                className="w-full flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors font-medium mb-4 disabled:opacity-50">
 
                 {isAutofilling ?
-              <>
+                  <>
                     <Loader2Icon className="w-4 h-4 animate-spin" />
                     Auto-filling details...
                   </> :
 
-              <>
+                  <>
                     <SparklesIcon className="w-4 h-4" />
                     Auto-fill from profile
                   </>
-              }
+                }
               </button>
               <Input
-              label="Campaign Name *"
-              placeholder="e.g., Summer Sale 2026"
-              value={newCampaign.name}
-              onChange={(e) =>
-              setNewCampaign({
-                ...newCampaign,
-                name: e.target.value
-              })
-              }
-              error={errors.name} />
+                label="Campaign Name *"
+                placeholder="e.g., Summer Sale 2026"
+                value={newCampaign.name}
+                onChange={(e) =>
+                  setNewCampaign({
+                    ...newCampaign,
+                    name: e.target.value
+                  })
+                }
+                error={errors.name} />
 
               <Input
-              label="Product / Service *"
-              placeholder="What are you advertising?"
-              value={newCampaign.product}
-              onChange={(e) =>
-              setNewCampaign({
-                ...newCampaign,
-                product: e.target.value
-              })
-              }
-              error={errors.product} />
+                label="Product / Service *"
+                placeholder="What are you advertising?"
+                value={newCampaign.product}
+                onChange={(e) =>
+                  setNewCampaign({
+                    ...newCampaign,
+                    product: e.target.value
+                  })
+                }
+                error={errors.product} />
 
               <Textarea
-              label="Target Audience *"
-              placeholder="Describe who you want to reach..."
-              rows={3}
-              value={newCampaign.targetAudience}
-              onChange={(e) =>
-              setNewCampaign({
-                ...newCampaign,
-                targetAudience: e.target.value
-              })
-              }
-              error={errors.targetAudience} />
+                label="Target Audience *"
+                placeholder="Describe who you want to reach..."
+                rows={3}
+                value={newCampaign.targetAudience}
+                onChange={(e) =>
+                  setNewCampaign({
+                    ...newCampaign,
+                    targetAudience: e.target.value
+                  })
+                }
+                error={errors.targetAudience} />
 
               <div>
                 <Select
-                label="Campaign Goal"
-                options={[
-                {
-                  value: 'awareness',
-                  label: 'Brand Awareness'
-                },
-                {
-                  value: 'leads',
-                  label: 'Lead Generation'
-                },
-                {
-                  value: 'sales',
-                  label: 'Direct Sales'
-                },
-                {
-                  value: 'engagement',
-                  label: 'Engagement'
-                },
-                {
-                  value: 'other',
-                  label: 'Other'
-                }]
-                }
-                placeholder="Select goal"
-                value={newCampaign.goal}
-                onChange={(e) =>
-                setNewCampaign({
-                  ...newCampaign,
-                  goal: e.target.value
-                })
-                } />
+                  label="Campaign Goal"
+                  options={[
+                    {
+                      value: 'awareness',
+                      label: 'Brand Awareness'
+                    },
+                    {
+                      value: 'leads',
+                      label: 'Lead Generation'
+                    },
+                    {
+                      value: 'sales',
+                      label: 'Direct Sales'
+                    },
+                    {
+                      value: 'engagement',
+                      label: 'Engagement'
+                    },
+                    {
+                      value: 'other',
+                      label: 'Other'
+                    }]
+                  }
+                  placeholder="Select goal"
+                  value={newCampaign.goal}
+                  onChange={(e) =>
+                    setNewCampaign({
+                      ...newCampaign,
+                      goal: e.target.value
+                    })
+                  } />
 
                 {newCampaign.goal === 'other' &&
-              <div className="mt-2">
+                  <div className="mt-2">
                     <Input
-                  label="Custom Goal"
-                  placeholder="Describe your specific goal..."
-                  value={customGoal}
-                  onChange={(e) => setCustomGoal(e.target.value)} />
+                      label="Custom Goal"
+                      placeholder="Describe your specific goal..."
+                      value={customGoal}
+                      onChange={(e) => setCustomGoal(e.target.value)} />
 
                   </div>
-              }
+                }
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -924,34 +921,34 @@ export function DashboardPage() {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {platforms.map((platform) =>
-                <button
-                  key={platform.id}
-                  type="button"
-                  onClick={() => togglePlatform(platform.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-all ${newCampaign.platforms.includes(platform.id) ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-700'}`}>
+                    <button
+                      key={platform.id}
+                      type="button"
+                      onClick={() => togglePlatform(platform.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-all ${newCampaign.platforms.includes(platform.id) ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-700'}`}>
 
                       {newCampaign.platforms.includes(platform.id) &&
-                  <CheckIcon className="w-3.5 h-3.5" />
-                  }
+                        <CheckIcon className="w-3.5 h-3.5" />
+                      }
                       {platform.label}
                     </button>
-                )}
+                  )}
                 </div>
               </div>
               <Select
-              label="Target Region"
-              options={regions.map((r) => ({
-                value: r.id,
-                label: r.label
-              }))}
-              placeholder="Select region"
-              value={newCampaign.region}
-              onChange={(e) =>
-              setNewCampaign({
-                ...newCampaign,
-                region: e.target.value
-              })
-              } />
+                label="Target Region"
+                options={regions.map((r) => ({
+                  value: r.id,
+                  label: r.label
+                }))}
+                placeholder="Select region"
+                value={newCampaign.region}
+                onChange={(e) =>
+                  setNewCampaign({
+                    ...newCampaign,
+                    region: e.target.value
+                  })
+                } />
 
             </div>
             <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
@@ -959,8 +956,8 @@ export function DashboardPage() {
                 Cancel
               </Button>
               <Button
-              onClick={handleCreateCampaign}
-              leftIcon={<SparklesIcon className="w-4 h-4" />}>
+                onClick={handleCreateCampaign}
+                leftIcon={<SparklesIcon className="w-4 h-4" />}>
 
                 Create & Generate Ads
               </Button>

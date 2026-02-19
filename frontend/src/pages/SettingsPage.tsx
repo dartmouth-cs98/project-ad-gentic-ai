@@ -10,20 +10,12 @@ import { useCompany } from '../contexts/CompanyContext';
 import {
   CreditCardIcon,
   CheckIcon,
-  BellIcon,
   ShieldIcon,
   ZapIcon,
   ClockIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
-  UploadIcon,
-  PaletteIcon,
   LinkIcon,
-  XIcon,
-  ExternalLinkIcon,
-  WifiIcon,
-  WifiOffIcon,
-  MessageSquareIcon,
   MailIcon,
   SmartphoneIcon,
   HashIcon,
@@ -31,9 +23,9 @@ import {
   UsersIcon,
   SettingsIcon,
   ImageIcon,
-  TypeIcon,
-  Loader2Icon } from
-'lucide-react';
+  Loader2Icon
+} from
+  'lucide-react';
 type TabKey = 'billing' | 'plans' | 'brand' | 'integrations' | 'notifications';
 interface Integration {
   id: string;
@@ -45,95 +37,95 @@ interface Integration {
   accountName?: string;
 }
 const initialIntegrations: Integration[] = [
-{
-  id: 'meta',
-  name: 'Meta (Facebook/Instagram)',
-  description: 'Publish and manage ads across Facebook and Instagram.',
-  icon: 'M',
-  color: 'bg-blue-600',
-  connected: true,
-  accountName: 'Acme Inc. Business'
-},
-{
-  id: 'tiktok',
-  name: 'TikTok Ads',
-  description: 'Create and deploy short-form video ad campaigns.',
-  icon: 'T',
-  color: 'bg-slate-900',
-  connected: true,
-  accountName: 'acme_official'
-},
-{
-  id: 'youtube',
-  name: 'YouTube Ads',
-  description: 'Run video ads and bumper campaigns on YouTube.',
-  icon: 'Y',
-  color: 'bg-red-600',
-  connected: false
-},
-{
-  id: 'linkedin',
-  name: 'LinkedIn Ads',
-  description: 'Target professionals with sponsored content and InMail.',
-  icon: 'in',
-  color: 'bg-blue-700',
-  connected: false
-},
-{
-  id: 'google',
-  name: 'Google Ads',
-  description: 'Search, display, and Performance Max campaigns.',
-  icon: 'G',
-  color: 'bg-emerald-600',
-  connected: false
-},
-{
-  id: 'slack',
-  name: 'Slack',
-  description: 'Get campaign alerts and approvals in your Slack channels.',
-  icon: 'S',
-  color: 'bg-purple-600',
-  connected: true,
-  accountName: '#marketing-ads'
-},
-{
-  id: 'hubspot',
-  name: 'HubSpot',
-  description: 'Sync contacts and audience data from your CRM.',
-  icon: 'H',
-  color: 'bg-orange-500',
-  connected: false
-},
-{
-  id: 'zapier',
-  name: 'Zapier',
-  description: 'Connect Ad-gentic to 5,000+ apps with automations.',
-  icon: 'Z',
-  color: 'bg-orange-600',
-  connected: false
-}];
+  {
+    id: 'meta',
+    name: 'Meta (Facebook/Instagram)',
+    description: 'Publish and manage ads across Facebook and Instagram.',
+    icon: 'M',
+    color: 'bg-blue-600',
+    connected: true,
+    accountName: 'Acme Inc. Business'
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok Ads',
+    description: 'Create and deploy short-form video ad campaigns.',
+    icon: 'T',
+    color: 'bg-slate-900',
+    connected: true,
+    accountName: 'acme_official'
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube Ads',
+    description: 'Run video ads and bumper campaigns on YouTube.',
+    icon: 'Y',
+    color: 'bg-red-600',
+    connected: false
+  },
+  {
+    id: 'linkedin',
+    name: 'LinkedIn Ads',
+    description: 'Target professionals with sponsored content and InMail.',
+    icon: 'in',
+    color: 'bg-blue-700',
+    connected: false
+  },
+  {
+    id: 'google',
+    name: 'Google Ads',
+    description: 'Search, display, and Performance Max campaigns.',
+    icon: 'G',
+    color: 'bg-emerald-600',
+    connected: false
+  },
+  {
+    id: 'slack',
+    name: 'Slack',
+    description: 'Get campaign alerts and approvals in your Slack channels.',
+    icon: 'S',
+    color: 'bg-purple-600',
+    connected: true,
+    accountName: '#marketing-ads'
+  },
+  {
+    id: 'hubspot',
+    name: 'HubSpot',
+    description: 'Sync contacts and audience data from your CRM.',
+    icon: 'H',
+    color: 'bg-orange-500',
+    connected: false
+  },
+  {
+    id: 'zapier',
+    name: 'Zapier',
+    description: 'Connect Ad-gentic to 5,000+ apps with automations.',
+    icon: 'Z',
+    color: 'bg-orange-600',
+    connected: false
+  }];
 
 const toneOptions = [
-{
-  value: 'professional',
-  label: 'Professional',
-  desc: 'Polished, authoritative, trustworthy'
-},
-{
-  value: 'casual',
-  label: 'Casual',
-  desc: 'Friendly, approachable, conversational'
-},
-{
-  value: 'bold',
-  label: 'Bold',
-  desc: 'Confident, direct, attention-grabbing'
-},
-{
-  value: 'playful',
-  label: 'Playful',
-  desc: 'Fun, witty, lighthearted'
-}];
+  {
+    value: 'professional',
+    label: 'Professional',
+    desc: 'Polished, authoritative, trustworthy'
+  },
+  {
+    value: 'casual',
+    label: 'Casual',
+    desc: 'Friendly, approachable, conversational'
+  },
+  {
+    value: 'bold',
+    label: 'Bold',
+    desc: 'Confident, direct, attention-grabbing'
+  },
+  {
+    value: 'playful',
+    label: 'Playful',
+    desc: 'Fun, witty, lighthearted'
+  }];
 
 interface NotificationSetting {
   id: string;
@@ -145,60 +137,60 @@ interface NotificationSetting {
   slack: boolean;
 }
 const initialNotifications: NotificationSetting[] = [
-{
-  id: 'campaigns',
-  title: 'Campaign Updates',
-  desc: 'Approvals, launches, pauses, and status changes.',
-  icon: ZapIcon,
-  email: true,
-  inApp: true,
-  slack: true
-},
-{
-  id: 'personas',
-  title: 'Persona Insights',
-  desc: 'New audience segments discovered by AI.',
-  icon: ShieldIcon,
-  email: true,
-  inApp: true,
-  slack: false
-},
-{
-  id: 'weekly',
-  title: 'Weekly Performance Report',
-  desc: 'Summary of ad performance delivered every Monday.',
-  icon: ClockIcon,
-  email: true,
-  inApp: false,
-  slack: false
-},
-{
-  id: 'budget',
-  title: 'Budget Alerts',
-  desc: 'Warnings when spend approaches or exceeds limits.',
-  icon: DollarSignIcon,
-  email: true,
-  inApp: true,
-  slack: true
-},
-{
-  id: 'team',
-  title: 'Team Activity',
-  desc: 'When teammates create, edit, or approve campaigns.',
-  icon: UsersIcon,
-  email: false,
-  inApp: true,
-  slack: true
-},
-{
-  id: 'system',
-  title: 'System Updates',
-  desc: 'New features, maintenance, and platform announcements.',
-  icon: SettingsIcon,
-  email: true,
-  inApp: true,
-  slack: false
-}];
+  {
+    id: 'campaigns',
+    title: 'Campaign Updates',
+    desc: 'Approvals, launches, pauses, and status changes.',
+    icon: ZapIcon,
+    email: true,
+    inApp: true,
+    slack: true
+  },
+  {
+    id: 'personas',
+    title: 'Persona Insights',
+    desc: 'New audience segments discovered by AI.',
+    icon: ShieldIcon,
+    email: true,
+    inApp: true,
+    slack: false
+  },
+  {
+    id: 'weekly',
+    title: 'Weekly Performance Report',
+    desc: 'Summary of ad performance delivered every Monday.',
+    icon: ClockIcon,
+    email: true,
+    inApp: false,
+    slack: false
+  },
+  {
+    id: 'budget',
+    title: 'Budget Alerts',
+    desc: 'Warnings when spend approaches or exceeds limits.',
+    icon: DollarSignIcon,
+    email: true,
+    inApp: true,
+    slack: true
+  },
+  {
+    id: 'team',
+    title: 'Team Activity',
+    desc: 'When teammates create, edit, or approve campaigns.',
+    icon: UsersIcon,
+    email: false,
+    inApp: true,
+    slack: true
+  },
+  {
+    id: 'system',
+    title: 'System Updates',
+    desc: 'New features, maintenance, and platform announcements.',
+    icon: SettingsIcon,
+    email: true,
+    inApp: true,
+    slack: false
+  }];
 
 export function SettingsPage() {
   const { profile, updateProfile } = useCompany();
@@ -214,7 +206,7 @@ export function SettingsPage() {
     accentColor: '#10B981',
     tone: 'professional',
     guidelines:
-    'Always lead with value. Avoid jargon. Use data to support claims. Maintain a confident but approachable voice.'
+      'Always lead with value. Avoid jargon. Use data to support claims. Maintain a confident but approachable voice.'
   });
   // Integrations state
   const [integrations, setIntegrations] = useState(initialIntegrations);
@@ -230,11 +222,10 @@ export function SettingsPage() {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     if (
-    tab &&
-    ['plans', 'billing', 'notifications', 'brand', 'integrations'].includes(
-      tab
-    ))
-    {
+      tab &&
+      ['plans', 'billing', 'notifications', 'brand', 'integrations'].includes(
+        tab
+      )) {
       setActiveTab(tab as TabKey);
     }
   }, [location.search]);
@@ -262,71 +253,70 @@ export function SettingsPage() {
     setConnectingId(id);
     setTimeout(() => {
       setIntegrations((prev) =>
-      prev.map((i) =>
-      i.id === id ?
-      {
-        ...i,
-        connected: true,
-        accountName: 'Connected Account'
-      } :
-      i
-      )
+        prev.map((i) =>
+          i.id === id ?
+            {
+              ...i,
+              connected: true,
+              accountName: 'Connected Account'
+            } :
+            i
+        )
       );
       setConnectingId(null);
     }, 1500);
   };
   const handleDisconnect = (id: string) => {
     setIntegrations((prev) =>
-    prev.map((i) =>
-    i.id === id ?
-    {
-      ...i,
-      connected: false,
-      accountName: undefined
-    } :
-    i
-    )
+      prev.map((i) =>
+        i.id === id ?
+          {
+            ...i,
+            connected: false,
+            accountName: undefined
+          } :
+          i
+      )
     );
   };
   const toggleNotification = (
-  id: string,
-  channel: 'email' | 'inApp' | 'slack') =>
-  {
+    id: string,
+    channel: 'email' | 'inApp' | 'slack') => {
     setNotifications((prev) =>
-    prev.map((n) =>
-    n.id === id ?
-    {
-      ...n,
-      [channel]: !n[channel]
-    } :
-    n
-    )
+      prev.map((n) =>
+        n.id === id ?
+          {
+            ...n,
+            [channel]: !n[channel]
+          } :
+          n
+      )
     );
   };
   const tabs: {
     key: TabKey;
     label: string;
   }[] = [
-  {
-    key: 'billing',
-    label: 'Billing & History'
-  },
-  {
-    key: 'plans',
-    label: 'Plans'
-  },
-  {
-    key: 'brand',
-    label: 'Brand Profile'
-  },
-  {
-    key: 'integrations',
-    label: 'Integrations'
-  },
-  {
-    key: 'notifications',
-    label: 'Notifications'
-  }];
+      {
+        key: 'billing',
+        label: 'Billing & History'
+      },
+      {
+        key: 'plans',
+        label: 'Plans'
+      },
+      {
+        key: 'brand',
+        label: 'Brand Profile'
+      },
+      {
+        key: 'integrations',
+        label: 'Integrations'
+      },
+      {
+        key: 'notifications',
+        label: 'Notifications'
+      }];
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -335,7 +325,7 @@ export function SettingsPage() {
       <main className="ml-64 flex-1 p-8 relative">
         {/* Success Overlay */}
         {showSuccess &&
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
             <div className="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
                 <CheckCircleIcon className="w-8 h-8 text-emerald-600" />
@@ -352,15 +342,15 @@ export function SettingsPage() {
 
         {/* Cancel Modal */}
         {showCancelModal &&
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
-            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            onClick={() => setShowCancelModal(false)} />
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => setShowCancelModal(false)} />
 
             <Card
-            variant="elevated"
-            padding="lg"
-            className="relative w-full max-w-md z-10">
+              variant="elevated"
+              padding="lg"
+              className="relative w-full max-w-md z-10">
 
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
@@ -376,15 +366,15 @@ export function SettingsPage() {
               </div>
               <div className="flex gap-3">
                 <Button
-                variant="ghost"
-                className="flex-1 text-slate-500 hover:text-slate-700"
-                onClick={handleCancelSubscription}>
+                  variant="ghost"
+                  className="flex-1 text-slate-500 hover:text-slate-700"
+                  onClick={handleCancelSubscription}>
 
                   Confirm Cancellation
                 </Button>
                 <Button
-                className="flex-1"
-                onClick={() => setShowCancelModal(false)}>
+                  className="flex-1"
+                  onClick={() => setShowCancelModal(false)}>
 
                   Keep My Plan
                 </Button>
@@ -405,22 +395,22 @@ export function SettingsPage() {
           {/* Tabs */}
           <div className="flex border-b border-slate-200 mb-8 overflow-x-auto">
             {tabs.map((tab) =>
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`pb-4 px-4 text-sm font-medium transition-colors relative whitespace-nowrap ${activeTab === tab.key ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`pb-4 px-4 text-sm font-medium transition-colors relative whitespace-nowrap ${activeTab === tab.key ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>
 
                 {tab.label}
                 {activeTab === tab.key &&
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />
-              }
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />
+                }
               </button>
             )}
           </div>
 
           {/* ==================== BILLING TAB ==================== */}
           {activeTab === 'billing' &&
-          <div className="space-y-8">
+            <div className="space-y-8">
               <div className="grid grid-cols-3 gap-8">
                 <Card variant="elevated" padding="lg" className="col-span-2">
                   <div className="flex items-center justify-between mb-6">
@@ -433,8 +423,8 @@ export function SettingsPage() {
                       </p>
                     </div>
                     <Badge
-                    variant="info"
-                    className="text-sm px-3 py-1 capitalize">
+                      variant="info"
+                      className="text-sm px-3 py-1 capitalize">
 
                       {profile.plan} Plan
                     </Badge>
@@ -455,20 +445,20 @@ export function SettingsPage() {
                   </div>
                   <div className="flex gap-3">
                     <Button
-                    variant="secondary"
-                    onClick={() => setActiveTab('plans')}>
+                      variant="secondary"
+                      onClick={() => setActiveTab('plans')}>
 
                       Change Plan
                     </Button>
                     {profile.plan !== 'basic' &&
-                  <Button
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => setShowCancelModal(true)}>
+                      <Button
+                        variant="ghost"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => setShowCancelModal(true)}>
 
                         Cancel Subscription
                       </Button>
-                  }
+                    }
                   </div>
                 </Card>
                 <Card variant="elevated" padding="lg">
@@ -526,54 +516,54 @@ export function SettingsPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {[
-                  {
-                    date: 'Feb 12, 2026',
-                    plan: 'Premium Plan',
-                    amount: '$99.00',
-                    status: 'Paid'
-                  },
-                  {
-                    date: 'Jan 12, 2026',
-                    plan: 'Premium Plan',
-                    amount: '$99.00',
-                    status: 'Paid'
-                  },
-                  {
-                    date: 'Dec 12, 2025',
-                    plan: 'Premium Plan',
-                    amount: '$99.00',
-                    status: 'Paid'
-                  }].
-                  map((item, i) =>
-                  <tr key={i} className="hover:bg-slate-50">
-                        <td className="px-6 py-4 text-slate-900">
-                          {item.date}
-                        </td>
-                        <td className="px-6 py-4 text-slate-600">
-                          {item.plan}
-                        </td>
-                        <td className="px-6 py-4 text-slate-900 font-medium">
-                          {item.amount}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge
-                        variant="success"
-                        className="bg-emerald-50 text-emerald-700 border border-emerald-100">
+                      {
+                        date: 'Feb 12, 2026',
+                        plan: 'Premium Plan',
+                        amount: '$99.00',
+                        status: 'Paid'
+                      },
+                      {
+                        date: 'Jan 12, 2026',
+                        plan: 'Premium Plan',
+                        amount: '$99.00',
+                        status: 'Paid'
+                      },
+                      {
+                        date: 'Dec 12, 2025',
+                        plan: 'Premium Plan',
+                        amount: '$99.00',
+                        status: 'Paid'
+                      }].
+                      map((item, i) =>
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-6 py-4 text-slate-900">
+                            {item.date}
+                          </td>
+                          <td className="px-6 py-4 text-slate-600">
+                            {item.plan}
+                          </td>
+                          <td className="px-6 py-4 text-slate-900 font-medium">
+                            {item.amount}
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge
+                              variant="success"
+                              className="bg-emerald-50 text-emerald-700 border border-emerald-100">
 
-                            {item.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600 hover:text-blue-700">
+                              {item.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-700">
 
-                            Download
-                          </Button>
-                        </td>
-                      </tr>
-                  )}
+                              Download
+                            </Button>
+                          </td>
+                        </tr>
+                      )}
                   </tbody>
                 </table>
               </Card>
@@ -582,100 +572,100 @@ export function SettingsPage() {
 
           {/* ==================== PLANS TAB ==================== */}
           {activeTab === 'plans' &&
-          <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               {[
-            {
-              id: 'basic',
-              name: 'Basic',
-              price: '$0',
-              features: ['3 campaigns', 'Basic analytics', 'Email support']
-            },
-            {
-              id: 'premium',
-              name: 'Premium',
-              price: '$99',
-              features: [
-              'Unlimited campaigns',
-              'Advanced analytics',
-              'Priority support',
-              'Team access'],
+                {
+                  id: 'basic',
+                  name: 'Basic',
+                  price: '$0',
+                  features: ['3 campaigns', 'Basic analytics', 'Email support']
+                },
+                {
+                  id: 'premium',
+                  name: 'Premium',
+                  price: '$99',
+                  features: [
+                    'Unlimited campaigns',
+                    'Advanced analytics',
+                    'Priority support',
+                    'Team access'],
 
-              highlight: true
-            },
-            {
-              id: 'enterprise',
-              name: 'Enterprise',
-              price: 'Custom',
-              features: [
-              'Dedicated manager',
-              'Custom integrations',
-              'SLA guarantee',
-              'SSO']
+                  highlight: true
+                },
+                {
+                  id: 'enterprise',
+                  name: 'Enterprise',
+                  price: 'Custom',
+                  features: [
+                    'Dedicated manager',
+                    'Custom integrations',
+                    'SLA guarantee',
+                    'SSO']
 
-            }].
-            map((plan) =>
-            <Card
-              key={plan.id}
-              variant="elevated"
-              padding="lg"
-              className={`relative flex flex-col ${profile.plan === plan.id ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''} ${plan.highlight && profile.plan !== plan.id ? 'ring-2 ring-orange-400 shadow-lg shadow-orange-100/50' : ''}`}>
+                }].
+                map((plan) =>
+                  <Card
+                    key={plan.id}
+                    variant="elevated"
+                    padding="lg"
+                    className={`relative flex flex-col ${profile.plan === plan.id ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''} ${plan.highlight && profile.plan !== plan.id ? 'ring-2 ring-orange-400 shadow-lg shadow-orange-100/50' : ''}`}>
 
-                  {profile.plan === plan.id &&
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-sm">
-                      Current Plan
+                    {profile.plan === plan.id &&
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-sm">
+                        Current Plan
+                      </div>
+                    }
+                    {plan.highlight && profile.plan !== plan.id &&
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold rounded-full shadow-lg">
+                        Most Popular
+                      </div>
+                    }
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold text-slate-900">
+                        {plan.name}
+                      </h3>
+                      <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-3xl font-bold text-slate-900">
+                          {plan.price}
+                        </span>
+                        {plan.price !== 'Custom' &&
+                          <span className="text-slate-500">/mo</span>
+                        }
+                      </div>
                     </div>
-              }
-                  {plan.highlight && profile.plan !== plan.id &&
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold rounded-full shadow-lg">
-                      Most Popular
-                    </div>
-              }
-                  <div className="mb-6">
-                    <h3 className="text-lg font-bold text-slate-900">
-                      {plan.name}
-                    </h3>
-                    <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-3xl font-bold text-slate-900">
-                        {plan.price}
-                      </span>
-                      {plan.price !== 'Custom' &&
-                  <span className="text-slate-500">/mo</span>
-                  }
-                    </div>
-                  </div>
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((feature, i) =>
-                <li
-                  key={i}
-                  className="flex items-center gap-2 text-sm text-slate-600">
+                    <ul className="space-y-3 mb-8 flex-1">
+                      {plan.features.map((feature, i) =>
+                        <li
+                          key={i}
+                          className="flex items-center gap-2 text-sm text-slate-600">
 
-                        <CheckIcon className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                        {feature}
-                      </li>
+                          <CheckIcon className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          {feature}
+                        </li>
+                      )}
+                    </ul>
+                    <Button
+                      variant={
+                        profile.plan === plan.id ?
+                          'secondary' :
+                          plan.highlight ?
+                            'primary' :
+                            'secondary'
+                      }
+                      disabled={profile.plan === plan.id}
+                      onClick={() => handleUpgrade(plan.id as 'basic' | 'premium' | 'enterprise')}
+                      className="w-full">
+
+                      {getPlanButtonText(plan.id)}
+                    </Button>
+                  </Card>
                 )}
-                  </ul>
-                  <Button
-                variant={
-                profile.plan === plan.id ?
-                'secondary' :
-                plan.highlight ?
-                'primary' :
-                'secondary'
-                }
-                disabled={profile.plan === plan.id}
-                onClick={() => handleUpgrade(plan.id as any)}
-                className="w-full">
-
-                    {getPlanButtonText(plan.id)}
-                  </Button>
-                </Card>
-            )}
             </div>
           }
 
           {/* ==================== BRAND PROFILE TAB ==================== */}
           {activeTab === 'brand' &&
-          <div className="space-y-8 max-w-3xl">
+            <div className="space-y-8 max-w-3xl">
               {/* Logo & Company */}
               <Card variant="elevated" padding="lg">
                 <h3 className="text-lg font-semibold text-slate-900 mb-1">
@@ -693,14 +683,14 @@ export function SettingsPage() {
                   </div>
                   <div className="flex-1 space-y-4">
                     <Input
-                    label="Company Name"
-                    value={brandForm.companyName}
-                    onChange={(e) =>
-                    setBrandForm({
-                      ...brandForm,
-                      companyName: e.target.value
-                    })
-                    } />
+                      label="Company Name"
+                      value={brandForm.companyName}
+                      onChange={(e) =>
+                        setBrandForm({
+                          ...brandForm,
+                          companyName: e.target.value
+                        })
+                      } />
 
                   </div>
                 </div>
@@ -716,44 +706,44 @@ export function SettingsPage() {
                 </p>
                 <div className="grid grid-cols-3 gap-6">
                   {[
-                {
-                  label: 'Primary',
-                  key: 'primaryColor' as const
-                },
-                {
-                  label: 'Secondary',
-                  key: 'secondaryColor' as const
-                },
-                {
-                  label: 'Accent',
-                  key: 'accentColor' as const
-                }].
-                map((color) =>
-                <div key={color.key}>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        {color.label}
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <div
-                      className="w-10 h-10 rounded-lg border border-slate-200 shadow-inner flex-shrink-0"
-                      style={{
-                        backgroundColor: brandForm[color.key]
-                      }} />
+                    {
+                      label: 'Primary',
+                      key: 'primaryColor' as const
+                    },
+                    {
+                      label: 'Secondary',
+                      key: 'secondaryColor' as const
+                    },
+                    {
+                      label: 'Accent',
+                      key: 'accentColor' as const
+                    }].
+                    map((color) =>
+                      <div key={color.key}>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          {color.label}
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-lg border border-slate-200 shadow-inner flex-shrink-0"
+                            style={{
+                              backgroundColor: brandForm[color.key]
+                            }} />
 
-                        <input
-                      type="text"
-                      value={brandForm[color.key]}
-                      onChange={(e) =>
-                      setBrandForm({
-                        ...brandForm,
-                        [color.key]: e.target.value
-                      })
-                      }
-                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <input
+                            type="text"
+                            value={brandForm[color.key]}
+                            onChange={(e) =>
+                              setBrandForm({
+                                ...brandForm,
+                                [color.key]: e.target.value
+                              })
+                            }
+                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
+                        </div>
                       </div>
-                    </div>
-                )}
+                    )}
                 </div>
               </Card>
 
@@ -767,39 +757,39 @@ export function SettingsPage() {
                 </p>
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {toneOptions.map((tone) =>
-                <button
-                  key={tone.value}
-                  onClick={() =>
-                  setBrandForm({
-                    ...brandForm,
-                    tone: tone.value
-                  })
-                  }
-                  className={`p-4 rounded-xl border text-left transition-all ${brandForm.tone === tone.value ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <button
+                      key={tone.value}
+                      onClick={() =>
+                        setBrandForm({
+                          ...brandForm,
+                          tone: tone.value
+                        })
+                      }
+                      className={`p-4 rounded-xl border text-left transition-all ${brandForm.tone === tone.value ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'}`}>
 
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-medium text-sm text-slate-900">
                           {tone.label}
                         </span>
                         {brandForm.tone === tone.value &&
-                    <CheckIcon className="w-4 h-4 text-blue-600" />
-                    }
+                          <CheckIcon className="w-4 h-4 text-blue-600" />
+                        }
                       </div>
                       <p className="text-xs text-slate-500">{tone.desc}</p>
                     </button>
-                )}
+                  )}
                 </div>
                 <Textarea
-                label="Brand Guidelines"
-                placeholder="Describe your brand's dos and don'ts for ad copy..."
-                rows={4}
-                value={brandForm.guidelines}
-                onChange={(e) =>
-                setBrandForm({
-                  ...brandForm,
-                  guidelines: e.target.value
-                })
-                } />
+                  label="Brand Guidelines"
+                  placeholder="Describe your brand's dos and don'ts for ad copy..."
+                  rows={4}
+                  value={brandForm.guidelines}
+                  onChange={(e) =>
+                    setBrandForm({
+                      ...brandForm,
+                      guidelines: e.target.value
+                    })
+                  } />
 
               </Card>
 
@@ -813,7 +803,7 @@ export function SettingsPage() {
 
           {/* ==================== INTEGRATIONS TAB ==================== */}
           {activeTab === 'integrations' &&
-          <div className="space-y-6">
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">
@@ -828,14 +818,14 @@ export function SettingsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 {integrations.map((integration) =>
-              <Card
-                key={integration.id}
-                variant="elevated"
-                padding="md"
-                className="flex items-start gap-4">
+                  <Card
+                    key={integration.id}
+                    variant="elevated"
+                    padding="md"
+                    className="flex items-start gap-4">
 
                     <div
-                  className={`w-11 h-11 rounded-xl ${integration.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                      className={`w-11 h-11 rounded-xl ${integration.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
 
                       {integration.icon}
                     </div>
@@ -845,63 +835,63 @@ export function SettingsPage() {
                           {integration.name}
                         </h4>
                         {integration.connected ?
-                    <Badge variant="success" className="text-[10px]">
+                          <Badge variant="success" className="text-[10px]">
                             Connected
                           </Badge> :
 
-                    <Badge variant="default" className="text-[10px]">
+                          <Badge variant="default" className="text-[10px]">
                             Not connected
                           </Badge>
-                    }
+                        }
                       </div>
                       <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                         {integration.description}
                       </p>
                       {integration.connected ?
-                  <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                           <span className="text-xs text-slate-400 truncate">
                             {integration.accountName}
                           </span>
                           <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 text-xs"
-                      onClick={() => handleDisconnect(integration.id)}>
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50 text-xs"
+                            onClick={() => handleDisconnect(integration.id)}>
 
                             Disconnect
                           </Button>
                         </div> :
 
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => handleConnect(integration.id)}
-                    disabled={connectingId === integration.id}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => handleConnect(integration.id)}
+                          disabled={connectingId === integration.id}>
 
                           {connectingId === integration.id ?
-                    <>
+                            <>
                               <Loader2Icon className="w-3 h-3 animate-spin mr-1" />
                               Connecting...
                             </> :
 
-                    <>
+                            <>
                               <LinkIcon className="w-3 h-3 mr-1" />
                               Connect
                             </>
-                    }
+                          }
                         </Button>
-                  }
+                      }
                     </div>
                   </Card>
-              )}
+                )}
               </div>
             </div>
           }
 
           {/* ==================== NOTIFICATIONS TAB ==================== */}
           {activeTab === 'notifications' &&
-          <div className="space-y-8 max-w-3xl">
+            <div className="space-y-8 max-w-3xl">
               {/* Channel Master Toggles */}
               <Card variant="elevated" padding="lg">
                 <h3 className="text-lg font-semibold text-slate-900 mb-1">
@@ -912,59 +902,59 @@ export function SettingsPage() {
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                {
-                  key: 'email' as const,
-                  label: 'Email',
-                  desc: 'alex@acme.inc',
-                  icon: MailIcon,
-                  color: 'bg-blue-50 text-blue-600'
-                },
-                {
-                  key: 'inApp' as const,
-                  label: 'In-App',
-                  desc: 'Browser notifications',
-                  icon: SmartphoneIcon,
-                  color: 'bg-purple-50 text-purple-600'
-                },
-                {
-                  key: 'slack' as const,
-                  label: 'Slack',
-                  desc: '#marketing-ads',
-                  icon: HashIcon,
-                  color: 'bg-emerald-50 text-emerald-600'
-                }].
-                map((channel) =>
-                <div
-                  key={channel.key}
-                  className={`p-4 rounded-xl border transition-all ${channelMasters[channel.key] ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
+                    {
+                      key: 'email' as const,
+                      label: 'Email',
+                      desc: 'alex@acme.inc',
+                      icon: MailIcon,
+                      color: 'bg-blue-50 text-blue-600'
+                    },
+                    {
+                      key: 'inApp' as const,
+                      label: 'In-App',
+                      desc: 'Browser notifications',
+                      icon: SmartphoneIcon,
+                      color: 'bg-purple-50 text-purple-600'
+                    },
+                    {
+                      key: 'slack' as const,
+                      label: 'Slack',
+                      desc: '#marketing-ads',
+                      icon: HashIcon,
+                      color: 'bg-emerald-50 text-emerald-600'
+                    }].
+                    map((channel) =>
+                      <div
+                        key={channel.key}
+                        className={`p-4 rounded-xl border transition-all ${channelMasters[channel.key] ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
 
-                      <div className="flex items-center justify-between mb-3">
-                        <div
-                      className={`w-9 h-9 rounded-lg ${channel.color} flex items-center justify-center`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div
+                            className={`w-9 h-9 rounded-lg ${channel.color} flex items-center justify-center`}>
 
-                          <channel.icon className="w-4.5 h-4.5" />
+                            <channel.icon className="w-4.5 h-4.5" />
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={channelMasters[channel.key]}
+                              onChange={() =>
+                                setChannelMasters((prev) => ({
+                                  ...prev,
+                                  [channel.key]: !prev[channel.key]
+                                }))
+                              } />
+
+                            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
+                          </label>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={channelMasters[channel.key]}
-                        onChange={() =>
-                        setChannelMasters((prev) => ({
-                          ...prev,
-                          [channel.key]: !prev[channel.key]
-                        }))
-                        } />
-
-                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
-                        </label>
+                        <h4 className="font-medium text-slate-900 text-sm">
+                          {channel.label}
+                        </h4>
+                        <p className="text-xs text-slate-500">{channel.desc}</p>
                       </div>
-                      <h4 className="font-medium text-slate-900 text-sm">
-                        {channel.label}
-                      </h4>
-                      <p className="text-xs text-slate-500">{channel.desc}</p>
-                    </div>
-                )}
+                    )}
                 </div>
               </Card>
 
@@ -995,9 +985,9 @@ export function SettingsPage() {
 
                 <div className="space-y-1">
                   {notifications.map((item) =>
-                <div
-                  key={item.id}
-                  className="flex items-center py-3 border-b border-slate-50 last:border-0">
+                    <div
+                      key={item.id}
+                      className="flex items-center py-3 border-b border-slate-50 last:border-0">
 
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
@@ -1014,33 +1004,33 @@ export function SettingsPage() {
                       </div>
                       <div className="flex items-center gap-6 pr-1">
                         {(['email', 'inApp', 'slack'] as const).map(
-                      (channel) =>
-                      <div
-                        key={channel}
-                        className="w-14 flex justify-center">
+                          (channel) =>
+                            <div
+                              key={channel}
+                              className="w-14 flex justify-center">
 
                               <label className="relative inline-flex items-center cursor-pointer">
                                 <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={
-                            item[channel] && channelMasters[channel]
-                            }
-                            disabled={!channelMasters[channel]}
-                            onChange={() =>
-                            toggleNotification(item.id, channel)
-                            } />
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  checked={
+                                    item[channel] && channelMasters[channel]
+                                  }
+                                  disabled={!channelMasters[channel]}
+                                  onChange={() =>
+                                    toggleNotification(item.id, channel)
+                                  } />
 
                                 <div
-                            className={`w-9 h-5 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${!channelMasters[channel] ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-200 peer-checked:bg-blue-600 peer-focus:ring-2 peer-focus:ring-blue-300'}`} />
+                                  className={`w-9 h-5 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${!channelMasters[channel] ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-200 peer-checked:bg-blue-600 peer-focus:ring-2 peer-focus:ring-blue-300'}`} />
 
                               </label>
                             </div>
 
-                    )}
+                        )}
                       </div>
                     </div>
-                )}
+                  )}
                 </div>
               </Card>
             </div>

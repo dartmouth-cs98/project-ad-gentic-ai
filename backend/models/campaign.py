@@ -1,6 +1,6 @@
 """SQLAlchemy model for the dbo.campaigns table."""
 
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -24,8 +24,8 @@ class Campaign(Base):
     goal: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     target_audience: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     product_context: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     product_ids: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     def __repr__(self) -> str:

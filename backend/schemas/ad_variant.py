@@ -14,7 +14,7 @@ class AdVariantCreate(BaseModel):
     consumer_id: Optional[int] = None
     status: str
     media_url: Optional[str] = None
-    metadata: Optional[str] = None
+    meta: Optional[str] = None
 
 
 class AdVariantUpdate(BaseModel):
@@ -24,7 +24,7 @@ class AdVariantUpdate(BaseModel):
     consumer_id: Optional[int] = None
     status: Optional[str] = None
     media_url: Optional[str] = None
-    metadata: Optional[str] = None
+    meta: Optional[str] = None
     published_at: Optional[datetime] = None
 
 
@@ -38,7 +38,7 @@ class AdVariantResponse(BaseModel):
     consumer_id: Optional[int] = None
     status: str
     media_url: Optional[str] = None
-    metadata: Optional[str] = None
+    meta: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime] = None

@@ -1,6 +1,6 @@
 """CRUD operations for ad_variants table."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import select
@@ -50,7 +50,7 @@ def update_ad_variant(
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(ad_variant, field, value)
-    ad_variant.updated_at = datetime.utcnow()
+    ad_variant.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(ad_variant)
     return ad_variant

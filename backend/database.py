@@ -1,9 +1,14 @@
 import os
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
 from dotenv import load_dotenv
 load_dotenv()
+
+
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+    pass
 
 _db_url = os.getenv("DB_CONNECTION_STRING", "").replace(
     "${DB_PASSWORD}", quote_plus(os.getenv("DB_PASSWORD", ""))

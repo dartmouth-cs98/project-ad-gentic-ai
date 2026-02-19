@@ -1,0 +1,66 @@
+"""CRUD operations for ad_variants table."""
+
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from models.ad_variant import AdVariant
+from schemas.ad_variant import AdVariantCreate, AdVariantUpdate
+
+
+def get_ad_variants(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    campaign_id: Optional[int] = None,
+    status: Optional[str] = None,
+) -> list[AdVariant]:
+    """Return a list of ad variants with optional filters."""
+    query = select(AdVariant)
+    if campaign_id is not None:
+        query = query.where(AdVariant.campaign_id == campaign_id)
+    if status is not None:
+        query = query.where(AdVariant.status == status)
+    query = query.offset(skip).limit(limit)
+    return list(db.scalars(query).all())
+
+
+def get_ad_variant(db: Session, ad_variant_id: int) -> Optional[AdVariant]:
+    """Return a single ad variant by ID, or None."""
+    return db.get(AdVariant, ad_variant_id)
+
+
+def create_ad_variant(db: Session, data: AdVariantCreate) -> AdVariant:
+    """Insert a new ad variant and return it."""
+    ad_variant = AdVariant(**data.model_dump())
+    db.add(ad_variant)
+    db.commit()
+    db.refresh(ad_variant)
+    return ad_variant
+
+
+def update_ad_variant(
+    db: Session, ad_variant_id: int, data: AdVariantUpdate
+) -> Optional[AdVariant]:
+    """Update an existing ad variant. Returns None if not found."""
+    ad_variant = db.get(AdVariant, ad_variant_id)
+    if ad_variant is None:
+        return None
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(ad_variant, field, value)
+    ad_variant.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(ad_variant)
+    return ad_variant
+
+
+def delete_ad_variant(db: Session, ad_variant_id: int) -> bool:
+    """Delete an ad variant by ID. Returns True if deleted, False if not found."""
+    ad_variant = db.get(AdVariant, ad_variant_id)
+    if ad_variant is None:
+        return False
+    db.delete(ad_variant)
+    db.commit()
+    return True

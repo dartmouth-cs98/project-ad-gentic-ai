@@ -10,23 +10,50 @@ class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
     pass
 
-_db_url = os.getenv("DB_CONNECTION_STRING", "").replace(
-    "${DB_PASSWORD}", quote_plus(os.getenv("DB_PASSWORD", ""))
-)
-DATABASE_URL = _db_url
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-)
+def _build_url() -> str:
+    raw = os.getenv("DB_CONNECTION_STRING", "")
+    password = quote_plus(os.getenv("DB_PASSWORD", ""))
+    return raw.replace("${DB_PASSWORD}", password)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Lazy engine/session — only created when first needed, so imports
+# won't crash in environments without DB credentials (e.g. CI).
+_engine = None
+_SessionLocal = None
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        url = _build_url()
+        if not url:
+            raise RuntimeError(
+                "DB_CONNECTION_STRING is not set. "
+                "Copy .env.example to .env and fill in your credentials."
+            )
+        _engine = create_engine(url, pool_pre_ping=True, pool_recycle=300)
+    return _engine
+
+
+def _get_session_factory():
+    global _SessionLocal
+    if _SessionLocal is None:
+        _SessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=_get_engine()
+        )
+    return _SessionLocal
+
+
+def get_engine():
+    """Public accessor for the engine (used by tests)."""
+    return _get_engine()
 
 
 def get_db():
     """FastAPI dependency that yields a database session per request."""
-    db: Session = SessionLocal()
+    factory = _get_session_factory()
+    db: Session = factory()
     try:
         yield db
     finally:

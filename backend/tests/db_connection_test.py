@@ -17,13 +17,13 @@ from dotenv import load_dotenv
 load_dotenv(_backend_dir / ".env")
 
 from sqlalchemy import text
-from database import engine, get_db
+from database import get_engine, get_db
 
 
 def test_engine_connection() -> bool:
     """Test that the engine can connect to the database."""
     try:
-        with engine.connect() as conn:
+        with get_engine().connect() as conn:
             conn.execute(text("SELECT 1"))
         print("✓ Engine connection OK")
         return True

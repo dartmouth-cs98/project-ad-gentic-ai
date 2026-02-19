@@ -589,7 +589,7 @@ export function GenerateAdsPage() {
       );
     }, 4000);
     return () => clearTimeout(timer);
-  }, [phase]);
+  }, [phase, versionCounter]);
   const handleSend = () => {
     if (!input.trim()) return;
     setMessages((prev) => [

@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext } from 'react';
+import { useState, createContext, useContext, ReactNode } from 'react';
 export interface CompanyProfile {
   companyName: string;
   industry: string;
@@ -21,7 +21,7 @@ const defaultProfile: CompanyProfile = {
   email: 'alex@acme.inc'
 };
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
-export function CompanyProvider({ children }: {children: ReactNode;}) {
+export function CompanyProvider({ children }: { children: ReactNode; }) {
   const [profile, setProfile] = useState<CompanyProfile>(defaultProfile);
   const updateProfile = (updates: Partial<CompanyProfile>) => {
     setProfile((prev) => ({
@@ -40,6 +40,7 @@ export function CompanyProvider({ children }: {children: ReactNode;}) {
     </CompanyContext.Provider>);
 
 }
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCompany() {
   const context = useContext(CompanyContext);
   if (context === undefined) {

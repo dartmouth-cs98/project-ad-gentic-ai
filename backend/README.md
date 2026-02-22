@@ -85,7 +85,7 @@ DB connection successful: (1,)
 
 If you see a `Client with IP address '...' is not allowed to access the server` error, add your IP to the firewall.
 
-**Option A — Azure Portal (easiest)**
+**Azure Portal**
 
 1. Go to [portal.azure.com](https://portal.azure.com)
 2. Navigate to **SQL servers** → `ad-gentic-dev`

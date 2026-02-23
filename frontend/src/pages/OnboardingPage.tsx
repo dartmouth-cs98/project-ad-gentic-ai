@@ -14,6 +14,7 @@ import {
   Loader2Icon
 } from
   'lucide-react';
+import { saveOnboarding } from '../utils/auth';
 const industries = [
   {
     value: 'saas',
@@ -241,11 +242,28 @@ export function OnboardingPage() {
         return false;
     }
   };
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isStepValid()) return;
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
+      // Save all onboarding data to Azure before navigating
+      await saveOnboarding({
+        company_name: formData.companyName || undefined,
+        industry: formData.industry || undefined,
+        company_size: formData.companySize || undefined,
+        website: formData.website || undefined,
+        product_description: formData.productDescription || undefined,
+        target_customer: formData.targetCustomer || undefined,
+        primary_goal: formData.primaryGoal || undefined,
+        custom_goal: formData.customGoal || undefined,
+        target_platforms: formData.targetPlatforms.length > 0 ? formData.targetPlatforms : undefined,
+        target_regions: formData.targetRegions.length > 0 ? formData.targetRegions : undefined,
+        ad_spend: formData.adSpend || undefined,
+        current_tools: formData.currentTools.length > 0 ? formData.currentTools : undefined,
+        biggest_challenge: formData.biggestChallenge || undefined,
+        other_tools: formData.otherTools || undefined,
+      });
       navigate('/dashboard');
     }
   };

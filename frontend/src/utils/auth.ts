@@ -9,6 +9,15 @@ export interface User {
   client_id: number;
 }
 
+export interface UserProfile {
+  client_id: number;
+  email: string;
+  business_name: string;
+  subscription_tier: string;
+  credits_balance: number;
+  traits: Record<string, unknown> | null;
+}
+
 // ---------- Auth API calls ----------
 
 export async function signUp(
@@ -91,6 +100,21 @@ export async function saveOnboarding(
     return { success: true };
   } catch {
     return { success: false, error: 'Could not reach the server. Please try again.' };
+  }
+}
+
+export async function fetchProfile(): Promise<UserProfile | null> {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(apiUrl('/auth/me'), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as UserProfile;
+  } catch {
+    return null;
   }
 }
 

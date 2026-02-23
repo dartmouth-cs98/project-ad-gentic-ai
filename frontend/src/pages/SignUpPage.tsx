@@ -10,7 +10,7 @@ import {
   CheckCircleIcon
 } from
   'lucide-react';
-import { signUp } from '../utils/auth';
+import { signUp } from '../api/auth';
 function getPasswordStrength(password: string): {
   level: number;
   label: string;
@@ -107,10 +107,11 @@ export function SignUpPage() {
     }
     setAuthState('loading');
     setLoadingMessage('Creating your account...');
-    const result = await signUp(form.email, form.password);
-    if (!result.success) {
+    try {
+      await signUp(form.email, form.password);
+    } catch (err) {
       setAuthState('idle');
-      setAuthError(result.error || 'Sign up failed');
+      setAuthError(err instanceof Error ? err.message : 'Sign up failed');
       return;
     }
     setAuthState('success');

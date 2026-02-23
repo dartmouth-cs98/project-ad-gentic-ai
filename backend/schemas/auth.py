@@ -43,6 +43,15 @@ class OnboardingRequest(BaseModel):
     other_tools: Optional[str] = None
 
 
+class ProfileResponse(BaseModel):
+    client_id: int
+    email: str
+    business_name: str
+    subscription_tier: str
+    credits_balance: int
+    traits: Optional[dict] = None
+
+
 class OnboardingResponse(BaseModel):
     success: bool
     client_id: int

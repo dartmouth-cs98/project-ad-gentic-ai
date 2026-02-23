@@ -1,5 +1,6 @@
 """Auth and onboarding routes — signup, signin, and onboarding data persistence."""
 
+import json
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -14,10 +15,11 @@ from schemas.auth import (
     SignUpRequest,
     SignInRequest,
     TokenResponse,
+    ProfileResponse,
     OnboardingRequest,
     OnboardingResponse,
 )
-from crud.business_client import get_by_email, create_business_client, update_onboarding
+from crud.business_client import get_by_email, get_by_id, create_business_client, update_onboarding
 
 router = APIRouter()
 
@@ -88,6 +90,26 @@ def signin(data: SignInRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     token = _create_token(client.id, client.email)
     return TokenResponse(access_token=token, client_id=client.id, email=client.email)
+
+
+@router.get("/me", response_model=ProfileResponse)
+def get_me(
+    db: Session = Depends(get_db),
+    client_id: int = Depends(_get_current_client_id),
+):
+    """Return the authenticated user's profile."""
+    client = get_by_id(db, client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Business client not found.")
+    traits = json.loads(client.traits) if client.traits else None
+    return ProfileResponse(
+        client_id=client.id,
+        email=client.email,
+        business_name=client.business_name,
+        subscription_tier=client.subscription_tier,
+        credits_balance=client.credits_balance,
+        traits=traits,
+    )
 
 
 @router.post("/onboarding", response_model=OnboardingResponse)

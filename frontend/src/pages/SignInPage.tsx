@@ -9,7 +9,7 @@ import {
   CheckCircleIcon
 } from
   'lucide-react';
-import { signIn } from '../utils/auth';
+import { signIn } from '../api/auth';
 export function SignInPage() {
   const navigate = useNavigate();
   const [rememberedUser, setRememberedUser] = useState<{
@@ -77,10 +77,11 @@ export function SignInPage() {
     }
     setAuthState('loading');
     setLoadingMessage('Signing you in...');
-    const result = await signIn(form.email, form.password);
-    if (!result.success) {
+    try {
+      await signIn(form.email, form.password);
+    } catch (err) {
       setAuthState('idle');
-      setAuthError(result.error || 'Sign in failed');
+      setAuthError(err instanceof Error ? err.message : 'Sign in failed');
       return;
     }
     localStorage.setItem('adgentic_last_email', form.email);

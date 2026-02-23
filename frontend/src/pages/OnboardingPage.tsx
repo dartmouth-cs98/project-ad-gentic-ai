@@ -14,7 +14,7 @@ import {
   Loader2Icon
 } from
   'lucide-react';
-import { saveOnboarding } from '../utils/auth';
+import { saveOnboarding } from '../api/auth';
 const industries = [
   {
     value: 'saas',

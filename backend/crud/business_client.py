@@ -19,10 +19,16 @@ def create_business_client(
     db: Session, email: str, password_hash: str, plan: str,
     business_name: str = "",
 ) -> BusinessClient:
+    # Ensure business_name is populated with a non-empty value.
+    # If no name is provided, default to using the email as an identifier.
+    normalized_business_name = business_name.strip() if business_name is not None else ""
+    if not normalized_business_name:
+        normalized_business_name = email
+
     client = BusinessClient(
         email=email.lower(),
         password_hash=password_hash,
-        business_name=business_name,
+        business_name=normalized_business_name,
         subscription_tier=plan,
         credits_balance=0,
     )

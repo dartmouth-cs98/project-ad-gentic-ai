@@ -26,7 +26,9 @@ router = APIRouter()
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _bearer = HTTPBearer()
 
-JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable must be set for JWT signing.")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_DAYS = 7
 

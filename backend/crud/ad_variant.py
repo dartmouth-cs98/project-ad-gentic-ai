@@ -23,7 +23,7 @@ def get_ad_variants(
         query = query.where(AdVariant.campaign_id == campaign_id)
     if status is not None:
         query = query.where(AdVariant.status == status)
-    query = query.offset(skip).limit(limit)
+    query = query.order_by(AdVariant.id).offset(skip).limit(limit)
     return list(db.scalars(query).all())
 
 

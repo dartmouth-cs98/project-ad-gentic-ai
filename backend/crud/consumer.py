@@ -10,25 +10,36 @@ from models.consumer import Consumer
 from schemas.consumer import ConsumerCreate
 
 
-def get_existing_emails(db: Session, emails: list[str]) -> set[str]:
-    """Return the subset of emails that already exist in the consumers table."""
-    query = select(Consumer.email).where(Consumer.email.in_(emails))
+def get_existing_emails(db: Session, client_id: int, emails: list[str]) -> set[str]:
+    """Return the subset of emails that already exist in the consumers table for this client."""
+    query = select(Consumer.email).where(
+        Consumer.business_client_id == client_id,
+        Consumer.email.in_(emails)
+    )
     return set(db.scalars(query).all())
 
 
 def get_consumers(
     db: Session,
+    client_id: int,
     skip: int = 0,
     limit: int = 100,
 ) -> list[Consumer]:
-    """Return a list of consumers."""
-    query = select(Consumer).order_by(Consumer.id).offset(skip).limit(limit)
+    """Return a list of consumers for a specific client."""
+    query = (
+        select(Consumer)
+        .where(Consumer.business_client_id == client_id)
+        .order_by(Consumer.id)
+        .offset(skip)
+        .limit(limit)
+    )
     return list(db.scalars(query).all())
 
 
-def create_consumer(db: Session, data: ConsumerCreate) -> Consumer:
+def create_consumer(db: Session, client_id: int, data: ConsumerCreate) -> Consumer:
     """Insert a new consumer and return it."""
     payload = data.model_dump()
+    payload["business_client_id"] = client_id
     # Serialize traits dict to JSON string for the nvarchar column
     if payload.get("traits") is not None:
         payload["traits"] = json.dumps(payload["traits"])
@@ -39,11 +50,12 @@ def create_consumer(db: Session, data: ConsumerCreate) -> Consumer:
     return consumer
 
 
-def create_consumers_bulk(db: Session, items: list[ConsumerCreate]) -> list[Consumer]:
-    """Insert multiple consumers in a single transaction and return them."""
+def create_consumers_bulk(db: Session, client_id: int, items: list[ConsumerCreate]) -> list[Consumer]:
+    """Insert multiple consumers for a client in a single transaction and return them."""
     consumers = []
     for data in items:
         payload = data.model_dump()
+        payload["business_client_id"] = client_id
         if payload.get("traits") is not None:
             payload["traits"] = json.dumps(payload["traits"])
         consumers.append(Consumer(**payload))

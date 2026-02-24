@@ -14,6 +14,7 @@ class Consumer(Base):
     __table_args__ = {"schema": "dbo"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_client_id: Mapped[int] = mapped_column(Integer, nullable=False)
     email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     first_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)

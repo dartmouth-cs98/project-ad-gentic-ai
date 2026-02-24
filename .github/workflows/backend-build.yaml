@@ -27,3 +27,6 @@ jobs:
       - name: Verify app loads
         run: python -c "from main import app"
         working-directory: backend
+        env:
+          JWT_SECRET: ci-test-secret
+          DB_CONNECTION_STRING: sqlite:///test.db

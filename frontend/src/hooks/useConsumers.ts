@@ -1,0 +1,34 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchConsumers, uploadConsumersCsv } from '../api/consumers';
+import type { Consumer, ConsumerUploadResponse } from '../types';
+
+export const CONSUMERS_KEY = ['consumers'] as const;
+
+/** 
+ * Fetch consumers with pagination
+ * @param skip - The number of consumers to skip
+ * @param limit - The number of consumers to limit to
+ * @returns A query result with the consumers
+*/
+export function useConsumers(skip = 0, limit = 100) {
+    return useQuery<Consumer[]>({
+        queryKey: [...CONSUMERS_KEY, skip, limit],
+        queryFn: () => fetchConsumers(skip, limit),
+        staleTime: 2 * 60 * 1000, // 2 min
+    });
+}
+
+/** 
+ * Upload a CSV file and invalidate the consumers cache on success.
+ * @param file - The CSV file to upload
+ * @returns A mutation result with the upload response
+*/
+export function useUploadConsumersCsv() {
+    const queryClient = useQueryClient();
+    return useMutation<ConsumerUploadResponse, Error, File>({
+        mutationFn: (file: File) => uploadConsumersCsv(file),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: CONSUMERS_KEY });
+        },
+    });
+}

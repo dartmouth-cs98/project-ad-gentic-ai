@@ -1,39 +1,7 @@
 import { apiUrl } from './config';
+import type { TokenResponse, UserProfile, OnboardingPayload } from '../types';
 
-// ---------- Types ----------
-
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-  client_id: number;
-  email: string;
-}
-
-export interface UserProfile {
-  client_id: number;
-  email: string;
-  business_name: string;
-  subscription_tier: string;
-  credits_balance: number;
-  traits: Record<string, unknown> | null;
-}
-
-export interface OnboardingPayload {
-  company_name?: string;
-  industry?: string;
-  company_size?: string;
-  website?: string;
-  product_description?: string;
-  target_customer?: string;
-  primary_goal?: string;
-  custom_goal?: string;
-  target_platforms?: string[];
-  target_regions?: string[];
-  ad_spend?: string;
-  current_tools?: string[];
-  biggest_challenge?: string;
-  other_tools?: string;
-}
+export type { TokenResponse, UserProfile, OnboardingPayload };
 
 // ---------- Token helpers ----------
 

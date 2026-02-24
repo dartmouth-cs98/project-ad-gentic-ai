@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from schemas.consumer import ConsumerCreate, ConsumerResponse, ConsumerCsvUploadResponse
-from crud.consumer import get_consumers, create_consumer, get_existing_emails
+from crud.consumer import get_consumers, create_consumer, create_consumers_bulk, get_existing_emails
 
 router = APIRouter()
 
@@ -80,10 +80,10 @@ async def upload_consumers_csv(
     # Check which emails already exist in the DB
     existing = get_existing_emails(db, csv_emails)
 
-    created = 0
     skipped_emails: list[str] = []
     errors: list[str] = []
     seen_emails: set[str] = set()
+    to_create: list[ConsumerCreate] = []
 
     for i, row in enumerate(rows, start=2):  # start=2 because row 1 is the header
         email = row.get("email", "").strip()
@@ -107,19 +107,23 @@ async def upload_consumers_csv(
             errors.append(f"Row {i}: invalid JSON in traits for '{email}'")
             continue
 
+        to_create.append(ConsumerCreate(
+            email=email,
+            phone=row.get("phone", "").strip(),
+            first_name=row.get("first_name", "").strip(),
+            last_name=row.get("last_name", "").strip(),
+            traits=traits,
+        ))
+
+    # Batch-insert all valid rows in a single transaction
+    created = 0
+    if to_create:
         try:
-            data = ConsumerCreate(
-                email=email,
-                phone=row.get("phone", "").strip(),
-                first_name=row.get("first_name", "").strip(),
-                last_name=row.get("last_name", "").strip(),
-                traits=traits,
-            )
-            create_consumer(db, data)
-            created += 1
+            create_consumers_bulk(db, to_create)
+            created = len(to_create)
         except Exception as exc:
             db.rollback()
-            errors.append(f"Row {i}: failed to insert '{email}' — {exc}")
+            errors.append(f"Batch insert failed: {exc}")
 
     return {
         "created": created,

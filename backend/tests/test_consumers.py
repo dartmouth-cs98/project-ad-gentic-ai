@@ -26,8 +26,8 @@ from main import app
 # Fixtures – in-memory SQLite database
 # ---------------------------------------------------------------------------
 
-# Remove the "dbo" schema qualifier so SQLite can create the table.
-Consumer.__table__.schema = None
+# Save the original schema so we can restore it after each test.
+_original_schema = Consumer.__table__.schema
 
 engine = create_engine(
     "sqlite:///:memory:",
@@ -40,9 +40,13 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(autouse=True)
 def setup_db():
     """Create the consumers table before each test and drop it after."""
+    # SQLite doesn't support schemas, so temporarily remove the "dbo" qualifier.
+    Consumer.__table__.schema = None
     Base.metadata.create_all(bind=engine, tables=[Consumer.__table__])
     yield
     Base.metadata.drop_all(bind=engine, tables=[Consumer.__table__])
+    # Restore original schema so other tests/modules see the correct value.
+    Consumer.__table__.schema = _original_schema
 
 
 @pytest.fixture()

@@ -37,3 +37,18 @@ def create_consumer(db: Session, data: ConsumerCreate) -> Consumer:
     db.commit()
     db.refresh(consumer)
     return consumer
+
+
+def create_consumers_bulk(db: Session, items: list[ConsumerCreate]) -> list[Consumer]:
+    """Insert multiple consumers in a single transaction and return them."""
+    consumers = []
+    for data in items:
+        payload = data.model_dump()
+        if payload.get("traits") is not None:
+            payload["traits"] = json.dumps(payload["traits"])
+        consumers.append(Consumer(**payload))
+    db.add_all(consumers)
+    db.commit()
+    for c in consumers:
+        db.refresh(c)
+    return consumers

@@ -9,9 +9,14 @@ import {
   CheckCircleIcon
 } from
   'lucide-react';
-import { signIn } from '../api/auth';
+// useSignIn is used instead of calling signIn() directly so that React Query's
+// profile cache is invalidated on success. This causes UserProvider to re-render,
+// re-enables the useProfile query (which starts disabled when no token exists),
+// and fetches the real user profile — populating UserContext across the app.
+import { useSignIn } from '../hooks/useAuth';
 export function SignInPage() {
   const navigate = useNavigate();
+  const signInMutation = useSignIn();
   const [rememberedUser, setRememberedUser] = useState<{
     name: string;
     email: string;
@@ -78,7 +83,9 @@ export function SignInPage() {
     setAuthState('loading');
     setLoadingMessage('Signing you in...');
     try {
-      await signIn(form.email, form.password);
+      // mutateAsync calls signIn() under the hood (stores the JWT token) and
+      // then invalidates the profile query so UserContext updates immediately.
+      await signInMutation.mutateAsync({ email: form.email, password: form.password });
     } catch (err) {
       setAuthState('idle');
       setAuthError(err instanceof Error ? err.message : 'Sign in failed');

@@ -48,8 +48,6 @@ def read_campaign(campaign_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=CampaignResponse, status_code=201)
 def create_new_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
     return create_campaign(db, data)
-        raise HTTPException(status_code=500, detail="Failed to create campaign.")
-
 
 @router.put("/{campaign_id}", response_model=CampaignResponse)
 def update_existing_campaign(

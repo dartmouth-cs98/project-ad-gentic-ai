@@ -11,6 +11,7 @@ from routes.auth import router as auth_router
 
 #  Resource routes (CRUD)
 from routes.ad_variants import router as ad_variants_router
+from routes.campaigns import router as campaigns_router
 from routes.consumers import router as consumers_router
 
 app = FastAPI(
@@ -38,6 +39,7 @@ app.include_router(script_creation_worker_router, prefix="/script-creation-worke
 
 # Resource routers (CRUD)
 app.include_router(ad_variants_router, prefix="/ad-variants", tags=["Ad Variants"])
+app.include_router(campaigns_router, prefix="/campaigns", tags=["Campaigns"])
 app.include_router(consumers_router, prefix="/consumers", tags=["Consumers"])
 
 @app.get("/")

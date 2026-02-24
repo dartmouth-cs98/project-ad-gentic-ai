@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Integer, String, DateTime
+from sqlalchemy import Integer, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -11,10 +11,13 @@ from database import Base
 
 class Consumer(Base):
     __tablename__ = "consumers"
-    __table_args__ = {"schema": "dbo"}
+    __table_args__ = (
+        UniqueConstraint("business_client_id", "email", name="UQ_Consumers_Client_Email"),
+        {"schema": "dbo"},
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    business_client_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    business_client_id: Mapped[int] = mapped_column(Integer, ForeignKey("dbo.business_clients.id"), nullable=False)
     email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     first_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)

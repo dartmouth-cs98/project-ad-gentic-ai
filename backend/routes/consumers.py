@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from schemas.consumer import ConsumerCreate, ConsumerResponse, ConsumerCsvUploadResponse
 from crud.consumer import get_consumers, create_consumer, create_consumers_bulk, get_existing_emails
+from dependencies import get_current_client_id
 
 router = APIRouter()
 
@@ -36,6 +37,7 @@ def list_consumers(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
 ):
     """Get all consumers."""
     consumers = get_consumers(db, skip=skip, limit=limit)
@@ -46,6 +48,7 @@ def list_consumers(
 async def upload_consumers_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
 ):
     """Upload a CSV file to bulk-create consumers.
 
@@ -134,7 +137,11 @@ async def upload_consumers_csv(
 
 
 @router.post("/", response_model=ConsumerResponse, status_code=201)
-def create_new_consumer(data: ConsumerCreate, db: Session = Depends(get_db)):
+def create_new_consumer(
+    data: ConsumerCreate,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
     """Create a new consumer."""
     try:
         consumer = create_consumer(db, data)

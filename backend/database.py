@@ -29,7 +29,7 @@ def _create_azure_ad_engine():
     # when using plain SQL auth instead.
     import struct
     import pyodbc
-    from azure.identity import AzureCliCredential
+    from azure.identity import DefaultAzureCredential
 
     odbc_str = os.getenv("DB_ODBC_CONNECTION_STRING", "")
     if not odbc_str:
@@ -39,7 +39,7 @@ def _create_azure_ad_engine():
         # Fetch a short-lived Azure AD access token for Azure SQL each time a
         # new connection is opened. This avoids storing any password and works
         # with the "Active Directory Default" / passwordless auth model.
-        credential = AzureCliCredential()
+        credential = DefaultAzureCredential()
         token = credential.get_token("https://database.windows.net/.default")
 
         # pyodbc expects the token as a UTF-16-LE byte string prefixed with a

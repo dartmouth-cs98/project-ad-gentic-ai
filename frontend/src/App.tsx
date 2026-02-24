@@ -1,5 +1,5 @@
-import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LandingPage } from './pages/LandingPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { SignInPage } from './pages/SignInPage';
@@ -15,9 +15,15 @@ import { TeamPage } from './pages/TeamPage';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { CustomerDataPage } from './pages/CustomerDataPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { UserProvider } from './contexts/UserContext';
 import { CompanyProvider } from './contexts/CompanyContext';
+
+const queryClient = new QueryClient();
+
 export function App() {
   return (
+    <QueryClientProvider client={queryClient}>
+    <UserProvider>
     <CompanyProvider>
       <HashRouter>
         <Routes>
@@ -41,6 +47,8 @@ export function App() {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </HashRouter>
-    </CompanyProvider>);
-
+    </CompanyProvider>
+    </UserProvider>
+    </QueryClientProvider>
+  );
 }

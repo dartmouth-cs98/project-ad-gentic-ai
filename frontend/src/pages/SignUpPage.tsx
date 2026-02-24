@@ -10,7 +10,7 @@ import {
   CheckCircleIcon
 } from
   'lucide-react';
-import { signUp } from '../utils/auth';
+import { signUp } from '../api/auth';
 function getPasswordStrength(password: string): {
   level: number;
   label: string;
@@ -77,21 +77,19 @@ export function SignUpPage() {
   const [loadingMessage, setLoadingMessage] = useState('');
   const passwordStrength = getPasswordStrength(form.password);
   const handleGoogleSignUp = () => {
+    // Google OAuth not yet implemented — simulated flow
     setAuthState('loading');
     setLoadingMessage('Creating your account...');
-    // Simulate Google Sign Up
     setTimeout(() => {
-      const dummyEmail = `google-user-${Date.now()}@gmail.com`;
-      signUp(dummyEmail, 'password123'); // Create dummy account
       setAuthState('success');
       setLoadingMessage('Account created! Let us pick your plan...');
       setTimeout(() => {
-        setAuthState('idle'); // Reset for plan selection view
+        setAuthState('idle');
         setStep('plan');
       }, 3000);
     }, 1500);
   };
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     const newErrors: Record<string, string> = {};
@@ -109,20 +107,19 @@ export function SignUpPage() {
     }
     setAuthState('loading');
     setLoadingMessage('Creating your account...');
+    try {
+      await signUp(form.email, form.password);
+    } catch (err) {
+      setAuthState('idle');
+      setAuthError(err instanceof Error ? err.message : 'Sign up failed');
+      return;
+    }
+    setAuthState('success');
+    setLoadingMessage('Account created!');
     setTimeout(() => {
-      const result = signUp(form.email, form.password);
-      if (!result.success) {
-        setAuthState('idle');
-        setAuthError(result.error || 'Sign up failed');
-        return;
-      }
-      setAuthState('success');
-      setLoadingMessage('Account created!');
-      setTimeout(() => {
-        setAuthState('idle');
-        setStep('plan');
-      }, 3000);
-    }, 1000);
+      setAuthState('idle');
+      setStep('plan');
+    }, 3000);
   };
   const handlePlanSelect = (_plan: string) => {
     // In real app, would save plan selection

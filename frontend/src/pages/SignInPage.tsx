@@ -9,7 +9,7 @@ import {
   CheckCircleIcon
 } from
   'lucide-react';
-import { signIn } from '../utils/auth';
+import { signIn } from '../api/auth';
 export function SignInPage() {
   const navigate = useNavigate();
   const [rememberedUser, setRememberedUser] = useState<{
@@ -65,7 +65,7 @@ export function SignInPage() {
       }, 1000);
     }, 1500);
   };
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     const newErrors: Record<string, string> = {};
@@ -77,22 +77,19 @@ export function SignInPage() {
     }
     setAuthState('loading');
     setLoadingMessage('Signing you in...');
+    try {
+      await signIn(form.email, form.password);
+    } catch (err) {
+      setAuthState('idle');
+      setAuthError(err instanceof Error ? err.message : 'Sign in failed');
+      return;
+    }
+    localStorage.setItem('adgentic_last_email', form.email);
+    localStorage.setItem('adgentic_auth_flow', 'signin');
+    setAuthState('success');
+    setLoadingMessage('Welcome back! Redirecting to dashboard...');
     setTimeout(() => {
-      const result = signIn(form.email, form.password);
-      if (!result.success) {
-        setAuthState('idle');
-        setAuthError(result.error || 'Sign in failed');
-        return;
-      }
-      // Save user for "remember me"
-      localStorage.setItem('adgentic_last_email', form.email);
-      localStorage.setItem('adgentic_last_name', 'Alex Johnson');
-      localStorage.setItem('adgentic_auth_flow', 'signin');
-      setAuthState('success');
-      setLoadingMessage('Welcome back! Redirecting to dashboard...');
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
+      navigate('/dashboard');
     }, 1000);
   };
   return (

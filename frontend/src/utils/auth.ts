@@ -1,86 +1,133 @@
-const USERS_KEY = 'adgentic_users';
+import { apiUrl } from '../api/config';
+
+const TOKEN_KEY = 'adgentic_token';
 const CURRENT_USER_KEY = 'adgentic_current_user';
+const CURRENT_CLIENT_ID_KEY = 'adgentic_client_id';
 
 export interface User {
   email: string;
-  password: string;
-  name?: string;
-  createdAt: string;
+  client_id: number;
 }
 
-function getUsers(): User[] {
+export interface UserProfile {
+  client_id: number;
+  email: string;
+  business_name: string;
+  subscription_tier: string;
+  credits_balance: number;
+  traits: Record<string, unknown> | null;
+}
+
+// ---------- Auth API calls ----------
+
+export async function signUp(
+  email: string,
+  password: string,
+  plan: string = 'basic'
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const data = localStorage.getItem(USERS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveUsers(users: User[]) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-// Seed demo user on first load
-export function seedDemoUser() {
-  const users = getUsers();
-  const demoExists = users.some((u) => u.email === 'demo@adgentic.ai');
-  if (!demoExists) {
-    users.push({
-      email: 'demo@adgentic.ai',
-      password: 'password123',
-      name: 'Demo User',
-      createdAt: new Date().toISOString()
+    const res = await fetch(apiUrl('/auth/signup'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, plan }),
     });
-    saveUsers(users);
+
+    if (res.status === 409) {
+      return {
+        success: false,
+        error: 'An account with this email already exists. Try signing in.',
+      };
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { success: false, error: body.detail || 'Sign up failed.' };
+    }
+
+    const data = await res.json();
+    _storeSession(data.access_token, data.email, data.client_id);
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Could not reach the server. Please try again.' };
   }
 }
 
-export function signUp(
-email: string,
-password: string)
-: {success: boolean;error?: string;} {
-  const users = getUsers();
-  const exists = users.some(
-    (u) => u.email.toLowerCase() === email.toLowerCase()
-  );
-  if (exists) {
-    return {
-      success: false,
-      error: 'An account with this email already exists. Try signing in.'
-    };
+export async function signIn(
+  email: string,
+  password: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(apiUrl('/auth/signin'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { success: false, error: body.detail || 'Sign in failed.' };
+    }
+
+    const data = await res.json();
+    _storeSession(data.access_token, data.email, data.client_id);
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Could not reach the server. Please try again.' };
   }
-  users.push({
-    email: email.toLowerCase(),
-    password,
-    createdAt: new Date().toISOString()
-  });
-  saveUsers(users);
-  setCurrentUser(email);
-  return { success: true };
 }
 
-export function signIn(
-email: string,
-password: string)
-: {success: boolean;error?: string;} {
-  const users = getUsers();
-  const user = users.find(
-    (u) =>
-    u.email.toLowerCase() === email.toLowerCase() && u.password === password
-  );
-  if (!user) {
-    return {
-      success: false,
-      error: 'Invalid email or password. Try demo@adgentic.ai / password123'
-    };
+export async function saveOnboarding(
+  onboardingData: Record<string, unknown>
+): Promise<{ success: boolean; error?: string }> {
+  const token = getToken();
+  if (!token) return { success: false, error: 'Not authenticated.' };
+
+  try {
+    const res = await fetch(apiUrl('/auth/onboarding'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(onboardingData),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { success: false, error: body.detail || 'Failed to save onboarding data.' };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Could not reach the server. Please try again.' };
   }
-  setCurrentUser(user.email);
-  return { success: true };
 }
 
-export function setCurrentUser(email: string) {
+export async function fetchProfile(): Promise<UserProfile | null> {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(apiUrl('/auth/me'), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as UserProfile;
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Session helpers ----------
+
+function _storeSession(token: string, email: string, clientId: number) {
+  localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(CURRENT_USER_KEY, email);
+  localStorage.setItem(CURRENT_CLIENT_ID_KEY, String(clientId));
+}
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function getCurrentUser(): string | null {
@@ -88,8 +135,13 @@ export function getCurrentUser(): string | null {
 }
 
 export function signOut() {
+  localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(CURRENT_USER_KEY);
+  localStorage.removeItem(CURRENT_CLIENT_ID_KEY);
 }
 
-// Auto-seed on import
-seedDemoUser();
+// No-ops kept for import compatibility
+export function seedDemoUser() {}
+export function setCurrentUser(email: string) {
+  localStorage.setItem(CURRENT_USER_KEY, email);
+}

@@ -6,6 +6,9 @@ from workers.ad_job_worker.service import router as ad_job_worker_router
 from workers.ad_post_worker.service import router as ad_post_worker_router
 from workers.script_creation_worker.service import router as script_creation_worker_router
 
+#  Auth & onboarding
+from routes.auth import router as auth_router
+
 #  Resource routes (CRUD)
 from routes.ad_variants import router as ad_variants_router
 
@@ -27,6 +30,7 @@ app.add_middleware(
 )
 
 # Routers
+app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(ad_job_worker_router, prefix="/ad-job-worker", tags=["Ad Job Worker"])
 app.include_router(ad_post_worker_router, prefix="/ad-post-worker", tags=["Ad Post Worker"])
 app.include_router(script_creation_worker_router, prefix="/script-creation-worker", tags=["Script Creation Worker"])

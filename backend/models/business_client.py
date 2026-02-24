@@ -1,5 +1,6 @@
 """SQLAlchemy model for the dbo.business_clients table."""
 
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -14,13 +15,18 @@ class BusinessClient(Base):
     __table_args__ = {"schema": "dbo"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String, nullable=False)
-    password_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    business_name: Mapped[str] = mapped_column(String, nullable=False)
-    subscription_tier: Mapped[str] = mapped_column(String, nullable=False)
-    stripe_customer_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    business_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    subscription_tier: Mapped[str] = mapped_column(String(50), nullable=False, default="basic")
+    # SQL Server's unique constraint rejects multiple NULLs, so we default
+    # to a unique placeholder until a real Stripe customer ID is assigned.
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, default=lambda: f"pending_{uuid.uuid4().hex}"
+    )
     credits_balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    traits: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     def __repr__(self) -> str:
         return f"<BusinessClient(id={self.id}, business_name='{self.business_name}', email='{self.email}')>"

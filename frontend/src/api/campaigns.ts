@@ -27,7 +27,7 @@ export interface CreateCampaignPayload {
   business_client_id: number;
   name: string;
   status?: CampaignStatus;
-  budget_total?: number | null;
+  budget_total?: string | null;
   start_date?: string | null;
   end_date?: string | null;
   goal?: string | null;
@@ -40,7 +40,7 @@ export interface CreateCampaignPayload {
 export interface UpdateCampaignPayload {
   name?: string;
   status?: CampaignStatus;
-  budget_total?: number | null;
+  budget_total?: string | null;
   start_date?: string | null;
   end_date?: string | null;
   goal?: string | null;

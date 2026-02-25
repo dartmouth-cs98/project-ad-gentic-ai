@@ -4,7 +4,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
-import { XIcon } from 'lucide-react';
+import { XIcon, Loader2Icon } from 'lucide-react';
 
 // ---------- Types ----------
 
@@ -20,6 +20,8 @@ interface EditCampaignModalProps {
   initial: EditFormData;
   onClose: () => void;
   onSave: (data: EditFormData) => void;
+  isSaving?: boolean;
+  error?: string | null;
 }
 
 // ---------- Component ----------
@@ -28,6 +30,8 @@ export function EditCampaignModal({
   initial,
   onClose,
   onSave,
+  isSaving = false,
+  error = null,
 }: EditCampaignModalProps) {
   const [form, setForm] = useState<EditFormData>(initial);
 
@@ -35,7 +39,7 @@ export function EditCampaignModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={() => !isSaving && onClose()}
       />
       <Card
         variant="elevated"
@@ -49,6 +53,7 @@ export function EditCampaignModal({
           <button
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-slate-100"
+            disabled={isSaving}
           >
             <XIcon className="w-5 h-5 text-slate-500" />
           </button>
@@ -99,11 +104,23 @@ export function EditCampaignModal({
           />
         </div>
 
+        {error && (
+          <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
+
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={() => onSave(form)}>Save Changes</Button>
+          <Button
+            onClick={() => onSave(form)}
+            disabled={isSaving}
+            leftIcon={isSaving ? <Loader2Icon className="w-4 h-4 animate-spin" /> : undefined}
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
         </div>
       </Card>
     </div>

@@ -11,7 +11,7 @@ interface CampaignTableProps {
   selectedCampaigns: string[];
   onToggleSelection: (id: string) => void;
   onToggleSelectAll: () => void;
-  onDeleteClick: (campaignName: string) => void;
+  onDeleteClick: (campaignId: string, campaignName: string) => void;
 }
 
 export function CampaignTable({
@@ -96,7 +96,7 @@ export function CampaignTable({
                     variant="ghost"
                     size="sm"
                     className="h-9 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => onDeleteClick(campaign.name)}
+                    onClick={() => onDeleteClick(campaign.id, campaign.name)}
                     leftIcon={<TrashIcon className="w-3.5 h-3.5" />}
                   >
                     Delete

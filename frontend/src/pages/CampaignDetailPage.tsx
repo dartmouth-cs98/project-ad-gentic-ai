@@ -11,6 +11,8 @@ import {
   GlobeIcon,
   EditIcon,
   TrashIcon,
+  Loader2Icon,
+  AlertCircleIcon,
 } from 'lucide-react';
 
 import { AdVariantsGrid } from '../components/campaigns/AdVariantsGrid';
@@ -18,11 +20,17 @@ import { CampaignAnalytics } from '../components/campaigns/CampaignAnalytics';
 import { CampaignSettings } from '../components/campaigns/CampaignSettings';
 import { EditCampaignModal } from '../components/campaigns/EditCampaignModal';
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
+import { statusColors } from '../components/campaigns/CampaignGridCard';
 
 import type { AdVariant } from '../components/campaigns/AdVariantsGrid';
 import type { AnalyticsMetric, PersonaPerf } from '../components/campaigns/CampaignAnalytics';
+import type { EditFormData } from '../components/campaigns/EditCampaignModal';
+import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
 
-// ---------- Static seed data (will be replaced by API calls) ----------
+import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns';
+import type { CampaignStatus } from '../api/campaigns';
+
+// ---------- Static placeholder data (ad variants & analytics not yet in API) ----------
 
 const adVariants: AdVariant[] = [
   {
@@ -99,26 +107,126 @@ const personaPerformance: PersonaPerf[] = [
 // ---------- Component ----------
 
 export function CampaignDetailPage() {
-  const { id: _id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const campaignId = Number(id);
+  const { data: campaign, isLoading, isError, error } = useCampaign(campaignId);
+
+  // Two separate mutation instances — one for the edit modal, one for the settings tab
+  const editMutation = useUpdateCampaign();
+  const settingsMutation = useUpdateCampaign();
+  const deleteMutation = useDeleteCampaign();
 
   const [activeTab, setActiveTab] = useState<'variants' | 'analytics' | 'settings'>('variants');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const [editForm, setEditForm] = useState({
-    name: 'Summer Sale 2026',
-    status: 'active',
-    goal: 'awareness',
-    customGoal: '',
-    targetAudience: 'Tech-savvy millennials interested in productivity tools.',
-  });
 
   const tabs = [
     { key: 'variants' as const, label: 'Ad Variants' },
     { key: 'analytics' as const, label: 'Analytics' },
     { key: 'settings' as const, label: 'Settings' },
   ];
+
+  // ---------- Handlers ----------
+
+  const handleEditSave = (data: EditFormData) => {
+    editMutation.mutate(
+      {
+        campaignId,
+        data: {
+          name: data.name,
+          goal: data.goal === 'other' ? (data.customGoal || 'other') : (data.goal || null),
+          target_audience: data.targetAudience || null,
+        },
+      },
+      { onSuccess: () => setShowEditModal(false) },
+    );
+  };
+
+  const handleSettingsSave = (data: SettingsFormData) => {
+    settingsMutation.mutate({
+      campaignId,
+      data: {
+        name: data.name,
+        status: data.status as CampaignStatus,
+        budget_total: data.budget || null,
+        start_date: data.startDate || null,
+        end_date: data.endDate || null,
+      },
+    });
+  };
+
+  const handleDelete = () => {
+    deleteMutation.mutate(campaignId, {
+      onSuccess: () => navigate('/campaigns'),
+    });
+  };
+
+  // ---------- Loading state ----------
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-50">
+        <Sidebar />
+        <main className="ml-64 flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center text-slate-400">
+            <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
+            <p className="text-sm">Loading campaign...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ---------- Error state ----------
+
+  if (isError || !campaign) {
+    return (
+      <div className="flex min-h-screen bg-slate-50">
+        <Sidebar />
+        <main className="ml-64 flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
+              <AlertCircleIcon className="w-7 h-7 text-red-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">
+              Campaign not found
+            </h2>
+            <p className="text-sm text-slate-500 mb-4">
+              {(error as Error)?.message}
+            </p>
+            <Link to="/campaigns" className="text-blue-600 text-sm hover:underline">
+              Back to campaigns
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ---------- Derived values ----------
+
+  const editInitial: EditFormData = {
+    name: campaign.name,
+    status: campaign.status,
+    goal: campaign.goal ?? '',
+    customGoal: '',
+    targetAudience: campaign.target_audience ?? '',
+  };
+
+  const settingsInitial: SettingsFormData = {
+    name: campaign.name,
+    status: campaign.status,
+    platforms: [],
+    budget: campaign.budget_total?.toString() ?? '',
+    startDate: campaign.start_date ?? '',
+    endDate: campaign.end_date ?? '',
+  };
+
+  const statusVariant = statusColors[campaign.status as keyof typeof statusColors] ?? 'default';
+
+  // ---------- Render ----------
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -139,12 +247,19 @@ export function CampaignDetailPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-2xl font-bold text-slate-900">
-                  {editForm.name}
+                  {campaign.name}
                 </h1>
-                <Badge variant="success">Active</Badge>
+                <Badge variant={statusVariant}>
+                  {campaign.status}
+                </Badge>
               </div>
               <p className="text-slate-500">
-                Created on Feb 11, 2026 • Last updated 2 hours ago
+                Created on{' '}
+                {new Date(campaign.created_at).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -166,7 +281,7 @@ export function CampaignDetailPage() {
           </div>
         </div>
 
-        {/* Hero Metrics */}
+        {/* Hero Metrics — static placeholders until analytics API exists */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           <Card variant="elevated" padding="md">
             <div className="flex items-center justify-between mb-4">
@@ -252,37 +367,39 @@ export function CampaignDetailPage() {
 
         {activeTab === 'settings' && (
           <CampaignSettings
-            initial={{
-              name: 'Summer Sale 2026',
-              status: 'active',
-              platforms: ['meta', 'tiktok'],
-              budget: '5000',
-              startDate: '2026-02-11',
-              endDate: '2026-03-11',
-            }}
+            key={campaign.updated_at}
+            initial={settingsInitial}
+            onSave={handleSettingsSave}
+            isSaving={settingsMutation.isPending}
+            error={
+              settingsMutation.isError
+                ? (settingsMutation.error as Error).message
+                : null
+            }
           />
         )}
 
         {/* Modals */}
         {showEditModal && (
           <EditCampaignModal
-            initial={editForm}
+            initial={editInitial}
             onClose={() => setShowEditModal(false)}
-            onSave={(data) => {
-              setEditForm(data);
-              setShowEditModal(false);
-            }}
+            onSave={handleEditSave}
+            isSaving={editMutation.isPending}
+            error={
+              editMutation.isError
+                ? (editMutation.error as Error).message
+                : null
+            }
           />
         )}
 
         {showDeleteModal && (
           <DeleteCampaignModal
-            campaignName={editForm.name}
+            campaignName={campaign.name}
+            isLoading={deleteMutation.isPending}
             onClose={() => setShowDeleteModal(false)}
-            onConfirm={() => {
-              setShowDeleteModal(false);
-              navigate('/dashboard');
-            }}
+            onConfirm={handleDelete}
           />
         )}
       </main>

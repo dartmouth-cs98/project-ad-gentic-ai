@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from schemas.consumer import ConsumerCreate, ConsumerResponse, ConsumerCsvUploadResponse
 from crud.consumer import get_consumers, create_consumer, create_consumers_bulk, get_existing_emails
+from dependencies import get_current_client_id
 
 router = APIRouter()
 
@@ -36,9 +37,10 @@ def list_consumers(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
 ):
-    """Get all consumers."""
-    consumers = get_consumers(db, skip=skip, limit=limit)
+    """Get all consumers for the authenticated client."""
+    consumers = get_consumers(db, client_id=client_id, skip=skip, limit=limit)
     return [_to_response(c) for c in consumers]
 
 
@@ -46,12 +48,9 @@ def list_consumers(
 async def upload_consumers_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
 ):
-    """Upload a CSV file to bulk-create consumers.
-
-    Expected CSV columns: email, phone, first_name, last_name, traits
-    The traits column should contain a JSON string, e.g. {"religion": "Christian"}
-    """
+    """Upload a CSV file to bulk-create consumers for the authenticated client."""
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only .csv files are accepted.")
 
@@ -77,8 +76,8 @@ async def upload_consumers_csv(
     # Collect all emails from the CSV
     csv_emails = [r.get("email", "").strip() for r in rows]
 
-    # Check which emails already exist in the DB
-    existing = get_existing_emails(db, csv_emails)
+    # Check which emails already exist in the DB for this client
+    existing = get_existing_emails(db, client_id, csv_emails)
 
     skipped_emails: list[str] = []
     errors: list[str] = []
@@ -94,7 +93,7 @@ async def upload_consumers_csv(
             continue
         seen_emails.add(email)
 
-        # Skip emails that already exist in the DB
+        # Skip emails that already exist in the DB for this client
         if email in existing:
             skipped_emails.append(email)
             continue
@@ -119,7 +118,7 @@ async def upload_consumers_csv(
     created = 0
     if to_create:
         try:
-            create_consumers_bulk(db, to_create)
+            create_consumers_bulk(db, client_id, to_create)
             created = len(to_create)
         except Exception as exc:
             db.rollback()
@@ -134,10 +133,14 @@ async def upload_consumers_csv(
 
 
 @router.post("/", response_model=ConsumerResponse, status_code=201)
-def create_new_consumer(data: ConsumerCreate, db: Session = Depends(get_db)):
-    """Create a new consumer."""
+def create_new_consumer(
+    data: ConsumerCreate,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
+    """Create a new consumer for the authenticated client."""
     try:
-        consumer = create_consumer(db, data)
+        consumer = create_consumer(db, client_id, data)
     except IntegrityError:
         db.rollback()
         raise HTTPException(

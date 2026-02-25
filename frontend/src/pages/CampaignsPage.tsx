@@ -7,6 +7,9 @@ import {
   SearchIcon,
   PlusIcon,
   XIcon,
+  Loader2Icon,
+  MegaphoneIcon,
+  AlertCircleIcon,
 } from 'lucide-react';
 
 import { CampaignGridCard } from '../components/campaigns/CampaignGridCard';
@@ -15,93 +18,63 @@ import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
 import type { CampaignItem } from '../components/campaigns/CampaignGridCard';
 
-// ---------- Static seed data (will be replaced by API calls) ----------
+import { useUser } from '../contexts/UserContext';
+import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
+import type { Campaign } from '../api/campaigns';
 
-const initialCampaigns: CampaignItem[] = [
-  {
-    id: '1',
-    name: 'Summer Sale 2026',
-    product: 'Premium Subscription',
-    status: 'active',
-    reach: '124.5K',
-    engagement: '4.2%',
-    platform: 'meta',
-    objective: 'sales',
-    dateCreated: 'Feb 11, 2026',
-    thumbnail:
-      'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=200&h=150&fit=crop',
-  },
-  {
-    id: '2',
-    name: 'Product Launch - AI Features',
-    product: 'Enterprise Plan',
-    status: 'active',
-    reach: '89.2K',
-    engagement: '3.8%',
-    platform: 'tiktok',
-    objective: 'awareness',
-    dateCreated: 'Feb 8, 2026',
-    thumbnail:
-      'https://images.unsplash.com/photo-1551434678-e076c223a692?w=200&h=150&fit=crop',
-  },
-  {
-    id: '3',
-    name: 'Brand Awareness Q1',
-    product: 'All Products',
-    status: 'completed',
-    reach: '456.7K',
-    engagement: '2.9%',
-    platform: 'youtube',
-    objective: 'awareness',
-    dateCreated: 'Jan 15, 2026',
-    thumbnail:
-      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=200&h=150&fit=crop',
-  },
-  {
-    id: '4',
-    name: 'Holiday Campaign',
-    product: 'Gift Cards',
-    status: 'draft',
-    reach: '0',
-    engagement: '0%',
-    platform: 'meta',
-    objective: 'engagement',
-    dateCreated: 'Jan 3, 2026',
-    thumbnail:
-      'https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=200&h=150&fit=crop',
-  },
-  {
-    id: '5',
-    name: 'Spring Collection',
-    product: 'New Arrivals',
-    status: 'active',
-    reach: '67.8K',
-    engagement: '5.1%',
-    platform: 'linkedin',
-    objective: 'leads',
-    dateCreated: 'Feb 1, 2026',
-    thumbnail:
-      'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=200&h=150&fit=crop',
-  },
-  {
-    id: '6',
-    name: 'Retargeting - Cart Abandoners',
-    product: 'All Products',
-    status: 'active',
-    reach: '34.2K',
-    engagement: '6.7%',
-    platform: 'meta',
-    objective: 'sales',
-    dateCreated: 'Feb 5, 2026',
-    thumbnail:
-      'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=200&h=150&fit=crop',
-  },
-];
+// ---------- Helpers ----------
+
+/**
+ * product_context is stored as a JSON object {"text": "..."} in the DB
+ * (Azure SQL's ISJSON() only accepts objects/arrays, not scalar strings).
+ * Fall back gracefully for any other shape.
+ */
+function parseProductContext(raw: string | null | undefined): string {
+  if (!raw) return '—';
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed.text ?? parsed.description ?? JSON.stringify(parsed);
+    }
+    if (typeof parsed === 'string') return parsed;
+    return String(parsed);
+  } catch {
+    return raw;
+  }
+}
+
+// ---------- Mapper: API Campaign → UI CampaignItem ----------
+
+function campaignToItem(c: Campaign): CampaignItem {
+  return {
+    id: String(c.id),
+    name: c.name,
+    product: parseProductContext(c.product_context),
+    status: c.status,
+    reach: '—',
+    engagement: '—',
+    platform: '—',
+    objective: c.goal ?? '—',
+    dateCreated: new Date(c.created_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+  };
+}
 
 // ---------- Component ----------
 
 export function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
+  const { user } = useUser();
+  const businessClientId = user?.client_id;
+
+  const { data: rawCampaigns = [], isLoading, isError, error } = useCampaigns(businessClientId);
+  const deleteMutation = useDeleteCampaign();
+  const updateMutation = useUpdateCampaign();
+
+  const campaigns = rawCampaigns.map(campaignToItem);
+
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -111,7 +84,7 @@ export function CampaignsPage() {
   // Modal visibility
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+  const [campaignToDelete, setCampaignToDelete] = useState<{ id: number; name: string } | null>(null);
 
   // ---------- Filter helpers ----------
 
@@ -162,33 +135,37 @@ export function CampaignsPage() {
 
   // ---------- Bulk actions ----------
 
-  const handleBulkPause = () => {
-    setCampaigns(
-      campaigns.map((c) =>
-        selectedCampaigns.includes(c.id) ? { ...c, status: 'draft' as const } : c,
+  const handleBulkPause = async () => {
+    await Promise.all(
+      selectedCampaigns.map((id) =>
+        updateMutation.mutateAsync({ campaignId: Number(id), data: { status: 'paused' } }),
       ),
     );
     setSelectedCampaigns([]);
   };
 
-  const handleBulkDelete = () => {
-    setCampaigns(campaigns.filter((c) => !selectedCampaigns.includes(c.id)));
+  const handleBulkDelete = async () => {
+    await Promise.all(
+      selectedCampaigns.map((id) => deleteMutation.mutateAsync(Number(id))),
+    );
     setSelectedCampaigns([]);
   };
 
   // ---------- Delete ----------
 
-  const handleDeleteClick = (campaignName: string) => {
-    setCampaignToDelete(campaignName);
+  const handleDeleteClick = (campaignId: string, campaignName: string) => {
+    setCampaignToDelete({ id: Number(campaignId), name: campaignName });
     setShowDeleteModal(true);
   };
 
   const handleConfirmDelete = () => {
-    if (campaignToDelete) {
-      setCampaigns(campaigns.filter((c) => c.name !== campaignToDelete));
-      setShowDeleteModal(false);
-      setCampaignToDelete(null);
-    }
+    if (!campaignToDelete) return;
+    deleteMutation.mutate(campaignToDelete.id, {
+      onSuccess: () => {
+        setShowDeleteModal(false);
+        setCampaignToDelete(null);
+      },
+    });
   };
 
   // ---------- Render ----------
@@ -333,43 +310,104 @@ export function CampaignsPage() {
 
           {/* Content */}
           <div className="flex-1">
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 gap-6">
-                {filteredCampaigns.map((campaign) => (
-                  <CampaignGridCard
-                    key={campaign.id}
-                    campaign={campaign}
-                    isSelected={selectedCampaigns.includes(campaign.id)}
-                    onToggleSelection={toggleCampaignSelection}
-                  />
-                ))}
+            {/* Loading state */}
+            {isLoading && (
+              <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+                <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
+                <p className="text-sm">Loading campaigns...</p>
               </div>
-            ) : (
-              <CampaignTable
-                campaigns={filteredCampaigns}
-                selectedCampaigns={selectedCampaigns}
-                onToggleSelection={toggleCampaignSelection}
-                onToggleSelectAll={toggleSelectAll}
-                onDeleteClick={handleDeleteClick}
-              />
+            )}
+
+            {/* Error state */}
+            {isError && (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                  <AlertCircleIcon className="w-7 h-7 text-red-500" />
+                </div>
+                <h2 className="text-lg font-semibold text-slate-900 mb-1">
+                  Failed to load campaigns
+                </h2>
+                <p className="text-sm text-slate-500">
+                  {(error as Error).message}
+                </p>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && !isError && campaigns.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                  <MegaphoneIcon className="w-9 h-9 text-slate-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-slate-900 mb-2">
+                  No campaigns yet
+                </h2>
+                <p className="text-slate-500 mb-8 max-w-sm text-sm">
+                  Create your first campaign to start reaching your audience
+                  with AI-generated ads.
+                </p>
+                <Button
+                  leftIcon={<PlusIcon className="w-4 h-4" />}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  Create your first campaign
+                </Button>
+              </div>
+            )}
+
+            {/* No search results (has campaigns, but filter yields nothing) */}
+            {!isLoading && !isError && campaigns.length > 0 && filteredCampaigns.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <SearchIcon className="w-7 h-7 text-slate-400" />
+                </div>
+                <h2 className="text-lg font-semibold text-slate-900 mb-1">
+                  No campaigns match your filters
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Try adjusting your search or filter criteria.
+                </p>
+              </div>
+            )}
+
+            {/* Campaign grid / table */}
+            {!isLoading && !isError && filteredCampaigns.length > 0 && (
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 gap-6">
+                  {filteredCampaigns.map((campaign) => (
+                    <CampaignGridCard
+                      key={campaign.id}
+                      campaign={campaign}
+                      isSelected={selectedCampaigns.includes(campaign.id)}
+                      onToggleSelection={toggleCampaignSelection}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <CampaignTable
+                  campaigns={filteredCampaigns}
+                  selectedCampaigns={selectedCampaigns}
+                  onToggleSelection={toggleCampaignSelection}
+                  onToggleSelectAll={toggleSelectAll}
+                  onDeleteClick={handleDeleteClick}
+                />
+              )
             )}
           </div>
         </div>
 
         {/* Modals */}
-        {showCreateModal && (
+        {showCreateModal && businessClientId && (
           <CreateCampaignModal
+            businessClientId={businessClientId}
             onClose={() => setShowCreateModal(false)}
-            onCreated={(campaign) => {
-              setCampaigns([campaign, ...campaigns]);
-              setShowCreateModal(false);
-            }}
           />
         )}
 
         {showDeleteModal && campaignToDelete && (
           <DeleteCampaignModal
-            campaignName={campaignToDelete}
+            campaignName={campaignToDelete.name}
+            isLoading={deleteMutation.isPending}
             onClose={() => {
               setShowDeleteModal(false);
               setCampaignToDelete(null);

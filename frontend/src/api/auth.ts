@@ -1,17 +1,11 @@
-import { apiUrl } from './config';
+import { apiUrl, TOKEN_KEY, USER_KEY, CLIENT_ID_KEY, getToken, authHeaders } from './config';
 import type { TokenResponse, UserProfile, OnboardingPayload } from '../types';
 
 export type { TokenResponse, UserProfile, OnboardingPayload };
 
 // ---------- Token helpers ----------
 
-const TOKEN_KEY = 'adgentic_token';
-const USER_KEY = 'adgentic_current_user';
-const CLIENT_ID_KEY = 'adgentic_client_id';
-
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
+export { getToken };
 
 export function storeSession(token: string, email: string, clientId: number) {
   localStorage.setItem(TOKEN_KEY, token);
@@ -27,13 +21,6 @@ export function clearSession() {
 
 // ---------- Auth header ----------
 
-function authHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
 
 // ---------- API calls ----------
 

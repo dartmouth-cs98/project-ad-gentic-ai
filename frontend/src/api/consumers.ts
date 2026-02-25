@@ -1,4 +1,4 @@
-import { apiUrl } from './config';
+import { apiUrl, authHeaders } from './config';
 import type { Consumer, ConsumerUploadResponse } from '../types';
 
 export type { Consumer, ConsumerUploadResponse };
@@ -10,7 +10,9 @@ export async function fetchConsumers(
     skip = 0,
     limit = 100,
 ): Promise<Consumer[]> {
-    const res = await fetch(apiUrl(`/consumers/?skip=${skip}&limit=${limit}`));
+    const res = await fetch(apiUrl(`/consumers/?skip=${skip}&limit=${limit}`), {
+        headers: authHeaders(),
+    });
     if (!res.ok) {
         throw new Error('Failed to fetch consumers.');
     }
@@ -28,6 +30,7 @@ export async function uploadConsumersCsv(
 
     const res = await fetch(apiUrl('/consumers/upload-csv'), {
         method: 'POST',
+        headers: authHeaders(false),
         body: form,
     });
 

@@ -1,8 +1,5 @@
 import { apiUrl } from './config';
-
-export interface HealthResponse {
-    status: string;
-}
+import type { HealthResponse } from '../types';
 
 /**
  * Fetches the backend health endpoint.

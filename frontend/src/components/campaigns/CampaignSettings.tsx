@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, Loader2Icon } from 'lucide-react';
 
 // ---------- Constants ----------
 
@@ -28,11 +28,13 @@ export interface SettingsFormData {
 interface CampaignSettingsProps {
   initial: SettingsFormData;
   onSave?: (data: SettingsFormData) => void;
+  isSaving?: boolean;
+  error?: string | null;
 }
 
 // ---------- Component ----------
 
-export function CampaignSettings({ initial, onSave }: CampaignSettingsProps) {
+export function CampaignSettings({ initial, onSave, isSaving = false, error = null }: CampaignSettingsProps) {
   const [form, setForm] = useState<SettingsFormData>(initial);
 
   const togglePlatform = (platformId: string) => {
@@ -129,8 +131,20 @@ export function CampaignSettings({ initial, onSave }: CampaignSettingsProps) {
           />
         </div>
 
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
+
         <div className="pt-4 border-t border-slate-100">
-          <Button onClick={() => onSave?.(form)}>Save Changes</Button>
+          <Button
+            onClick={() => onSave?.(form)}
+            disabled={isSaving}
+            leftIcon={isSaving ? <Loader2Icon className="w-4 h-4 animate-spin" /> : undefined}
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
         </div>
       </div>
     </Card>

@@ -10,7 +10,7 @@ import {
   Loader2Icon,
   SparklesIcon,
 } from 'lucide-react';
-import type { CampaignItem } from './CampaignGridCard';
+import { useCreateCampaign } from '../../hooks/useCampaigns';
 
 const platforms = [
   { id: 'meta', label: 'Meta' },
@@ -27,13 +27,14 @@ const regions = [
 ];
 
 interface CreateCampaignModalProps {
+  businessClientId: number;
   onClose: () => void;
-  onCreated: (campaign: CampaignItem) => void;
 }
 
-export function CreateCampaignModal({ onClose, onCreated }: CreateCampaignModalProps) {
+export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaignModalProps) {
+  const createMutation = useCreateCampaign();
+
   const [isAutofilling, setIsAutofilling] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [customGoal, setCustomGoal] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newCampaign, setNewCampaign] = useState({
@@ -44,6 +45,8 @@ export function CreateCampaignModal({ onClose, onCreated }: CreateCampaignModalP
     platforms: [] as string[],
     region: '',
   });
+
+  const isCreating = createMutation.isPending;
 
   const toggleNewCampaignPlatform = (platformId: string) => {
     setNewCampaign({
@@ -78,24 +81,17 @@ export function CreateCampaignModal({ onClose, onCreated }: CreateCampaignModalP
       setErrors(newErrors);
       return;
     }
-    setIsCreating(true);
-    setTimeout(() => {
-      const createdCampaign: CampaignItem = {
-        id: Date.now().toString(),
+
+    createMutation.mutate(
+      {
+        business_client_id: businessClientId,
         name: newCampaign.name,
-        product: newCampaign.product,
-        status: 'draft',
-        reach: '0',
-        engagement: '0%',
-        platform: newCampaign.platforms[0] || 'meta',
-        objective: newCampaign.goal === 'other' ? 'custom' : newCampaign.goal,
-        dateCreated: 'Just now',
-        thumbnail:
-          'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=200&h=150&fit=crop',
-      };
-      onCreated(createdCampaign);
-      setIsCreating(false);
-    }, 1500);
+        product_context: newCampaign.product,
+        target_audience: newCampaign.targetAudience,
+        goal: newCampaign.goal === 'other' ? customGoal || 'other' : newCampaign.goal || null,
+      },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -248,6 +244,12 @@ export function CreateCampaignModal({ onClose, onCreated }: CreateCampaignModalP
             disabled={isCreating}
           />
         </div>
+
+        {createMutation.isError && (
+          <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+            {(createMutation.error as Error).message}
+          </p>
+        )}
 
         <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
           <Button variant="ghost" onClick={onClose} disabled={isCreating}>

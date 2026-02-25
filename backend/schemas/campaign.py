@@ -1,12 +1,37 @@
 """Pydantic schemas for campaigns — request/response validation."""
 
+import json
 from datetime import datetime, date
 from decimal import Decimal
 from typing import Literal, Optional
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 # Valid campaign statuses
 CampaignStatus = Literal["draft", "active", "paused", "completed"]
+
+
+# ---------- Helpers ----------
+
+def _ensure_json(value: Optional[str]) -> Optional[str]:
+    """Ensure value satisfies the ISJSON() CHECK constraint.
+
+    Azure SQL's ISJSON() only returns 1 for JSON objects {} and arrays [] —
+    it rejects JSON scalar strings like '"text"'. So plain text is wrapped as
+    {"text": "..."} rather than being JSON-serialised as a bare scalar.
+    Values that are already valid JSON objects/arrays pass through unchanged.
+    """
+    if value is None:
+        return None
+    try:
+        parsed = json.loads(value)
+        # Only objects and arrays satisfy ISJSON() on this Azure SQL instance.
+        if isinstance(parsed, (dict, list)):
+            return value  # already a valid JSON object/array
+        # Scalar JSON value ("string", number, bool) — rewrap as object.
+        return json.dumps({"text": parsed})
+    except (json.JSONDecodeError, ValueError):
+        # Plain text — wrap as JSON object.
+        return json.dumps({"text": value})
 
 
 # ---------- Request schemas ----------
@@ -34,6 +59,11 @@ class CampaignCreate(_DateRangeValidator):
     product_context: Optional[str] = None
     product_ids: Optional[str] = None
 
+    @field_validator("product_context", "product_ids", mode="before")
+    @classmethod
+    def coerce_to_json(cls, v: Optional[str]) -> Optional[str]:
+        return _ensure_json(v)
+
 
 class CampaignUpdate(_DateRangeValidator):
     """Schema for updating a campaign. All fields optional."""
@@ -44,6 +74,11 @@ class CampaignUpdate(_DateRangeValidator):
     target_audience: Optional[str] = None
     product_context: Optional[str] = None
     product_ids: Optional[str] = None
+
+    @field_validator("product_context", "product_ids", mode="before")
+    @classmethod
+    def coerce_to_json(cls, v: Optional[str]) -> Optional[str]:
+        return _ensure_json(v)
 
 
 # ---------- Response schema ----------

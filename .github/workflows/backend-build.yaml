@@ -30,3 +30,4 @@ jobs:
         env:
           JWT_SECRET: ci-test-secret
           DB_CONNECTION_STRING: sqlite:///test.db
+          ALLOWED_ORIGINS: http://localhost:5173

@@ -65,7 +65,7 @@ export function AllConsumersPage() {
             .join(' ');
     };
 
-    const renderTraits = (consumer: any) => {
+    const renderTraits = (consumer: Consumer) => {
         const traits = consumer.traits;
         if (!traits || Object.keys(traits).length === 0) {
             return <span className="text-slate-400 italic text-xs">No traits defined</span>;

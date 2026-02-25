@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import {
   UploadIcon,
-  FileIcon,
   CheckCircleIcon,
-  DownloadIcon,
   UsersIcon,
   PieChartIcon,
-  ActivityIcon,
   ClockIcon,
   XIcon,
   BrainIcon,
@@ -18,16 +16,18 @@ import {
   ImageIcon,
   TrendingUpIcon,
   InfoIcon,
-  RefreshCwIcon,
   Loader2Icon,
   SparklesIcon,
   TargetIcon,
   ZapIcon,
   ShieldIcon,
   SearchIcon,
-  HeartIcon
+  HeartIcon,
+  ArrowRightIcon
 } from
   'lucide-react';
+import { useConsumerContext } from '../contexts/ConsumerContext';
+import type { Consumer } from '../types';
 interface PersonaProfile {
   name: string;
   color: string;
@@ -187,27 +187,6 @@ const personas: PersonaProfile[] = [
     icon: HeartIcon
   }];
 
-const uploadFiles = [
-  {
-    name: 'q1_leads_2026.csv',
-    date: '2 days ago',
-    status: 'Processed' as const,
-    size: '2.4 MB'
-  },
-  {
-    name: 'newsletter_subs.xlsx',
-    date: '1 week ago',
-    status: 'Processed' as const,
-    size: '1.1 MB'
-  },
-  {
-    name: 'raw_export_jan.json',
-    date: '2 weeks ago',
-    status: 'Failed' as const,
-    size: '5.2 MB',
-    errorReason:
-      'File contains malformed JSON at line 4,218. Fix the syntax error or re-export from your CRM.'
-  }];
 
 const completenessScore = 72;
 const completenessItems = [
@@ -232,16 +211,89 @@ const completenessItems = [
     done: false
   }];
 
+function formatRelativeDate(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatKey(key: string) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/_/g, ' ')
+    .trim()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function renderTraits(traits: Record<string, unknown> | null) {
+  if (!traits || Object.keys(traits).length === 0) return null;
+
+  const keys = Object.keys(traits);
+  const displayKeys = keys.slice(0, 2);
+  const remainingCount = keys.length - displayKeys.length;
+
+  return (
+    <div className="relative group/traits">
+      <div className="flex flex-wrap gap-1 mt-2 cursor-help">
+        {displayKeys.map((key) => (
+          <span
+            key={key}
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600 border border-slate-200 truncate max-w-[120px]"
+          >
+            <span className="font-bold mr-1">{formatKey(key)}:</span>
+            <span className="truncate">
+              {Array.isArray(traits[key]) ? (traits[key] as any[]).join(', ') : String(traits[key])}
+            </span>
+          </span>
+        ))}
+        {remainingCount > 0 && (
+          <span className="text-[9px] text-blue-600 font-medium self-center ml-0.5 whitespace-nowrap bg-blue-50 px-1 rounded border border-blue-100">
+            +{remainingCount}
+          </span>
+        )}
+      </div>
+
+      {/* Mini Hover Tooltip for Dashboard */}
+      <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-slate-900 text-white rounded-lg shadow-xl z-50 opacity-0 invisible group-hover/traits:opacity-100 group-hover/traits:visible transition-all duration-200 pointer-events-none text-[10px]">
+        <div className="space-y-1.5">
+          {Object.entries(traits).map(([key, val]) => (
+            <div key={key} className="flex flex-col">
+              <span className="font-bold text-slate-400 uppercase text-[8px]">{formatKey(key)}</span>
+              <span className="font-medium truncate">{Array.isArray(val) ? val.join(', ') : String(val)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="absolute -bottom-1 left-4 w-2 h-2 bg-slate-900 rotate-45" />
+      </div>
+    </div>
+  );
+}
+
 export function CustomerDataPage() {
+  const { consumers, loading: consumersLoading, error: consumersError, uploadCsv, refetch } = useConsumerContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<
-    'idle' | 'uploading' | 'success'>(
+    'idle' | 'uploading' | 'success' | 'error'>(
       'idle');
+  const [uploadResult, setUploadResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<PersonaProfile | null>(
     null
   );
-  const [retryingFile, setRetryingFile] = useState<string | null>(null);
-  const [showErrorTooltip, setShowErrorTooltip] = useState<string | null>(null);
+
+  const recentConsumers = consumers.slice(-5).reverse();
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -249,15 +301,37 @@ export function CustomerDataPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    handleUpload();
+    const file = e.dataTransfer.files[0];
+    if (file) doUpload(file);
   };
-  const handleUpload = () => {
+  const handleClickUpload = () => {
+    fileInputRef.current?.click();
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) doUpload(file);
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+  };
+  const doUpload = (file: File) => {
     setUploadStatus('uploading');
-    setTimeout(() => setUploadStatus('success'), 2000);
-  };
-  const handleRetry = (fileName: string) => {
-    setRetryingFile(fileName);
-    setTimeout(() => setRetryingFile(null), 2000);
+    setUploadError(null);
+    setUploadResult(null);
+    uploadCsv.mutate(file, {
+      onSuccess: (data) => {
+        setUploadResult({ created: data.created, skipped: data.skipped, errors: data.errors });
+        if (data.errors.length > 0) {
+          setUploadStatus('error');
+        } else {
+          setUploadStatus('success');
+        }
+        refetch();
+      },
+      onError: (err) => {
+        setUploadError(err.message);
+        setUploadStatus('error');
+      },
+    });
   };
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -277,7 +351,7 @@ export function CustomerDataPage() {
             </div>
             <Button
               leftIcon={<UploadIcon className="w-4 h-4" />}
-              onClick={handleUpload}>
+              onClick={handleClickUpload}>
 
               Upload New Data
             </Button>
@@ -344,10 +418,10 @@ export function CustomerDataPage() {
                   Total Contacts
                 </span>
               </div>
-              <p className="text-2xl font-bold text-slate-900">12,847</p>
-              <p className="text-xs text-emerald-600 flex items-center gap-1">
-                <ActivityIcon className="w-3 h-3" /> +12% this month
+              <p className="text-2xl font-bold text-slate-900">
+                {consumersLoading ? '—' : consumers.length.toLocaleString()}
               </p>
+              <p className="text-xs text-slate-500">From uploaded CSVs</p>
             </Card>
 
             <Card variant="elevated" padding="md">
@@ -481,12 +555,20 @@ export function CustomerDataPage() {
             {/* Recent Uploads & Upload Area */}
             <div className="col-span-2 space-y-6">
               <Card variant="elevated" padding="lg">
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
                 <div
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-8 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50'}`}
                   onDragOver={handleDragOver}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
-                  onClick={handleUpload}>
+                  onClick={handleClickUpload}>
 
                   {uploadStatus === 'uploading' ?
                     <>
@@ -494,10 +576,10 @@ export function CustomerDataPage() {
                         <Loader2Icon className="w-6 h-6 text-blue-600 animate-spin" />
                       </div>
                       <h3 className="font-semibold text-slate-900">
-                        Processing file...
+                        Uploading to server...
                       </h3>
                       <p className="text-slate-500 text-sm mt-1">
-                        Analyzing and building persona segments
+                        Processing your CSV file
                       </p>
                     </> :
                     uploadStatus === 'success' ?
@@ -508,102 +590,107 @@ export function CustomerDataPage() {
                         <h3 className="font-semibold text-slate-900">
                           Upload complete!
                         </h3>
-                        <p className="text-slate-500 text-sm mt-1">
-                          Persona segments updated successfully
-                        </p>
+                        {uploadResult && (
+                          <p className="text-slate-500 text-sm mt-1">
+                            {uploadResult.created} created, {uploadResult.skipped} skipped
+                          </p>
+                        )}
                       </> :
+                      uploadStatus === 'error' ?
+                        <>
+                          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <InfoIcon className="w-6 h-6 text-red-600" />
+                          </div>
+                          <h3 className="font-semibold text-red-700">
+                            Upload failed
+                          </h3>
+                          <p className="text-red-500 text-sm mt-1">
+                            {uploadError || 'There were errors processing the file.'}
+                          </p>
+                          {uploadResult && uploadResult.errors.length > 0 && (
+                            <div className="mt-3 text-left bg-red-50 border border-red-200 rounded-lg p-3 max-h-32 overflow-y-auto">
+                              {uploadResult.errors.map((err, i) => (
+                                <p key={i} className="text-xs text-red-600 mb-1">{err}</p>
+                              ))}
+                            </div>
+                          )}
+                          {uploadResult && uploadResult.created > 0 && (
+                            <p className="text-slate-500 text-xs mt-2">
+                              ({uploadResult.created} rows were still imported successfully)
+                            </p>
+                          )}
+                        </> :
 
-                      <>
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                          <UploadIcon className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <h3 className="font-semibold text-slate-900">
-                          Upload Customer File
-                        </h3>
-                        <p className="text-slate-500 text-sm mt-1">
-                          Drag & drop CSV, JSON, or Excel
-                        </p>
-                      </>
+                        <>
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <UploadIcon className="w-6 h-6 text-blue-600" />
+                          </div>
+                          <h3 className="font-semibold text-slate-900">
+                            Upload Customer File
+                          </h3>
+                          <p className="text-slate-500 text-sm mt-1">
+                            Drag & drop a CSV file, or click to browse
+                          </p>
+                        </>
                   }
                 </div>
 
-                <h3 className="font-semibold text-slate-900 mb-4">
-                  Recent Uploads
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-slate-900">
+                    Recent Consumers
+                  </h3>
+                  <Link
+                    to="/all-consumers"
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors flex items-center gap-1">
+                    View All
+                    <ArrowRightIcon className="w-4 h-4 ml-1" />
+                  </Link>
+                </div>
                 <div className="space-y-3">
-                  {uploadFiles.map((file, i) =>
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center">
-                          <FileIcon className="w-5 h-5 text-slate-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900">
-                            {file.name}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {file.date} • {file.size}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {file.status === 'Failed' ?
-                          <>
-                            <div className="relative">
-                              <button
-                                onMouseEnter={() =>
-                                  setShowErrorTooltip(file.name)
-                                }
-                                onMouseLeave={() => setShowErrorTooltip(null)}
-                                className="p-1 rounded hover:bg-red-50 transition-colors">
-
-                                <InfoIcon className="w-4 h-4 text-red-400" />
-                              </button>
-                              {showErrorTooltip === file.name &&
-                                file.errorReason &&
-                                <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl z-20">
-                                  <p className="font-medium mb-1">
-                                    Upload failed
-                                  </p>
-                                  <p className="text-slate-300 leading-relaxed">
-                                    {file.errorReason}
-                                  </p>
-                                  <div className="absolute bottom-0 right-4 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-900" />
-                                </div>
-                              }
-                            </div>
-                            <Badge variant="danger">Failed</Badge>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleRetry(file.name)}
-                              disabled={retryingFile === file.name}>
-
-                              {retryingFile === file.name ?
-                                <Loader2Icon className="w-3.5 h-3.5 animate-spin" /> :
-
-                                <RefreshCwIcon className="w-3.5 h-3.5" />
-                              }
-                              <span className="ml-1">
-                                {retryingFile === file.name ?
-                                  'Retrying...' :
-                                  'Retry'}
-                              </span>
-                            </Button>
-                          </> :
-
-                          <>
-                            <Badge variant="success">{file.status}</Badge>
-                            <Button variant="ghost" size="sm">
-                              <DownloadIcon className="w-4 h-4" />
-                            </Button>
-                          </>
-                        }
-                      </div>
+                  {consumersLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2Icon className="w-6 h-6 text-blue-600 animate-spin" />
                     </div>
+                  ) : consumersError ? (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-red-500">{consumersError}</p>
+                      <Button variant="secondary" size="sm" onClick={() => refetch()} className="mt-2">
+                        Retry
+                      </Button>
+                    </div>
+                  ) : recentConsumers.length === 0 ? (
+                    <div className="text-center py-6">
+                      <UsersIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm text-slate-500">No consumers yet</p>
+                      <p className="text-xs text-slate-400 mt-1">Upload a CSV to get started</p>
+                    </div>
+                  ) : (
+                    recentConsumers.map((consumer: Consumer) => (
+                      <div
+                        key={consumer.id}
+                        className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <UsersIcon className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-slate-900 truncate">
+                              {consumer.first_name} {consumer.last_name}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {consumer.email}
+                            </p>
+                            {renderTraits(consumer.traits)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-400">
+                            {formatRelativeDate(consumer.created_at)}
+                          </span>
+                          <Badge variant="success">Active</Badge>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </Card>

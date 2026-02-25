@@ -10,3 +10,26 @@ export const API_BASE_URL: string = isLocal
 export function apiUrl(path: string): string {
     return `${API_BASE_URL}${path}`;
 }
+
+// ---------- Token helpers ----------
+
+export const TOKEN_KEY = 'adgentic_token';
+export const USER_KEY = 'adgentic_current_user';
+export const CLIENT_ID_KEY = 'adgentic_client_id';
+
+export function getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
+// ---------- Auth header ----------
+
+export function authHeaders(isJson = true): HeadersInit {
+    const token = getToken();
+    const headers: Record<string, string> = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    if (isJson) {
+        headers['Content-Type'] = 'application/json';
+    }
+    return headers;
+}

@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,10 +23,14 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS middleware
+# CORS middleware 
+# Allowed origin separated by comma
+_raw_origins = os.environ["ALLOWED_ORIGINS"]
+allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,7 +47,8 @@ app.include_router(ad_variants_router, prefix="/ad-variants", tags=["Ad Variants
 app.include_router(campaigns_router, prefix="/campaigns", tags=["Campaigns"])
 app.include_router(consumers_router, prefix="/consumers", tags=["Consumers"])
 
-@app.get("/")
+# Methods (GET and HEAD) for uptime robot to keep the app alive
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     """Root endpoint - API health check."""
     return {

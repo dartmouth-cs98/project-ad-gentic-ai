@@ -20,6 +20,7 @@ from schemas.auth import (
     OnboardingResponse,
 )
 from crud.business_client import get_by_email, get_by_id, create_business_client, update_onboarding
+from dependencies import get_current_client_id, create_access_token
 
 router = APIRouter()
 
@@ -43,27 +44,6 @@ def _verify_password(plain: str, hashed: str) -> bool:
     return _pwd_context.verify(plain, hashed)
 
 
-def _create_token(client_id: int, email: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRY_DAYS)
-    payload = {"sub": str(client_id), "email": email, "exp": expire}
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def _get_current_client_id(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-) -> int:
-    try:
-        payload = jwt.decode(
-            credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM]
-        )
-        return int(payload["sub"])
-    except (JWTError, KeyError, ValueError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
-        )
-
-
 # --- Endpoints ---
 
 @router.post("/signup", response_model=TokenResponse, status_code=201)
@@ -76,7 +56,7 @@ def signup(data: SignUpRequest, db: Session = Depends(get_db)):
         )
     hashed = _hash_password(data.password)
     client = create_business_client(db, data.email, hashed, data.plan)
-    token = _create_token(client.id, client.email)
+    token = create_access_token(client.id, client.email)
     return TokenResponse(access_token=token, client_id=client.id, email=client.email)
 
 
@@ -90,14 +70,14 @@ def signin(data: SignInRequest, db: Session = Depends(get_db)):
         or not _verify_password(data.password, client.password_hash)
     ):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
-    token = _create_token(client.id, client.email)
+    token = create_access_token(client.id, client.email)
     return TokenResponse(access_token=token, client_id=client.id, email=client.email)
 
 
 @router.get("/me", response_model=ProfileResponse)
 def get_me(
     db: Session = Depends(get_db),
-    client_id: int = Depends(_get_current_client_id),
+    client_id: int = Depends(get_current_client_id),
 ):
     """Return the authenticated user's profile."""
     client = get_by_id(db, client_id)
@@ -118,7 +98,7 @@ def get_me(
 def save_onboarding(
     data: OnboardingRequest,
     db: Session = Depends(get_db),
-    client_id: int = Depends(_get_current_client_id),
+    client_id: int = Depends(get_current_client_id),
 ):
     """Save all four onboarding steps for the authenticated business client.
 

@@ -2,18 +2,20 @@ import { useState } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { AlertTriangleIcon } from 'lucide-react';
+import { AlertTriangleIcon, Loader2Icon } from 'lucide-react';
 
 interface DeleteCampaignModalProps {
   campaignName: string;
   onClose: () => void;
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
 export function DeleteCampaignModal({
   campaignName,
   onClose,
   onConfirm,
+  isLoading = false,
 }: DeleteCampaignModalProps) {
   const [confirmation, setConfirmation] = useState('');
 
@@ -21,7 +23,7 @@ export function DeleteCampaignModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={() => !isLoading && onClose()}
       />
 
       <Card
@@ -54,15 +56,16 @@ export function DeleteCampaignModal({
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
           <Button
             variant="danger"
             onClick={onConfirm}
-            disabled={confirmation !== campaignName}
+            disabled={confirmation !== campaignName || isLoading}
+            leftIcon={isLoading ? <Loader2Icon className="w-4 h-4 animate-spin" /> : undefined}
           >
-            Delete Campaign
+            {isLoading ? 'Deleting...' : 'Delete Campaign'}
           </Button>
         </div>
       </Card>

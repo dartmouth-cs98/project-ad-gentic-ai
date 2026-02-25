@@ -8,19 +8,20 @@ export interface CampaignItem {
   id: string;
   name: string;
   product: string;
-  status: 'active' | 'completed' | 'draft';
+  status: 'active' | 'completed' | 'draft' | 'paused';
   reach: string;
   engagement: string;
   platform: string;
   objective: string;
   dateCreated: string;
-  thumbnail: string;
+  thumbnail?: string;
 }
 
 export const statusColors = {
   active: 'success',
   completed: 'default',
   draft: 'warning',
+  paused: 'info',
 } as const;
 
 // ---------- Component ----------
@@ -57,12 +58,20 @@ export function CampaignGridCard({
           className="overflow-hidden hover:shadow-xl transition-shadow cursor-pointer group"
         >
           <div className="flex h-full">
-            <div className="w-32 flex-shrink-0 relative">
-              <img
-                src={campaign.thumbnail}
-                alt={campaign.name}
-                className="w-full h-full object-cover"
-              />
+            <div className="w-32 flex-shrink-0 relative bg-slate-100">
+              {campaign.thumbnail ? (
+                <img
+                  src={campaign.thumbnail}
+                  alt={campaign.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                  <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              )}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
             </div>
             <div className="flex-1 p-4 flex flex-col">

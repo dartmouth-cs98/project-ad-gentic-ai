@@ -28,7 +28,7 @@ import type { EditFormData } from '../components/campaigns/EditCampaignModal';
 import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
 
 import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns';
-import type { CampaignStatus } from '../api/campaigns';
+import type { CampaignStatus } from '../types';
 
 // ---------- Static placeholder data (ad variants & analytics not yet in API) ----------
 

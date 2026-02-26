@@ -15,6 +15,7 @@ export interface Campaign {
     created_at: string;
     updated_at: string;
     product_ids: string | null;
+    brief: string | null;
 }
 
 /** Payload for POST /campaigns */

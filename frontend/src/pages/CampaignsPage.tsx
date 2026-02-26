@@ -20,7 +20,7 @@ import type { CampaignItem } from '../components/campaigns/CampaignGridCard';
 
 import { useUser } from '../contexts/UserContext';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
-import type { Campaign } from '../api/campaigns';
+import type { Campaign } from '../types';
 
 // ---------- Helpers ----------
 

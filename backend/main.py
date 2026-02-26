@@ -1,4 +1,6 @@
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,18 +13,36 @@ from routes.auth import router as auth_router
 
 #  Resource routes (CRUD)
 from routes.ad_variants import router as ad_variants_router
+from routes.ad_jobs import router as ad_jobs_router
+from routes.ad_job_batches import router as ad_job_batches_router
 from routes.campaigns import router as campaigns_router
 from routes.chat_messages import router as chat_messages_router
 from routes.consumers import router as consumers_router
 from routes.personas import router as personas_router
 from routes.product import router as product_router
 
+from services.ad_job_poller.service import run_poller
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the ad_job poller task when the app starts; cancel it on shutdown."""
+    import asyncio
+    poller_task = asyncio.create_task(run_poller())
+    yield
+    poller_task.cancel()
+    try:
+        await poller_task
+    except asyncio.CancelledError:
+        pass
+
 app = FastAPI(
     title="Adgentic AI API",
     description="Adgentic AI is a platform that helps businesses create and manage their social media ads.",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS middleware 
@@ -45,6 +65,8 @@ app.include_router(ad_post_worker_router, prefix="/ad-post-worker", tags=["Ad Po
 
 # Resource routers (CRUD)
 app.include_router(ad_variants_router, prefix="/ad-variants", tags=["Ad Variants"])
+app.include_router(ad_jobs_router, prefix="/ad-jobs", tags=["Ad Jobs"])
+app.include_router(ad_job_batches_router, prefix="/ad-job-batches", tags=["Ad Job Batches"])
 app.include_router(campaigns_router, prefix="/campaigns", tags=["Campaigns"])
 app.include_router(chat_messages_router, prefix="/chat-messages", tags=["Chat Messages"])
 app.include_router(consumers_router, prefix="/consumers", tags=["Consumers"])
@@ -61,8 +83,7 @@ async def root():
         "status": "running",
         "services": [
             "ad-job-worker",
-            "ad-post-worker",
-            "script-creation-worker"
+            "ad-post-worker"
         ]
     }
 

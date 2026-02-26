@@ -11,7 +11,8 @@ class AdVariantCreate(BaseModel):
     """Schema for creating a new ad variant."""
     campaign_id: int
     consumer_id: Optional[int] = None
-    status: str
+    product_id: Optional[int] = None
+    status: str = "creating"
     media_url: Optional[str] = None
     meta: Optional[str] = None
     version_number: int = 1

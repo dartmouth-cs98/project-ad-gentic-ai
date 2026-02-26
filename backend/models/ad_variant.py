@@ -14,7 +14,6 @@ class AdVariant(Base):
     __table_args__ = {"schema": "dbo"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    session_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # deprecated — will be removed
     campaign_id: Mapped[int] = mapped_column(Integer, nullable=False)
     consumer_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False)

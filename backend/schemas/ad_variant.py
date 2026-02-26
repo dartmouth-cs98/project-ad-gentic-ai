@@ -9,22 +9,22 @@ from pydantic import BaseModel
 
 class AdVariantCreate(BaseModel):
     """Schema for creating a new ad variant."""
-    session_id: int
     campaign_id: int
     consumer_id: Optional[int] = None
     status: str
     media_url: Optional[str] = None
     meta: Optional[str] = None
+    version_number: int = 1
 
 
 class AdVariantUpdate(BaseModel):
     """Schema for updating an ad variant. All fields optional."""
-    session_id: Optional[int] = None
     campaign_id: Optional[int] = None
     consumer_id: Optional[int] = None
     status: Optional[str] = None
     media_url: Optional[str] = None
     meta: Optional[str] = None
+    version_number: Optional[int] = None
     published_at: Optional[datetime] = None
 
 
@@ -33,12 +33,12 @@ class AdVariantUpdate(BaseModel):
 class AdVariantResponse(BaseModel):
     """Schema returned to the frontend."""
     id: int
-    session_id: int
     campaign_id: int
     consumer_id: Optional[int] = None
     status: str
     media_url: Optional[str] = None
     meta: Optional[str] = None
+    version_number: int
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime] = None

@@ -4,7 +4,7 @@ import json
 from typing import Optional
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from models.consumer import Consumer
 from schemas.consumer import ConsumerCreate
@@ -29,6 +29,10 @@ def get_consumers(
     query = (
         select(Consumer)
         .where(Consumer.business_client_id == client_id)
+        .options(
+            joinedload(Consumer.primary_persona),
+            joinedload(Consumer.secondary_persona),
+        )
         .order_by(Consumer.id)
         .offset(skip)
         .limit(limit)

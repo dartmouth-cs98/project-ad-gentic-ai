@@ -14,6 +14,7 @@ from core.openai_client import get_openai_client
 from crud.consumer import (
     create_consumer,
     create_consumers_bulk,
+    filter_owned_consumer_ids,
     get_consumers,
     get_existing_emails,
     get_unassigned_consumer_ids,
@@ -166,6 +167,13 @@ async def assign_personas(
     - Already-assigned consumers are always skipped.
     """
     if body.consumer_ids is not None:
+        owned = filter_owned_consumer_ids(db, client_id, body.consumer_ids)
+        unauthorized = set(body.consumer_ids) - set(owned)
+        if unauthorized:
+            raise HTTPException(
+                status_code=403,
+                detail="One or more consumer IDs do not belong to this client.",
+            )
         consumer_ids = body.consumer_ids
     else:
         consumer_ids = get_unassigned_consumer_ids(db, client_id)

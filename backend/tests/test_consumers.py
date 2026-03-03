@@ -305,7 +305,18 @@ class TestAssignPersonas:
         assert body == {"processed": 0, "failed": 0, "skipped": 0, "low_confidence": 0}
 
     def test_assign_with_specific_ids_calls_processor(self, client: TestClient):
-        """Passing explicit consumer_ids delegates to the processor (mocked)."""
+        """Passing explicit consumer_ids delegates to the processor for owned consumers."""
+        csv_bytes = _make_csv([
+            VALID_CSV_HEADER,
+            'c1@example.com,555-0001,C,One,{"age": 25}',
+            'c2@example.com,555-0002,C,Two,{"age": 30}',
+        ])
+        client.post(
+            "/consumers/upload-csv",
+            files={"file": ("seed.csv", io.BytesIO(csv_bytes), "text/csv")},
+        )
+        ids = [c["id"] for c in client.get("/consumers/").json()]
+
         mock_result = PersonaProcessingResult(
             processed=2, failed=0, skipped=0, low_confidence=0, errors=[]
         )
@@ -313,12 +324,17 @@ class TestAssignPersonas:
             "routes.consumers.process_consumer_personas",
             new=AsyncMock(return_value=mock_result),
         ):
-            resp = client.post("/consumers/assign-personas", json={"consumer_ids": [1, 2]})
+            resp = client.post("/consumers/assign-personas", json={"consumer_ids": ids})
 
         assert resp.status_code == 200
         body = resp.json()
         assert body["processed"] == 2
         assert body["failed"] == 0
+
+    def test_assign_with_foreign_consumer_ids_returns_403(self, client: TestClient):
+        """consumer_ids that belong to another client must be rejected with 403."""
+        resp = client.post("/consumers/assign-personas", json={"consumer_ids": [99998, 99999]})
+        assert resp.status_code == 403
 
     def test_assign_without_ids_processes_all_unassigned(self, client: TestClient):
         """Omitting consumer_ids fetches all unassigned consumers for the client."""

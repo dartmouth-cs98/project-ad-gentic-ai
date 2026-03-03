@@ -53,6 +53,15 @@ def get_consumers(
     return list(db.scalars(query).all())
 
 
+def filter_owned_consumer_ids(db: Session, client_id: int, candidate_ids: list[int]) -> list[int]:
+    """Return the subset of candidate_ids that belong to client_id."""
+    query = select(Consumer.id).where(
+        Consumer.id.in_(candidate_ids),
+        Consumer.business_client_id == client_id,
+    )
+    return list(db.scalars(query).all())
+
+
 def get_unassigned_consumer_ids(db: Session, client_id: int) -> list[int]:
     """Return IDs of all consumers for a client that have no primary persona assigned."""
     query = select(Consumer.id).where(

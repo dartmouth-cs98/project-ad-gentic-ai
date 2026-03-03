@@ -99,5 +99,11 @@ async def process_consumer_personas(
             result.errors.append(f"Consumer {consumer_id}: {exc}")
             logger.error("Failed to assign persona for consumer %d: %s", consumer_id, exc)
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error("Failed to commit persona assignments: %s", exc)
+        raise
+
     return result

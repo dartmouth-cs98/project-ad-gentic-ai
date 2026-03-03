@@ -134,7 +134,7 @@ def _make_assignment(primary_name: str, confidence: float = 0.85, secondary_name
 
 def _run(coro):
     """Run an async coroutine synchronously (no pytest-asyncio needed)."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 # ---------------------------------------------------------------------------

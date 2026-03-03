@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel
 
 from schemas.persona import PersonaBrief
@@ -18,12 +19,18 @@ class ConsumerCreate(BaseModel):
     traits: dict
 
 
+class AssignPersonasRequest(BaseModel):
+    """Request body for persona assignment endpoint."""
+    consumer_ids: Optional[list[int]] = None  # None = process all unassigned for the client
+
+
 # ---------- Response schemas ----------
 
 class PersonaProcessingSummary(BaseModel):
-    """Summary of persona assignment processing (populated in PR 2)."""
+    """Summary returned from a persona assignment run."""
     processed: int
     failed: int
+    skipped: int
     low_confidence: int
 
 

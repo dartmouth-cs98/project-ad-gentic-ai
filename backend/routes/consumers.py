@@ -19,17 +19,22 @@ router = APIRouter()
 def _to_response(consumer) -> dict:
     """Convert a Consumer ORM instance to a response-friendly dict,
     deserializing the traits JSON string back to a dict."""
-    data = {
+    return {
         "id": consumer.id,
         "email": consumer.email,
         "phone": consumer.phone,
         "first_name": consumer.first_name,
         "last_name": consumer.last_name,
         "traits": json.loads(consumer.traits) if consumer.traits else None,
+        "primary_persona": consumer.primary_persona,
+        "secondary_persona": consumer.secondary_persona,
+        "persona_confidence": (
+            float(consumer.persona_confidence) if consumer.persona_confidence is not None else None
+        ),
+        "persona_assigned_at": consumer.persona_assigned_at,
         "created_at": consumer.created_at,
         "updated_at": consumer.updated_at,
     }
-    return data
 
 
 @router.get("/", response_model=list[ConsumerResponse])

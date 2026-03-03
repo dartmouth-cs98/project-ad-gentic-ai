@@ -14,20 +14,38 @@ sys.path.insert(0, str(_backend_dir))
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import String, create_engine
+from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from database import Base, get_db
+from dependencies import get_current_client_id
 from models.consumer import Consumer
+from models.persona import Persona
 from main import app
+
+_TEST_CLIENT_ID = 1
 
 # ---------------------------------------------------------------------------
 # Fixtures – in-memory SQLite database
 # ---------------------------------------------------------------------------
 
-# Save the original schema so we can restore it after each test.
-_original_schema = Consumer.__table__.schema
+# Save original schemas so we can restore them after each test.
+_consumer_original_schema = Consumer.__table__.schema
+_persona_original_schema = Persona.__table__.schema
+
+# UNIQUEIDENTIFIER is MSSQL-only; swap to String for SQLite on both tables.
+_consumer_uuid_cols = {
+    col.name: col.type
+    for col in Consumer.__table__.columns
+    if isinstance(col.type, UNIQUEIDENTIFIER)
+}
+_persona_uuid_cols = {
+    col.name: col.type
+    for col in Persona.__table__.columns
+    if isinstance(col.type, UNIQUEIDENTIFIER)
+}
 
 engine = create_engine(
     "sqlite:///:memory:",
@@ -37,21 +55,36 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+def _swap_uuid_cols(table, col_map, target_type=None) -> None:
+    """Swap column types in-place. Omit target_type to restore original types from col_map."""
+    for col in table.columns:
+        if col.name in col_map:
+            col.type = col_map[col.name] if target_type is None else target_type
+
+
 @pytest.fixture(autouse=True)
 def setup_db():
-    """Create the consumers table before each test and drop it after."""
-    # SQLite doesn't support schemas, so temporarily remove the "dbo" qualifier.
+    """Create Persona + Consumer tables before each test and drop after."""
+    # SQLite doesn't support schemas — temporarily remove the "dbo" qualifier.
+    Persona.__table__.schema = None
     Consumer.__table__.schema = None
-    Base.metadata.create_all(bind=engine, tables=[Consumer.__table__])
+    # SQLite doesn't support UNIQUEIDENTIFIER — temporarily swap to String.
+    _swap_uuid_cols(Persona.__table__, _persona_uuid_cols, String(36))
+    _swap_uuid_cols(Consumer.__table__, _consumer_uuid_cols, String(36))
+    # Persona must be created first — Consumer FKs reference it.
+    Base.metadata.create_all(bind=engine, tables=[Persona.__table__, Consumer.__table__])
     yield
-    Base.metadata.drop_all(bind=engine, tables=[Consumer.__table__])
-    # Restore original schema so other tests/modules see the correct value.
-    Consumer.__table__.schema = _original_schema
+    Base.metadata.drop_all(bind=engine, tables=[Consumer.__table__, Persona.__table__])
+    # Restore original types and schemas.
+    _swap_uuid_cols(Persona.__table__, _persona_uuid_cols)
+    _swap_uuid_cols(Consumer.__table__, _consumer_uuid_cols)
+    Persona.__table__.schema = _persona_original_schema
+    Consumer.__table__.schema = _consumer_original_schema
 
 
 @pytest.fixture()
 def client():
-    """Return a FastAPI TestClient with the DB dependency overridden."""
+    """Return a FastAPI TestClient with DB and auth dependencies overridden."""
 
     def _override_get_db():
         db = TestingSessionLocal()
@@ -61,6 +94,7 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_current_client_id] = lambda: _TEST_CLIENT_ID
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -233,3 +267,7 @@ class TestListConsumers:
         resp = client.get("/consumers/?skip=2&limit=10")
         assert resp.status_code == 200
         assert len(resp.json()) == 3
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

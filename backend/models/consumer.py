@@ -1,10 +1,12 @@
 """SQLAlchemy model for the dbo.consumers table."""
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Integer, String, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
 
@@ -25,6 +27,29 @@ class Consumer(Base):
     traits: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    # Persona assignment fields
+    primary_persona_id: Mapped[Optional[str]] = mapped_column(
+        UNIQUEIDENTIFIER,
+        ForeignKey("dbo.personas.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    secondary_persona_id: Mapped[Optional[str]] = mapped_column(
+        UNIQUEIDENTIFIER,
+        ForeignKey("dbo.personas.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    persona_confidence: Mapped[Optional[Decimal]] = mapped_column(Numeric(3, 2), nullable=True)
+    persona_assigned_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Relationships
+    primary_persona: Mapped[Optional["Persona"]] = relationship(
+        "Persona", foreign_keys=[primary_persona_id]
+    )
+    secondary_persona: Mapped[Optional["Persona"]] = relationship(
+        "Persona", foreign_keys=[secondary_persona_id]
+    )
 
     def __repr__(self) -> str:
         return f"<Consumer(id={self.id}, email='{self.email}', first_name='{self.first_name}')>"

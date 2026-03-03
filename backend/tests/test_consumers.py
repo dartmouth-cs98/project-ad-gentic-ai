@@ -302,7 +302,7 @@ class TestAssignPersonas:
         resp = client.post("/consumers/assign-personas", json={})
         assert resp.status_code == 200
         body = resp.json()
-        assert body == {"processed": 0, "failed": 0, "skipped": 0, "low_confidence": 0}
+        assert body == {"processed": 0, "failed": 0, "skipped": 0, "low_confidence": 0, "errors": []}
 
     def test_assign_with_specific_ids_calls_processor(self, client: TestClient):
         """Passing explicit consumer_ids delegates to the processor for owned consumers."""

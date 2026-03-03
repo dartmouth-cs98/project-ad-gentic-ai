@@ -32,6 +32,7 @@ class PersonaProcessingSummary(BaseModel):
     failed: int
     skipped: int
     low_confidence: int
+    errors: list[str]
 
 
 class ConsumerCsvUploadResponse(BaseModel):
@@ -40,7 +41,6 @@ class ConsumerCsvUploadResponse(BaseModel):
     skipped: int
     skipped_emails: list[str]
     errors: list[str]
-    persona_processing: Optional[PersonaProcessingSummary] = None
 
 
 class ConsumerResponse(BaseModel):

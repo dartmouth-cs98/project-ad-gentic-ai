@@ -179,7 +179,7 @@ async def assign_personas(
         consumer_ids = get_unassigned_consumer_ids(db, client_id)
 
     if not consumer_ids:
-        return PersonaProcessingSummary(processed=0, failed=0, skipped=0, low_confidence=0)
+        return PersonaProcessingSummary(processed=0, failed=0, skipped=0, low_confidence=0, errors=[])
 
     result = await process_consumer_personas(db, consumer_ids, get_openai_client())
 
@@ -188,6 +188,7 @@ async def assign_personas(
         failed=result.failed,
         skipped=result.skipped,
         low_confidence=result.low_confidence,
+        errors=result.errors,
     )
 
 

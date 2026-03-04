@@ -181,8 +181,13 @@ async def assign_personas(
     if not consumer_ids:
         return PersonaProcessingSummary(processed=0, failed=0, skipped=0, low_confidence=0, errors=[])
 
-    result = await process_consumer_personas(db, consumer_ids, get_openai_client())
+    try:
+        openai_client = get_openai_client()
+    except ValueError as exc:
+        # Translate missing or invalid OpenAI configuration into a clear HTTP error
+        raise HTTPException(status_code=500, detail=str(exc))
 
+    result = await process_consumer_personas(db, consumer_ids, openai_client)
     return PersonaProcessingSummary(
         processed=result.processed,
         failed=result.failed,

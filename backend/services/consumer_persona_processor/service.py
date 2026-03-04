@@ -95,7 +95,7 @@ async def process_consumer_personas(
     """Assign personas to a batch of consumers concurrently.
 
     - Skips consumers that already have a primary persona assigned (idempotent).
-    - Skips consumers with no traits data.
+    - Treats consumers with no traits data as failures and records them in the result.
     - Up to _MAX_CONCURRENT_LLM_CALLS LLM calls run in parallel.
     - A single db.commit() is issued after all processing completes.
     """

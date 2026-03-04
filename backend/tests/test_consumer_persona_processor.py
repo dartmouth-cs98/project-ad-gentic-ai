@@ -10,7 +10,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, call, patch
 from uuid import uuid4
 
 _backend_dir = Path(__file__).resolve().parent.parent
@@ -297,6 +297,50 @@ def test_unknown_secondary_persona_name_is_silently_ignored(db):
     assert result.failed == 0
     db.refresh(consumer)
     assert consumer.secondary_persona_id is None
+
+
+def test_live_personas_are_passed_to_assign_persona(db):
+    """assign_persona must receive the live persona list fetched from the DB,
+    not a hardcoded list — so DB changes are always reflected in the prompt."""
+    _make_persona_row("Pragmatic Optimizer", db)
+    _make_persona_row("Aspiring Achiever", db)
+    consumer = _make_consumer_row(db, traits={"age": 30})
+
+    captured_personas = []
+
+    async def _capture(*args, **kwargs):
+        # args = (openai_client, traits_dict, personas)
+        captured_personas.extend(args[2])
+        return _make_assignment("Pragmatic Optimizer")
+
+    with patch(
+        "services.consumer_persona_processor.service.assign_persona",
+        new=_capture,
+    ):
+        _run(process_consumer_personas(db, [consumer.id], AsyncMock()))
+
+    assert len(captured_personas) == 2
+    assert {p.name for p in captured_personas} == {"Pragmatic Optimizer", "Aspiring Achiever"}
+
+
+def test_missing_and_valid_consumer_ids_are_counted_independently(db):
+    """A mix of found and not-found IDs should accumulate correctly."""
+    persona = _make_persona_row("Pragmatic Optimizer", db)
+    ok_consumer = _make_consumer_row(db, traits={"age": 30})
+
+    with patch(
+        "services.consumer_persona_processor.service.assign_persona",
+        new=AsyncMock(return_value=_make_assignment("Pragmatic Optimizer")),
+    ):
+        result = _run(
+            process_consumer_personas(db, [ok_consumer.id, 99999], AsyncMock())
+        )
+
+    assert result.processed == 1
+    assert result.failed == 1
+    assert any("not found" in e for e in result.errors)
+    db.refresh(ok_consumer)
+    assert ok_consumer.primary_persona_id == persona.id
 
 
 if __name__ == "__main__":

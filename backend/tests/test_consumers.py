@@ -17,8 +17,7 @@ sys.path.insert(0, str(_backend_dir))
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import String, create_engine
-from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -39,18 +38,6 @@ _TEST_CLIENT_ID = 1
 _consumer_original_schema = Consumer.__table__.schema
 _persona_original_schema = Persona.__table__.schema
 
-# UNIQUEIDENTIFIER is MSSQL-only; swap to String for SQLite on both tables.
-_consumer_uuid_cols = {
-    col.name: col.type
-    for col in Consumer.__table__.columns
-    if isinstance(col.type, UNIQUEIDENTIFIER)
-}
-_persona_uuid_cols = {
-    col.name: col.type
-    for col in Persona.__table__.columns
-    if isinstance(col.type, UNIQUEIDENTIFIER)
-}
-
 engine = create_engine(
     "sqlite:///:memory:",
     connect_args={"check_same_thread": False},
@@ -60,29 +47,17 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def _swap_uuid_cols(table, col_map, target_type=None) -> None:
-    """Swap column types in-place. Omit target_type to restore original types from col_map."""
-    for col in table.columns:
-        if col.name in col_map:
-            col.type = col_map[col.name] if target_type is None else target_type
-
-
 @pytest.fixture(autouse=True)
 def setup_db():
     """Create Persona + Consumer tables before each test and drop after."""
     # SQLite doesn't support schemas — temporarily remove the "dbo" qualifier.
     Persona.__table__.schema = None
     Consumer.__table__.schema = None
-    # SQLite doesn't support UNIQUEIDENTIFIER — temporarily swap to String.
-    _swap_uuid_cols(Persona.__table__, _persona_uuid_cols, String(36))
-    _swap_uuid_cols(Consumer.__table__, _consumer_uuid_cols, String(36))
     # Persona must be created first — Consumer FKs reference it.
     Base.metadata.create_all(bind=engine, tables=[Persona.__table__, Consumer.__table__])
     yield
     Base.metadata.drop_all(bind=engine, tables=[Consumer.__table__, Persona.__table__])
-    # Restore original types and schemas.
-    _swap_uuid_cols(Persona.__table__, _persona_uuid_cols)
-    _swap_uuid_cols(Consumer.__table__, _consumer_uuid_cols)
+    # Restore original schemas.
     Persona.__table__.schema = _persona_original_schema
     Consumer.__table__.schema = _consumer_original_schema
 
@@ -321,7 +296,7 @@ class TestAssignPersonas:
         mock_result = PersonaProcessingResult(
             processed=2, failed=0, skipped=0, low_confidence=0, errors=[]
         )
-        with patch(
+        with patch("routes.consumers.get_openai_client"), patch(
             "routes.consumers.process_consumer_personas",
             new=AsyncMock(return_value=mock_result),
         ):
@@ -353,7 +328,7 @@ class TestAssignPersonas:
         mock_result = PersonaProcessingResult(
             processed=2, failed=0, skipped=0, low_confidence=0, errors=[]
         )
-        with patch(
+        with patch("routes.consumers.get_openai_client"), patch(
             "routes.consumers.process_consumer_personas",
             new=AsyncMock(return_value=mock_result),
         ) as mock_proc:
@@ -393,7 +368,7 @@ class TestAssignPersonas:
         mock_result = PersonaProcessingResult(
             processed=1, failed=0, skipped=0, low_confidence=0, errors=[]
         )
-        with patch(
+        with patch("routes.consumers.get_openai_client"), patch(
             "routes.consumers.process_consumer_personas",
             new=AsyncMock(return_value=mock_result),
         ) as mock_proc:

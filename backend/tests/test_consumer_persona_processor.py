@@ -50,6 +50,7 @@ _engine = create_engine(
     "sqlite:///:memory:",
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
+    query_cache_size=0,
 )
 _Session = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 

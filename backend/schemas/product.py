@@ -13,7 +13,7 @@ class ProductCreate(BaseModel):
     image_url: Optional[str] = None
     image_name: Optional[str] = None
     product_link: Optional[str] = None
-    metadata: Optional[str] = None
+    product_metadata: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -24,7 +24,7 @@ class ProductUpdate(BaseModel):
     image_url: Optional[str] = None
     image_name: Optional[str] = None
     product_link: Optional[str] = None
-    metadata: Optional[str] = None
+    product_metadata: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -37,7 +37,7 @@ class ProductResponse(BaseModel):
     image_url: Optional[str] = None
     image_name: Optional[str] = None
     product_link: Optional[str] = None
-    metadata: Optional[str] = None
+    product_metadata: Optional[str] = None
     is_active: Optional[bool] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

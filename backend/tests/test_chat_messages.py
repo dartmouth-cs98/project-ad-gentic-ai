@@ -256,3 +256,6 @@ class TestClearChatMessages:
         app.dependency_overrides[get_current_client_id] = lambda: FAKE_CLIENT_ID
         resp = client.get("/chat-messages/", params={"campaign_id": 1})
         assert len(resp.json()) == 1
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

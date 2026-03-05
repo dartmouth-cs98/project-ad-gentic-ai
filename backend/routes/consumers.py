@@ -1,17 +1,34 @@
-"""API routes for consumers — POST, GET all, and CSV upload."""
+"""API routes for consumers — POST, GET all, CSV upload, and persona assignment."""
 
 import csv
 import io
 import json
+from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from core.openai_client import get_openai_client
+from crud.consumer import (
+    create_consumer,
+    create_consumers_bulk,
+    filter_owned_consumer_ids,
+    get_consumers,
+    get_existing_emails,
+    get_unassigned_consumer_ids,
+)
 from database import get_db
-from schemas.consumer import ConsumerCreate, ConsumerResponse, ConsumerCsvUploadResponse
-from crud.consumer import get_consumers, create_consumer, create_consumers_bulk, get_existing_emails
 from dependencies import get_current_client_id
+from schemas.consumer import (
+    AssignPersonasRequest,
+    ConsumerCreate,
+    ConsumerCsvUploadResponse,
+    ConsumerResponse,
+    PersonaProcessingSummary,
+)
+from services.consumer_persona_processor.service import process_consumer_personas
 
 router = APIRouter()
 
@@ -41,11 +58,18 @@ def _to_response(consumer) -> dict:
 def list_consumers(
     skip: int = 0,
     limit: int = 100,
+    persona_id: Optional[UUID] = None,
     db: Session = Depends(get_db),
     client_id: int = Depends(get_current_client_id),
 ):
-    """Get all consumers for the authenticated client."""
-    consumers = get_consumers(db, client_id=client_id, skip=skip, limit=limit)
+    """Get consumers for the authenticated client.
+
+    Pass persona_id to filter by category — returns consumers where
+    primary OR secondary persona matches.
+    """
+    consumers = get_consumers(
+        db, client_id=client_id, skip=skip, limit=limit, persona_id=persona_id
+    )
     return [_to_response(c) for c in consumers]
 
 
@@ -78,10 +102,7 @@ async def upload_consumers_csv(
     if not rows:
         raise HTTPException(status_code=400, detail="CSV file is empty.")
 
-    # Collect all emails from the CSV
     csv_emails = [r.get("email", "").strip() for r in rows]
-
-    # Check which emails already exist in the DB for this client
     existing = get_existing_emails(db, client_id, csv_emails)
 
     skipped_emails: list[str] = []
@@ -89,21 +110,18 @@ async def upload_consumers_csv(
     seen_emails: set[str] = set()
     to_create: list[ConsumerCreate] = []
 
-    for i, row in enumerate(rows, start=2):  # start=2 because row 1 is the header
+    for i, row in enumerate(rows, start=2):
         email = row.get("email", "").strip()
 
-        # Skip duplicates within the CSV itself
         if email in seen_emails:
             skipped_emails.append(email)
             continue
         seen_emails.add(email)
 
-        # Skip emails that already exist in the DB for this client
         if email in existing:
             skipped_emails.append(email)
             continue
 
-        # Parse traits JSON
         traits_raw = row.get("traits", "").strip()
         try:
             traits = json.loads(traits_raw) if traits_raw else {}
@@ -119,7 +137,6 @@ async def upload_consumers_csv(
             traits=traits,
         ))
 
-    # Batch-insert all valid rows in a single transaction
     created = 0
     if to_create:
         try:
@@ -135,6 +152,49 @@ async def upload_consumers_csv(
         "skipped_emails": skipped_emails,
         "errors": errors,
     }
+
+
+@router.post("/assign-personas", response_model=PersonaProcessingSummary)
+async def assign_personas(
+    body: AssignPersonasRequest,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
+    """Assign personas to consumers using the LLM.
+
+    - Pass consumer_ids to process specific consumers.
+    - Omit consumer_ids (or pass null) to process all unassigned consumers for the client.
+    - Already-assigned consumers are always skipped.
+    """
+    if body.consumer_ids is not None:
+        owned = filter_owned_consumer_ids(db, client_id, body.consumer_ids)
+        unauthorized = set(body.consumer_ids) - set(owned)
+        if unauthorized:
+            raise HTTPException(
+                status_code=403,
+                detail="One or more consumer IDs do not belong to this client.",
+            )
+        consumer_ids = body.consumer_ids
+    else:
+        consumer_ids = get_unassigned_consumer_ids(db, client_id)
+
+    if not consumer_ids:
+        return PersonaProcessingSummary(processed=0, failed=0, skipped=0, low_confidence=0, errors=[])
+
+    try:
+        openai_client = get_openai_client()
+    except ValueError as exc:
+        # Translate missing or invalid OpenAI configuration into a clear HTTP error
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    result = await process_consumer_personas(db, consumer_ids, openai_client)
+    return PersonaProcessingSummary(
+        processed=result.processed,
+        failed=result.failed,
+        skipped=result.skipped,
+        low_confidence=result.low_confidence,
+        errors=result.errors,
+    )
 
 
 @router.post("/", response_model=ConsumerResponse, status_code=201)

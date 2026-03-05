@@ -65,6 +65,11 @@ async def assign_persona(
         consumer_traits: Parsed traits dict for the consumer.
         personas: Live persona rows from the DB — used to build the prompt.
     """
+    if not personas:
+        raise ValueError(
+            "assign_persona called with an empty personas list; cannot assign persona "
+            "without available options."
+        )
     system_prompt = _SYSTEM_TEMPLATE.format(
         personas_context=_build_personas_context(personas)
     )

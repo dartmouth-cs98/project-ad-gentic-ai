@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 class ProductCreate(BaseModel):
     """Schema for creating a new product."""
-    business_client_id: int
     name: str = Field(..., min_length=1)
     description: Optional[str] = None
     image_url: Optional[str] = None
@@ -20,7 +19,6 @@ class ProductCreate(BaseModel):
 
 class ProductUpdate(BaseModel):
     """Schema for updating a product. All fields optional."""
-    business_client_id: Optional[int] = None
     name: Optional[str] = Field(None, min_length=1)
     description: Optional[str] = None
     image_url: Optional[str] = None
@@ -39,7 +37,7 @@ class ProductResponse(BaseModel):
     image_url: Optional[str] = None
     image_name: Optional[str] = None
     product_link: Optional[str] = None
-    metadata: Optional[str] = Field(None, validation_alias="meta")
+    metadata: Optional[str] = None
     is_active: Optional[bool] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

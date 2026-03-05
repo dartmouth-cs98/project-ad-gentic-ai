@@ -32,11 +32,10 @@ def get_products(
     return list(db.scalars(query).all())
 
 
-def create_product(db: Session, data: ProductCreate) -> Product:
+def create_product(db: Session, client_id: int, data: ProductCreate) -> Product:
     """Insert a new product and return it."""
     payload = data.model_dump()
-    payload["meta"] = payload.pop("metadata", None)
-    product = Product(**payload)
+    product = Product(**payload, business_client_id=client_id)
     db.add(product)
     db.commit()
     db.refresh(product)
@@ -53,8 +52,6 @@ def update_product(
     if product is None:
         return None
     payload = data.model_dump(exclude_unset=True)
-    if "metadata" in payload:
-        payload["meta"] = payload.pop("metadata")
     for field, value in payload.items():
         setattr(product, field, value)
     product.updated_at = datetime.now(timezone.utc)

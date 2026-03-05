@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import DateTime, String
-from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -28,7 +27,7 @@ class Persona(Base):
     __table_args__ = {"schema": "dbo"}
 
     id: Mapped[str] = mapped_column(
-        UNIQUEIDENTIFIER, primary_key=True, default=lambda: str(uuid.uuid4())
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     description: Mapped[str] = mapped_column(String, nullable=False)

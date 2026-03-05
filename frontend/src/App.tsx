@@ -19,6 +19,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { UserProvider } from './contexts/UserContext';
 import { CompanyProvider } from './contexts/CompanyContext';
 import { ConsumerProvider } from './contexts/ConsumerContext';
+import { PersonasProvider } from './contexts/PersonasContext';
 
 const queryClient = new QueryClient();
 
@@ -28,7 +29,8 @@ export function App() {
       <UserProvider>
         <CompanyProvider>
           <ConsumerProvider>
-            <HashRouter>
+            <PersonasProvider>
+              <HashRouter>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/sign-up" element={<SignUpPage />} />
@@ -50,7 +52,8 @@ export function App() {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/all-consumers" element={<AllConsumersPage />} />
               </Routes>
-            </HashRouter>
+              </HashRouter>
+            </PersonasProvider>
           </ConsumerProvider>
         </CompanyProvider>
       </UserProvider>

@@ -14,7 +14,7 @@ export interface ConsumerTraits {
     acquisition_source?: string;
     avg_order_value?: number;
     lifetime_value?: number;
-    [key: string]: unknown; // incase of extra keys in the CSV
+    [key: string]: unknown;
 }
 
 /** 
@@ -27,6 +27,10 @@ export interface Consumer {
     first_name: string;
     last_name: string;
     traits: ConsumerTraits | null;
+    primary_persona: { id: string; name: string } | null;
+    secondary_persona: { id: string; name: string } | null;
+    persona_confidence: number | null;
+    persona_assigned_at: string | null;
     created_at: string;
     updated_at: string;
 }

@@ -5,7 +5,6 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
-from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -30,13 +29,13 @@ class Consumer(Base):
 
     # Persona assignment fields
     primary_persona_id: Mapped[Optional[str]] = mapped_column(
-        UNIQUEIDENTIFIER,
+        String(36),
         ForeignKey("dbo.personas.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
     secondary_persona_id: Mapped[Optional[str]] = mapped_column(
-        UNIQUEIDENTIFIER,
+        String(36),
         ForeignKey("dbo.personas.id", ondelete="SET NULL"),
         nullable=True,
     )

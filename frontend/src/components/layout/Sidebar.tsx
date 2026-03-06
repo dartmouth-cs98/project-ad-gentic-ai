@@ -26,8 +26,7 @@ const navItems = [
   {
     path: '/generate',
     label: 'Generate Ads',
-    icon: SparklesIcon,
-    highlight: true
+    icon: SparklesIcon
   },
   {
     path: '/customer-data',
@@ -91,8 +90,8 @@ export function Sidebar() {
         {navItems.map((item) => {
           const isActive =
             location.pathname === item.path ||
-            item.path === '/campaigns' &&
-            location.pathname.startsWith('/campaign');
+            (item.path === '/campaigns' && location.pathname.startsWith('/campaign')) ||
+            (item.path === '/customer-data' && location.pathname === '/all-consumers');
           const Icon = item.icon;
           return (
             <Link
@@ -102,13 +101,12 @@ export function Sidebar() {
                 flex items-center gap-3 px-3 py-2.5 rounded-xl
                 transition-all duration-200
                 ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}
-                ${item.highlight && !isActive ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300' : ''}
                 ${collapsed ? 'justify-center' : ''}
               `}
               title={collapsed ? item.label : undefined}>
 
               <Icon
-                className={`w-5 h-5 flex-shrink-0 ${item.highlight && !isActive ? 'text-blue-400' : ''}`} />
+                className={`w-5 h-5 flex-shrink-0`} />
 
               {!collapsed &&
                 <span className="font-medium text-sm">{item.label}</span>

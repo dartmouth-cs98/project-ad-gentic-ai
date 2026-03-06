@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -13,14 +13,40 @@ import {
     UserIcon,
     CalendarIcon,
     TagIcon,
+    XIcon,
 } from 'lucide-react';
 import { useConsumerContext } from '../contexts/ConsumerContext';
+import { usePersonasContext } from '../contexts/PersonasContext';
+import type { Consumer } from '../types';
 
 export function AllConsumersPage() {
     const { consumers, loading, error, refetch } = useConsumerContext();
+    const { personas } = usePersonasContext();
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterPersonaId, setFilterPersonaId] = useState<string | null>(null);
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const filterRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+                setShowFilterDropdown(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const filteredConsumers = consumers.filter((consumer) => {
+        // Persona filter
+        if (filterPersonaId) {
+            const matchesPrimary = consumer.primary_persona?.id === filterPersonaId;
+            const matchesSecondary = consumer.secondary_persona?.id === filterPersonaId;
+            if (!matchesPrimary && !matchesSecondary) return false;
+        }
+
+        // Search filter
         const query = searchQuery.toLowerCase().trim();
         if (!query) return true;
 
@@ -158,9 +184,75 @@ export function AllConsumersPage() {
                                     className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                             </div>
-                            <Button variant="secondary" leftIcon={<FilterIcon className="w-4 h-4" />}>
-                                Filters
-                            </Button>
+
+                            {/* Filter button + dropdown */}
+                            <div className="relative" ref={filterRef}>
+                                <button
+                                    onClick={() => setShowFilterDropdown((v) => !v)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                        filterPersonaId
+                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                    }`}
+                                >
+                                    <FilterIcon className="w-4 h-4" />
+                                    Filters
+                                    {filterPersonaId && (
+                                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                    )}
+                                </button>
+
+                                {showFilterDropdown && (
+                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl border border-slate-200 shadow-lg z-20 py-2">
+                                        <p className="px-3 pb-1.5 pt-0.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                            Filter by Persona
+                                        </p>
+                                        <button
+                                            onClick={() => { setFilterPersonaId(null); setShowFilterDropdown(false); }}
+                                            className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
+                                                filterPersonaId === null
+                                                    ? 'bg-blue-50 text-blue-700 font-medium'
+                                                    : 'text-slate-700 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            All consumers
+                                            {filterPersonaId === null && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                        </button>
+                                        {personas.length === 0 ? (
+                                            <p className="px-3 py-2 text-xs text-slate-400 italic">No personas available</p>
+                                        ) : (
+                                            <div className="max-h-64 overflow-y-auto">
+                                                {personas.map((persona) => (
+                                                    <button
+                                                        key={persona.id}
+                                                        onClick={() => { setFilterPersonaId(persona.id); setShowFilterDropdown(false); }}
+                                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
+                                                            filterPersonaId === persona.id
+                                                                ? 'bg-blue-50 text-blue-700 font-medium'
+                                                                : 'text-slate-700 hover:bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        {persona.name}
+                                                        {filterPersonaId === persona.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {filterPersonaId && (
+                                            <>
+                                                <div className="border-t border-slate-100 my-1" />
+                                                <button
+                                                    onClick={() => { setFilterPersonaId(null); setShowFilterDropdown(false); }}
+                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                                >
+                                                    <XIcon className="w-3.5 h-3.5" />
+                                                    Clear filter
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </Card>
 

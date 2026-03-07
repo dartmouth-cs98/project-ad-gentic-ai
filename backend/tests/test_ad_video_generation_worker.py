@@ -53,7 +53,7 @@ async def test_generate_ad_video_returns_bytes_when_mock_succeeds():
 
     mock_video_client = MagicMock()
     mock_creation = MagicMock()
-    mock_creation.status = MagicMock(status="completed")
+    mock_creation.status = "completed"
     mock_creation.id = "job-123"
     mock_video_client.videos.create = AsyncMock(return_value=mock_creation)
     mock_video_client.videos.retrieve = AsyncMock(return_value=MagicMock(status="completed"))

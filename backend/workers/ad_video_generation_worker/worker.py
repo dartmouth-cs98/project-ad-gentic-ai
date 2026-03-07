@@ -22,7 +22,7 @@ async def generate_ad_video(
     if not api_key or api_key.upper() == "YOUR_API_KEY":
         raise RuntimeError("Video generation env vars not configured.")
 
-    video_client = AsyncOpenAI(api_key=os.getenv("VIDEO_API_KEY"))
+    video_client = AsyncOpenAI(api_key=api_key)
     
     creation_response = await video_client.videos.create(
         prompt=script,

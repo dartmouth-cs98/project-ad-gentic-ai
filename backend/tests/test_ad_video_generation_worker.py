@@ -76,3 +76,52 @@ async def test_generate_ad_video_returns_bytes_when_mock_succeeds():
     assert call_kw["prompt"] == "Short script"
     assert call_kw["size"] == "720x1280"
     assert call_kw["seconds"] == 8
+
+
+@pytest.mark.asyncio
+async def test_generate_ad_video_raises_when_job_fails():
+    """generate_ad_video raises RuntimeError when job ends in a terminal failure status."""
+    mock_video_client = MagicMock()
+    mock_creation = MagicMock()
+    mock_creation.status = "failed"
+    mock_creation.id = "job-fail-456"
+    mock_video_client.videos.create = AsyncMock(return_value=mock_creation)
+
+    with (
+        patch("workers.ad_video_generation_worker.worker.AsyncOpenAI", return_value=mock_video_client),
+        patch.dict("os.environ", {"VIDEO_API_KEY": "video-key"}, clear=False),
+    ):
+        with pytest.raises(RuntimeError, match="ended with status 'failed'"):
+            await generate_ad_video(
+                script="Script",
+                product_image_bytes=b"img",
+                product_image_type="image/png",
+                product_image_filename="x.png",
+            )
+
+
+@pytest.mark.asyncio
+async def test_generate_ad_video_raises_when_poll_timeout():
+    """generate_ad_video raises RuntimeError when job does not complete within max wait time."""
+    mock_video_client = MagicMock()
+    mock_creation = MagicMock()
+    mock_creation.status = "pending"
+    mock_creation.id = "job-slow-789"
+    mock_video_client.videos.create = AsyncMock(return_value=mock_creation)
+    mock_video_client.videos.retrieve = AsyncMock(
+        return_value=MagicMock(status="pending")
+    )
+
+    with (
+        patch("workers.ad_video_generation_worker.worker.AsyncOpenAI", return_value=mock_video_client),
+        patch("workers.ad_video_generation_worker.worker.MAX_POLL_ATTEMPTS", 2),
+        patch("workers.ad_video_generation_worker.worker.POLL_INTERVAL_SECONDS", 0),
+        patch.dict("os.environ", {"VIDEO_API_KEY": "video-key"}, clear=False),
+    ):
+        with pytest.raises(RuntimeError, match="did not complete within"):
+            await generate_ad_video(
+                script="Script",
+                product_image_bytes=b"img",
+                product_image_type="image/png",
+                product_image_filename="x.png",
+            )

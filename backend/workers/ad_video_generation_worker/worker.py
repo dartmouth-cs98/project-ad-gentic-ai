@@ -36,7 +36,7 @@ async def generate_ad_video(
     attempt = 0
 
     while job_status.status != "completed":
-        if job_status.status in TERMINAL_FAILURE_STATUSES:
+        if job_status.status == TERMINAL_FAILURE_STATUS:
             raise RuntimeError(
                 f"Video generation job {job_id} ended with status '{job_status.status}'."
             )

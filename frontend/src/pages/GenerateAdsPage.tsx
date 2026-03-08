@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
 import { Sidebar } from '../components/layout/Sidebar';
@@ -8,10 +8,24 @@ import type { Campaign, ChatMessage } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
+import { useChatMessages, useSendChatMessage } from '../hooks/useChatMessages';
 import {
   personaGroups as mockPersonaGroups,
   mockVersionHistory,
 } from '../components/generate/mockData';
+
+// ─── Constants ──────────────────────────────────────────────────
+
+const WELCOME_MESSAGE: ChatMessage = {
+  id: 0,
+  campaign_id: 0,
+  business_client_id: 0,
+  role: 'assistant',
+  message_type: 'message',
+  content: "Hey! Tell me what product or service you want to advertise, and I'll generate persona-targeted ad variants for you.",
+  version_ref: null,
+  timestamp: new Date().toISOString(),
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -37,20 +51,6 @@ export function GenerateAdsPage() {
   // ─── Core state ──────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('idle');
   const [sidebarManualExpand, setSidebarManualExpand] = useState(false);
-
-  // Chat messages (local state for now — will wire to useChatMessages later)
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: -1,
-      campaign_id: 0,
-      business_client_id: 0,
-      role: 'assistant',
-      message_type: 'message',
-      content: "Hey! Tell me what product or service you want to advertise, and I'll generate persona-targeted ad variants for you.",
-      version_ref: null,
-      timestamp: new Date().toISOString(),
-    },
-  ]);
   const [input, setInput] = useState('');
   const [progressIdx, setProgressIdx] = useState(0);
 
@@ -58,6 +58,27 @@ export function GenerateAdsPage() {
   const [activeCampaignId, setActiveCampaignId] = useState<number | undefined>(undefined);
   const [activeVersion, setActiveVersion] = useState<Version>(mockVersionHistory[0]);
   const [versionCounter, setVersionCounter] = useState(3);
+
+  // ─── Chat messages (persisted via API) ────────────────────────
+  const { data: serverMessages = [] } = useChatMessages(activeCampaignId);
+  const sendMessage = useSendChatMessage();
+
+  // Show welcome message when no persisted messages exist
+  const messages: ChatMessage[] = useMemo(
+    () => (serverMessages.length === 0 ? [WELCOME_MESSAGE] : serverMessages),
+    [serverMessages],
+  );
+
+  /** Persist an assistant message to the current campaign. */
+  const sendAssistantMessage = (content: string, messageType: ChatMessage['message_type'] = 'message') => {
+    if (!activeCampaignId) return;
+    sendMessage.mutate({
+      campaign_id: activeCampaignId,
+      role: 'assistant',
+      message_type: messageType,
+      content,
+    });
+  };
 
   // Variants state
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['young-pros']));
@@ -106,19 +127,9 @@ export function GenerateAdsPage() {
         variantCount: mockPersonaGroups.reduce((s, g) => s + g.variants.length, 0),
       };
       setActiveVersion(newVersion);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: -Date.now(),
-          campaign_id: activeCampaignId ?? 0,
-          business_client_id: 0,
-          role: 'assistant',
-          message_type: 'message',
-          content: `Done! I've generated 10 ad variants across 3 persona groups (${newVersion.label}). Use the controls to refine, or tell me what to change.`,
-          version_ref: null,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      sendAssistantMessage(
+        `Done! I've generated 10 ad variants across 3 persona groups (${newVersion.label}). Use the controls to refine, or tell me what to change.`,
+      );
     }, 4000);
     return () => clearTimeout(timer);
   }, [phase, versionCounter, activeCampaignId]);
@@ -126,89 +137,40 @@ export function GenerateAdsPage() {
   // ─── Handlers ───────────────────────────────────────────────
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    const userMsg: ChatMessage = {
-      id: -Date.now(),
-      campaign_id: activeCampaignId ?? 0,
-      business_client_id: 0,
+    if (!input.trim() || !activeCampaignId) return;
+
+    // Persist user message
+    sendMessage.mutate({
+      campaign_id: activeCampaignId,
       role: 'user',
-      message_type: 'message',
       content: input,
-      version_ref: null,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
+    });
     setInput('');
 
     if (phase === 'idle') {
       setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: -(Date.now() + 1),
-            campaign_id: activeCampaignId ?? 0,
-            business_client_id: 0,
-            role: 'assistant',
-            message_type: 'message',
-            content: 'Got it! Generating persona-targeted variants now...',
-            version_ref: null,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+        sendAssistantMessage('Got it! Generating persona-targeted variants now...');
         setPhase('generating');
       }, 600);
     } else if (phase === 'results') {
       setPhase('generating');
       setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: -(Date.now() + 2),
-            campaign_id: activeCampaignId ?? 0,
-            business_client_id: 0,
-            role: 'assistant',
-            message_type: 'message',
-            content: "Updated! I've refined the variants based on your feedback.",
-            version_ref: null,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+        sendAssistantMessage("Updated! I've refined the variants based on your feedback.");
       }, 600);
     }
   };
 
   const handleCampaignSelect = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
-    setMessages([
-      {
-        id: -Date.now(),
-        campaign_id: campaign.id,
-        business_client_id: 0,
-        role: 'assistant',
-        message_type: 'message',
-        content: `Switched to "${campaign.name}". What would you like to generate?`,
-        version_ref: null,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
+    // Messages auto-load via useChatMessages(campaign.id) — no manual reset needed
     if (phase === 'results') setSelectedVariants(new Set());
   };
 
   const handleVersionSelect = (version: Version) => {
     setActiveVersion(version);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: -Date.now(),
-        campaign_id: activeCampaignId ?? 0,
-        business_client_id: 0,
-        role: 'assistant',
-        message_type: 'message',
-        content: `Loaded ${version.label} (${version.timestamp}) with ${version.variantCount} variants.`,
-        version_ref: null,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
+    sendAssistantMessage(
+      `Loaded ${version.label} (${version.timestamp}) with ${version.variantCount} variants.`,
+    );
   };
 
   const handleReviseSelected = () => {
@@ -218,34 +180,18 @@ export function GenerateAdsPage() {
     setInput(`Revise ${count} selected variant${count > 1 ? 's' : ''} ${groupLabel}: `);
   };
 
-  const addAssistantMessage = (content: string) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: -Date.now(),
-        campaign_id: activeCampaignId ?? 0,
-        business_client_id: 0,
-        role: 'assistant',
-        message_type: 'message',
-        content,
-        version_ref: null,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
-  };
-
   const handleDuplicateSelected = () => {
-    addAssistantMessage(`Duplicated ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''}. You can find the copies in each persona group.`);
+    sendAssistantMessage(`Duplicated ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''}. You can find the copies in each persona group.`);
     setSelectedVariants(new Set());
   };
 
   const handleExcludeSelected = () => {
-    addAssistantMessage(`Marked ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''} as excluded from export.`);
+    sendAssistantMessage(`Marked ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''} as excluded from export.`);
     setSelectedVariants(new Set());
   };
 
   const handleDeleteSelected = () => {
-    addAssistantMessage(`Removed ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''} from this version.`);
+    sendAssistantMessage(`Removed ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''} from this version.`);
     setSelectedVariants(new Set());
   };
 
@@ -351,7 +297,7 @@ export function GenerateAdsPage() {
             expandedGroups={expandedGroups}
             onToggleGroup={toggleGroup}
             onApplyFilters={() => {
-              addAssistantMessage('Preferences updated! Regenerating variants with your new settings...');
+              sendAssistantMessage('Preferences updated! Regenerating variants with your new settings...');
               setPhase('generating');
             }}
           />

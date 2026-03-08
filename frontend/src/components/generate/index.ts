@@ -6,4 +6,8 @@ export { CampaignSelector } from './CampaignSelector';
 export { VersionPopover } from './VersionPopover';
 export { ChatMessageList } from './ChatMessageList';
 export { ChatInput } from './ChatInput';
+export { FilterPanel } from './FilterPanel';
+export { ChatHeader } from './ChatHeader';
+export { ChatPanel } from './ChatPanel';
+export { ResultsPanel } from './ResultsPanel';
 export type { Phase, AdFormat, Variant, PersonaGroup, Version } from './types';

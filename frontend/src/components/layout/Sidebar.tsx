@@ -35,10 +35,26 @@ const navItems = [
     icon: DatabaseIcon
   }];
 
-export function Sidebar() {
+interface SidebarProps {
+  /** When provided, overrides internal collapse state (controlled mode). */
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+}
+
+export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: SidebarProps = {}) {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
   const { profile } = useCompany();
+
+  // Controlled mode when prop is provided, internal state otherwise
+  const collapsed = controlledCollapsed ?? internalCollapsed;
+  const setCollapsed = (value: boolean) => {
+    if (controlledCollapsed !== undefined) {
+      onCollapsedChange?.(value);
+    } else {
+      setInternalCollapsed(value);
+    }
+  };
   return (
     <aside
       className={`

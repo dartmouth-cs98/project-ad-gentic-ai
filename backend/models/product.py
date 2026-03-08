@@ -19,10 +19,11 @@ class Product(Base):
     description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     product_link: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    meta: Mapped[Optional[str]] = mapped_column("metadata", String, nullable=True)
+    product_metadata: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_active: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    image_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     def __repr__(self) -> str:
         return f"<Product(id={self.id}, name='{self.name}', business_client_id={self.business_client_id})>"

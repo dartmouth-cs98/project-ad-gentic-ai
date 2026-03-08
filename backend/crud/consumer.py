@@ -2,9 +2,10 @@
 
 import json
 from typing import Optional
+from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, joinedload
 
 from models.consumer import Consumer
 from schemas.consumer import ConsumerCreate
@@ -24,14 +25,48 @@ def get_consumers(
     client_id: int,
     skip: int = 0,
     limit: int = 100,
+    persona_id: Optional[UUID] = None,
 ) -> list[Consumer]:
-    """Return a list of consumers for a specific client."""
+    """Return consumers for a client, optionally filtered by persona.
+
+    persona_id matches consumers where primary OR secondary persona equals the given ID.
+    """
     query = (
         select(Consumer)
         .where(Consumer.business_client_id == client_id)
+        .options(
+            joinedload(Consumer.primary_persona),
+            joinedload(Consumer.secondary_persona),
+        )
         .order_by(Consumer.id)
         .offset(skip)
         .limit(limit)
+    )
+    if persona_id is not None:
+        pid = str(persona_id)
+        query = query.where(
+            or_(
+                Consumer.primary_persona_id == pid,
+                Consumer.secondary_persona_id == pid,
+            )
+        )
+    return list(db.scalars(query).all())
+
+
+def filter_owned_consumer_ids(db: Session, client_id: int, candidate_ids: list[int]) -> list[int]:
+    """Return the subset of candidate_ids that belong to client_id."""
+    query = select(Consumer.id).where(
+        Consumer.id.in_(candidate_ids),
+        Consumer.business_client_id == client_id,
+    )
+    return list(db.scalars(query).all())
+
+
+def get_unassigned_consumer_ids(db: Session, client_id: int) -> list[int]:
+    """Return IDs of all consumers for a client that have no primary persona assigned."""
+    query = select(Consumer.id).where(
+        Consumer.business_client_id == client_id,
+        Consumer.primary_persona_id.is_(None),
     )
     return list(db.scalars(query).all())
 

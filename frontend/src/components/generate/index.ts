@@ -10,4 +10,5 @@ export { FilterPanel } from './FilterPanel';
 export { ChatHeader } from './ChatHeader';
 export { ChatPanel } from './ChatPanel';
 export { ResultsPanel } from './ResultsPanel';
+export { PlanCard } from './PlanCard';
 export type { Phase, AdFormat, Variant, PersonaGroup, Version } from './types';

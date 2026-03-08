@@ -8,7 +8,7 @@ import type { Campaign, ChatMessage } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
-import { useChatMessages, useSendChatMessage } from '../hooks/useChatMessages';
+import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
 import {
   personaGroups as mockPersonaGroups,
   mockVersionHistory,
@@ -62,6 +62,7 @@ export function GenerateAdsPage() {
   // ─── Chat messages (persisted via API) ────────────────────────
   const { data: serverMessages = [] } = useChatMessages(activeCampaignId);
   const sendMessage = useSendChatMessage();
+  const chatCompletion = useChatCompletion();
 
   // Show welcome message when no persisted messages exist
   const messages: ChatMessage[] = useMemo(
@@ -69,7 +70,7 @@ export function GenerateAdsPage() {
     [serverMessages],
   );
 
-  /** Persist an assistant message to the current campaign. */
+  /** Persist an assistant message to the current campaign (for system-generated messages, not AI). */
   const sendAssistantMessage = (content: string, messageType: ChatMessage['message_type'] = 'message') => {
     if (!activeCampaignId) return;
     sendMessage.mutate({
@@ -79,6 +80,19 @@ export function GenerateAdsPage() {
       content,
     });
   };
+
+  /** Build filter context for the AI from current filter state. */
+  const buildFilterContext = () => ({
+    personalizationRange: filterState.personalizationRange,
+    variantsPerGroup: filterState.variantsPerGroup,
+    adFormats: Array.from(filterState.adFormats),
+    tone: filterState.tone,
+    budgetTier: filterState.budgetTier,
+    ctaStyle: filterState.ctaStyle,
+    language: filterState.language,
+    platforms: Array.from(filterState.selectedPlatforms),
+    colorMode: filterState.colorMode,
+  });
 
   // Variants state
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['young-pros']));
@@ -139,25 +153,57 @@ export function GenerateAdsPage() {
   const handleSend = () => {
     if (!input.trim() || !activeCampaignId) return;
 
-    // Persist user message
+    const messageText = input;
+    setInput('');
+
+    // Find the most recent plan for context (if revising from an existing version)
+    const lastPlan = [...messages].reverse().find((m) => m.message_type === 'plan');
+    const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
+
+    // Send to AI — persists both user message and AI response server-side
+    chatCompletion.mutate({
+      campaign_id: activeCampaignId,
+      message: messageText,
+      filter_context: buildFilterContext(),
+      campaign_context: activeCampaign
+        ? { name: activeCampaign.name, brief: activeCampaign.brief }
+        : undefined,
+      previous_plan: lastPlan?.content ?? undefined,
+    });
+  };
+
+  const handleApprovePlan = (_planMessage: ChatMessage) => {
+    if (!activeCampaignId) return;
+
+    // Persist a plan_response message indicating approval
     sendMessage.mutate({
       campaign_id: activeCampaignId,
       role: 'user',
-      content: input,
+      message_type: 'plan_response',
+      content: 'Approved',
     });
-    setInput('');
 
-    if (phase === 'idle') {
-      setTimeout(() => {
-        sendAssistantMessage('Got it! Generating persona-targeted variants now...');
-        setPhase('generating');
-      }, 600);
-    } else if (phase === 'results') {
-      setPhase('generating');
-      setTimeout(() => {
-        sendAssistantMessage("Updated! I've refined the variants based on your feedback.");
-      }, 600);
-    }
+    // Confirm in chat and start generating
+    sendAssistantMessage(
+      'Plan approved! Starting ad generation — this may take a moment...',
+    );
+    setPhase('generating');
+  };
+
+  const handleDeclinePlan = (_planMessage: ChatMessage) => {
+    if (!activeCampaignId) return;
+
+    // Persist a plan_response message indicating decline
+    sendMessage.mutate({
+      campaign_id: activeCampaignId,
+      role: 'user',
+      message_type: 'plan_response',
+      content: 'Declined',
+    });
+
+    sendAssistantMessage(
+      "No problem — tell me what you'd like to change and I'll revise the plan.",
+    );
   };
 
   const handleCampaignSelect = (campaign: Campaign) => {
@@ -250,8 +296,11 @@ export function GenerateAdsPage() {
           input={input}
           onInputChange={setInput}
           onSend={handleSend}
+          onApprovePlan={handleApprovePlan}
+          onDeclinePlan={handleDeclinePlan}
           selectedVariantCount={selectedVariants.size}
           onClearSelection={() => { setSelectedVariants(new Set()); setInput(''); }}
+          isAiLoading={chatCompletion.isPending}
           personaGroups={mockPersonaGroups}
           className={phase === 'idle' ? 'flex-1' : 'flex-shrink-0'}
           style={phase !== 'idle' ? { width: chatPanelWidth } : undefined}

@@ -3,7 +3,9 @@ import {
   fetchChatMessages,
   createChatMessage,
   clearChatMessages,
+  sendChatCompletion,
 } from '../api/chat';
+import type { ChatCompletionRequest, ChatCompletionResponse } from '../api/chat';
 import type { ChatMessage, ChatMessagePayload } from '../types';
 
 export const CHAT_MESSAGES_KEY = ['chatMessages'] as const;
@@ -62,6 +64,51 @@ export function useSendChatMessage() {
       qc.invalidateQueries({
         queryKey: [...CHAT_MESSAGES_KEY, variables.campaign_id],
       });
+    },
+  });
+}
+
+/** Send a message to the AI and get a response. Both are persisted server-side. */
+export function useChatCompletion() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ChatCompletionRequest) => sendChatCompletion(data),
+
+    onMutate: async (data) => {
+      const key = [...CHAT_MESSAGES_KEY, data.campaign_id];
+      await qc.cancelQueries({ queryKey: key });
+
+      const previous = qc.getQueryData<ChatMessage[]>(key);
+
+      // Optimistically append the user message
+      const optimisticUser: ChatMessage = {
+        id: -Date.now(),
+        campaign_id: data.campaign_id,
+        business_client_id: 0,
+        role: 'user',
+        message_type: 'message',
+        content: data.message,
+        version_ref: null,
+        timestamp: new Date().toISOString(),
+      };
+
+      qc.setQueryData<ChatMessage[]>(key, (old = []) => [...old, optimisticUser]);
+
+      return { previous, key };
+    },
+
+    onSuccess: (_response: ChatCompletionResponse, variables) => {
+      const key = [...CHAT_MESSAGES_KEY, variables.campaign_id];
+
+      // Replace optimistic data with the real user + assistant messages from server
+      qc.invalidateQueries({ queryKey: key });
+    },
+
+    onError: (_err, _data, context) => {
+      if (context?.previous) {
+        qc.setQueryData(context.key, context.previous);
+      }
     },
   });
 }

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { SendIcon, MessageSquareIcon, XIcon } from 'lucide-react';
 import type { Phase } from './types';
 
@@ -23,6 +23,14 @@ export function ChatInput({
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const autoResize = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    // Clamp between 3 rows (~60px) and ~6 rows (~140px)
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+  }, []);
+
   // Expose ref for external focus calls
   useEffect(() => {
     // Auto-focus on mount for idle phase
@@ -30,6 +38,11 @@ export function ChatInput({
       inputRef.current?.focus();
     }
   }, [phase]);
+
+  // Auto-resize when value changes (e.g. pre-filled revision text)
+  useEffect(() => {
+    autoResize();
+  }, [value, autoResize]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -64,7 +77,7 @@ export function ChatInput({
           <textarea
             ref={inputRef}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => { onChange(e.target.value); autoResize(); }}
             onKeyDown={handleKeyDown}
             placeholder={
               phase === 'idle'
@@ -72,7 +85,7 @@ export function ChatInput({
                 : 'Tell me what to change...'
             }
             className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none"
-            rows={1}
+            rows={3}
             disabled={disabled || phase === 'generating'}
           />
           <button

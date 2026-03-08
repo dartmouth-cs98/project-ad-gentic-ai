@@ -27,9 +27,14 @@ interface ChatPanelProps {
   input: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
+  // Plan actions
+  onApprovePlan?: (message: ChatMessage) => void;
+  onDeclinePlan?: (message: ChatMessage) => void;
   // Selection
   selectedVariantCount: number;
   onClearSelection: () => void;
+  // AI state
+  isAiLoading?: boolean;
   // Layout
   personaGroups: PersonaGroup[];
   style?: React.CSSProperties;
@@ -52,8 +57,11 @@ export function ChatPanel({
   input,
   onInputChange,
   onSend,
+  onApprovePlan,
+  onDeclinePlan,
   selectedVariantCount,
   onClearSelection,
+  isAiLoading,
   personaGroups,
   style,
   className,
@@ -94,8 +102,10 @@ export function ChatPanel({
 
       <ChatMessageList
         messages={messages}
-        isGenerating={phase === 'generating'}
+        isGenerating={phase === 'generating' || !!isAiLoading}
         userName={userName}
+        onApprovePlan={onApprovePlan}
+        onDeclinePlan={onDeclinePlan}
       />
 
       <ChatInput
@@ -103,6 +113,7 @@ export function ChatPanel({
         onChange={onInputChange}
         onSend={onSend}
         phase={phase}
+        disabled={isAiLoading}
         selectedVariantCount={selectedVariantCount}
         onClearSelection={onClearSelection}
       />

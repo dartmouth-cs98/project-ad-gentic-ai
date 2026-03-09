@@ -16,6 +16,7 @@ from routes.chat_messages import router as chat_messages_router
 from routes.consumers import router as consumers_router
 from routes.personas import router as personas_router
 from routes.product import router as product_router
+from routes.chat_completions import router as chat_completions_router
 
 app = FastAPI(
     title="Adgentic AI API",
@@ -47,6 +48,7 @@ app.include_router(ad_post_worker_router, prefix="/ad-post-worker", tags=["Ad Po
 app.include_router(ad_variants_router, prefix="/ad-variants", tags=["Ad Variants"])
 app.include_router(campaigns_router, prefix="/campaigns", tags=["Campaigns"])
 app.include_router(chat_messages_router, prefix="/chat-messages", tags=["Chat Messages"])
+app.include_router(chat_completions_router, prefix="/chat/completions", tags=["Chat AI"])
 app.include_router(consumers_router, prefix="/consumers", tags=["Consumers"])
 app.include_router(product_router, prefix="/products", tags=["Products"])
 app.include_router(personas_router, prefix="/personas", tags=["Personas"])

@@ -1,0 +1,101 @@
+import { useEffect, useRef } from 'react';
+import { SparklesIcon } from 'lucide-react';
+import { PlanCard } from './PlanCard';
+import type { ChatMessage } from '../../types';
+
+interface ChatMessageListProps {
+  messages: ChatMessage[];
+  isGenerating: boolean;
+  userName: string;
+  onApprovePlan?: (message: ChatMessage) => void;
+  onDeclinePlan?: (message: ChatMessage) => void;
+}
+
+export function ChatMessageList({
+  messages,
+  isGenerating,
+  userName,
+  onApprovePlan,
+  onDeclinePlan,
+}: ChatMessageListProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  /** Check if a plan has a subsequent plan_response (means it was approved or declined). */
+  const isPlanResolved = (planMsg: ChatMessage): boolean => {
+    const planIdx = messages.indexOf(planMsg);
+    return messages.slice(planIdx + 1).some(
+      (m) => m.message_type === 'plan_response',
+    );
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {messages.map((msg) => {
+        // ─── Plan messages → render PlanCard ────────────────
+        if (msg.message_type === 'plan' && msg.role === 'assistant') {
+          return (
+            <div key={msg.id} className="flex gap-2.5">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <SparklesIcon className="w-3.5 h-3.5" />
+              </div>
+              <PlanCard
+                content={msg.content}
+                onApprove={() => onApprovePlan?.(msg)}
+                onDecline={() => onDeclinePlan?.(msg)}
+                resolved={isPlanResolved(msg)}
+              />
+            </div>
+          );
+        }
+
+        // ─── Regular messages ───────────────────────────────
+        return (
+          <div
+            key={msg.id}
+            className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+          >
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium ${
+                msg.role === 'assistant'
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+                  : 'bg-slate-200 text-slate-600'
+              }`}
+            >
+              {msg.role === 'assistant' ? (
+                <SparklesIcon className="w-3.5 h-3.5" />
+              ) : (
+                userName.charAt(0)
+              )}
+            </div>
+            <div
+              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                msg.role === 'assistant'
+                  ? 'bg-slate-50 border border-slate-100 text-slate-700'
+                  : 'bg-blue-600 text-white'
+              }`}
+            >
+              {msg.content}
+            </div>
+          </div>
+        );
+      })}
+      {isGenerating && (
+        <div className="flex gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+            <SparklesIcon className="w-3.5 h-3.5 text-white" />
+          </div>
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot" />
+            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot" style={{ animationDelay: '0.2s' }} />
+            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot" style={{ animationDelay: '0.4s' }} />
+          </div>
+        </div>
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+}

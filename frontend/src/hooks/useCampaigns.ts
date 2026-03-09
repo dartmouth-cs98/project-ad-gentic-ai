@@ -6,7 +6,7 @@ import {
   updateCampaign,
   deleteCampaign,
 } from '../api/campaigns';
-import type { CreateCampaignPayload, UpdateCampaignPayload } from '../api/campaigns';
+import type { CreateCampaignPayload, UpdateCampaignPayload } from '../types';
 
 export const CAMPAIGNS_KEY = ['campaigns'] as const;
 

@@ -19,6 +19,19 @@ def get_existing_emails(db: Session, client_id: int, emails: list[str]) -> set[s
     )
     return set(db.scalars(query).all())
 
+def get_consumer(
+    db: Session,
+    consumer_id: int,
+) -> Optional[Consumer]:
+    """Return a consumer by ID."""
+    return db.get(Consumer, consumer_id)
+
+def get_consumers_by_persona_id(
+    db: Session,
+    persona_id: str,
+) -> list[Consumer]:
+    """Return consumers whose primary persona matches the given persona ID (UUID string)."""
+    return list(db.scalars(select(Consumer).where(Consumer.primary_persona_id == persona_id)).all())
 
 def get_consumers(
     db: Session,
@@ -70,6 +83,14 @@ def get_unassigned_consumer_ids(db: Session, client_id: int) -> list[int]:
     )
     return list(db.scalars(query).all())
 
+
+def get_all_consumers(db: Session) -> list[Consumer]:
+    """Return all consumers (no pagination)."""
+    query = (
+        select(Consumer)
+        .order_by(Consumer.id)
+    )
+    return list(db.scalars(query).all())
 
 def create_consumer(db: Session, client_id: int, data: ConsumerCreate) -> Consumer:
     """Insert a new consumer and return it."""

@@ -1,4 +1,6 @@
 from .ad_variant import AdVariant
+from .ad_job import AdJob
+from .ad_job_batch import AdJobBatch
 from .business_client import BusinessClient
 from .campaign import Campaign
 from .chat_message import ChatMessage
@@ -9,6 +11,8 @@ from .product import Product
 
 __all__ = [
     "AdVariant",
+    "AdJob",
+    "AdJobBatch",
     "BusinessClient",
     "Campaign",
     "ChatMessage",

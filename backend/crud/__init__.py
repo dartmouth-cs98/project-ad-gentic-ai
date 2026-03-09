@@ -1,6 +1,7 @@
 from .ad_variant import (
     get_ad_variants,
     get_ad_variant,
+    get_ad_variant_by_campaign_consumer_version,
     create_ad_variant,
     update_ad_variant,
     delete_ad_variant,
@@ -21,6 +22,7 @@ from .chat_message import (
 __all__ = [
     "get_ad_variants",
     "get_ad_variant",
+    "get_ad_variant_by_campaign_consumer_version",
     "create_ad_variant",
     "update_ad_variant",
     "delete_ad_variant",

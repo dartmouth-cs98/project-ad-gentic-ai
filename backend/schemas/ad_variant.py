@@ -22,6 +22,7 @@ class AdVariantUpdate(BaseModel):
     """Schema for updating an ad variant. All fields optional."""
     campaign_id: Optional[int] = None
     consumer_id: Optional[int] = None
+    product_id: Optional[int] = None
     status: Optional[str] = None
     media_url: Optional[str] = None
     meta: Optional[str] = None
@@ -36,6 +37,7 @@ class AdVariantResponse(BaseModel):
     id: int
     campaign_id: int
     consumer_id: Optional[int] = None
+    product_id: Optional[int] = None
     status: str
     media_url: Optional[str] = None
     meta: Optional[str] = None

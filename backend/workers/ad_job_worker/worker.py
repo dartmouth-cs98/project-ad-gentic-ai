@@ -26,7 +26,7 @@ from schemas.ad_job import AdJobCreate
 from schemas.ad_job_batch import AdJobBatchCreate
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video
-from azure.storage.blob import BlobClient
+from azure.storage.blob import BlobClient, ContentSettings
 
 load_dotenv()
 
@@ -88,8 +88,9 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         product_image_download = product_image_blob_client.download_blob()
         product_image_bytes = product_image_download.readall()
         base64_product_image = base64.b64encode(product_image_bytes).decode("utf-8")
-        product_image_type = product_image_blob_client.get_blob_properties().content_settings.content_type
-        product_image_filename = product_image_blob_client.get_blob_properties().name
+        props = product_image_blob_client.get_blob_properties()
+        product_image_type = props.content_settings.content_type
+        product_image_filename = props.name
         product_image_data_url = f"data:{product_image_type};base64,{base64_product_image}"
 
         script = await generate_ad_script(
@@ -106,7 +107,10 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
             blob_name=f"ad-videos/{uuid.uuid4().hex}.mp4",
         )
         blob_client.upload_blob(
-            ad_video_bytes, overwrite=True, content_settings={"content_type": "video/mp4"}, max_concurrency=4
+            ad_video_bytes,
+            overwrite=True,
+            content_settings=ContentSettings(content_type="video/mp4"),
+            max_concurrency=4,
         )
         media_url = blob_client.url
         update_ad_variant(db, ad_variant_id, AdVariantUpdate(media_url=media_url, status="completed"))

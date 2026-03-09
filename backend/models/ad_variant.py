@@ -23,6 +23,7 @@ class AdVariant(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    product_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     def __repr__(self) -> str:
         return f"<AdVariant(id={self.id}, campaign_id={self.campaign_id}, status='{self.status}')>"

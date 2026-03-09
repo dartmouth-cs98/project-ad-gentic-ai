@@ -15,7 +15,7 @@ async def run_job(campaign_id: int, product_id: int, consumer_id: int, version_n
     return {"status": "completed", "ad_variant_id": ad_variant_id}
 
 
-@router.get("/generate-campaign-preview")
+@router.post("/generate-campaign-preview")
 async def generate_campaign_preview(campaign_id: int, product_id: int, version_number: int):
     ad_variant_ids = await run_generate_campaign_preview(campaign_id, product_id, version_number)
     return {"status": "completed", "ad_variant_ids": ad_variant_ids}

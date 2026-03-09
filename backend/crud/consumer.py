@@ -22,7 +22,7 @@ def get_existing_emails(db: Session, client_id: int, emails: list[str]) -> set[s
 def get_consumer(
     db: Session,
     consumer_id: int,
-) -> Consumer:
+) -> Optional[Consumer]:
     """Return a consumer by ID."""
     return db.get(Consumer, consumer_id)
 

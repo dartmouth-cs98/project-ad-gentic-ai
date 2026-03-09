@@ -92,11 +92,11 @@ def mock_consumer():
 
 @pytest.fixture
 def mock_product():
-    """Fake product with name, description, image_url (or image_name)."""
+    """Fake product with name, description, image_name (used by worker for blob lookup)."""
     p = MagicMock()
     p.name = "Test Product"
     p.description = "A great product"
-    p.image_url = "product-image.png"
+    p.image_name = "product-image.png"
     return p
 
 

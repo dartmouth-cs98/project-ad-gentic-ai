@@ -1,9 +1,12 @@
-"""API routes for products — full CRUD endpoints (JWT-protected)."""
+"""API routes for products — full CRUD + image upload endpoints (JWT-protected)."""
 
+import os
+import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from azure.storage.blob import BlobClient, ContentSettings
 
 from database import get_db
 from dependencies import get_current_client_id
@@ -85,3 +88,64 @@ def remove_product(
     if product is None or product.business_client_id != client_id:
         raise HTTPException(status_code=404, detail="Product not found")
     delete_product(db, product_id)
+
+
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+}
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+@router.post("/{product_id}/upload-image", response_model=ProductResponse)
+async def upload_product_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
+    """Upload or replace a product image. Stores in Azure Blob Storage (product-images container)."""
+    product = get_product(db, product_id)
+    if product is None or product.business_client_id != client_id:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image type: {content_type}. Allowed: {', '.join(ALLOWED_IMAGE_TYPES.keys())}",
+        )
+
+    image_bytes = await file.read()
+    if len(image_bytes) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="Image must be under 10 MB.")
+
+    ext = ALLOWED_IMAGE_TYPES[content_type]
+    blob_name = f"{uuid.uuid4().hex}{ext}"
+
+    conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip()
+    if not conn_str:
+        raise HTTPException(status_code=500, detail="Storage not configured.")
+
+    blob_client = BlobClient.from_connection_string(
+        conn_str=conn_str,
+        container_name="product-images",
+        blob_name=blob_name,
+    )
+    blob_client.upload_blob(
+        image_bytes,
+        overwrite=True,
+        content_settings=ContentSettings(content_type=content_type),
+    )
+
+    return update_product(
+        db,
+        product_id,
+        ProductUpdate(
+            name=product.name,
+            image_url=blob_client.url,
+            image_name=blob_name,
+        ),
+    )

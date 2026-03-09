@@ -13,6 +13,7 @@ interface AdPlan {
   product: string;
   product_description: string;
   campaign_goal: string;
+  steps: string[];
   persona_groups: PersonaGroup[];
   total_variants: number;
   formats: string[];
@@ -75,30 +76,46 @@ export function PlanCard({ content, onApprove, onDecline, resolved }: PlanCardPr
           <p className="text-sm text-slate-500 mt-0.5">{plan.campaign_goal}</p>
         </div>
 
-        <div className="px-4 py-3 space-y-2">
+        <div className="px-4 py-3 space-y-4">
+          {/* Steps */}
+          {plan.steps && plan.steps.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+                Action Plan
+              </p>
+              <ol className="space-y-1.5">
+                {plan.steps.map((step, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="text-sm text-slate-700 leading-relaxed pt-0.5">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {/* Persona groups */}
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-            Persona Groups
-          </p>
           <div className="space-y-2">
-            {plan.persona_groups.map((group, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-sm font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <div>
-                  <span className="text-sm font-medium text-slate-700">{group.name}</span>
-                  <span className="text-slate-400 mx-1.5">&middot;</span>
-                  <span className="text-sm text-slate-500">{group.age_range}</span>
-                  <span className="text-slate-400 mx-1.5">&middot;</span>
-                  <span className="text-sm text-slate-500">{group.variant_count} variants</span>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+              Persona Groups
+            </p>
+            <div className="space-y-1">
+              {plan.persona_groups.map((group, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-slate-700">{group.name}</span>
+                  <span className="text-slate-300">&middot;</span>
+                  <span className="text-slate-500">{group.age_range}</span>
+                  <span className="text-slate-300">&middot;</span>
+                  <span className="text-slate-500">{group.variant_count} variants</span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {/* Total */}
-          <p className="text-sm text-slate-500 pt-1">
+          <p className="text-sm text-slate-500">
             <span className="font-semibold text-blue-600">{plan.total_variants}</span> total variants
           </p>
         </div>

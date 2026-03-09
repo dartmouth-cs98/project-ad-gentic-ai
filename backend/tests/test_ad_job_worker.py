@@ -289,7 +289,8 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
     mock_consumer = MagicMock()
     mock_consumer.id = 5
     mock_batch = MagicMock()
-    mock_batch.id = "batch-uuid-123"
+    batch_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    mock_batch.id = batch_id
     with (
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
         patch("workers.ad_job_worker.worker.get_all_consumers", return_value=[mock_consumer]),
@@ -298,7 +299,7 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
         patch("workers.ad_job_worker.worker.create_ad_job"),
     ):
         result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
-    assert result == "batch-uuid-123"
+    assert result == batch_id
     mock_db.close.assert_called_once()
 
 

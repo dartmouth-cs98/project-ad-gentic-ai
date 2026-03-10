@@ -16,6 +16,7 @@ class AdVariantCreate(BaseModel):
     media_url: Optional[str] = None
     meta: Optional[str] = None
     version_number: int = 1
+    is_preview: bool = False
 
 
 class AdVariantUpdate(BaseModel):
@@ -28,6 +29,7 @@ class AdVariantUpdate(BaseModel):
     meta: Optional[str] = None
     version_number: Optional[int] = None
     published_at: Optional[datetime] = None
+    is_preview: Optional[bool] = None
 
 
 # ---------- Response schema ----------
@@ -42,6 +44,7 @@ class AdVariantResponse(BaseModel):
     media_url: Optional[str] = None
     meta: Optional[str] = None
     version_number: int
+    is_preview: bool
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime] = None

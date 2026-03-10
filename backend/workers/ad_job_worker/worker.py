@@ -79,7 +79,7 @@ def _brief_for_version(brief_json: Optional[str], version_number: int) -> str:
         return ""
 
 
-async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int) -> int:
+async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int, is_preview: bool = False) -> int:
     logger.info(
         "Executing ad job for campaign %s, product %s, consumer %s, version %s",
         campaign_id, product_id, consumer_id, version_number,
@@ -88,7 +88,7 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
     db: Session = factory()
     ad_variant = create_ad_variant(
         db,
-        AdVariantCreate(campaign_id=campaign_id, consumer_id=consumer_id, status="Generating", version_number=version_number),
+        AdVariantCreate(campaign_id=campaign_id, consumer_id=consumer_id, status="Generating", version_number=version_number, is_preview=is_preview),
     )
     ad_variant_id = ad_variant.id
 
@@ -188,7 +188,7 @@ async def generate_campaign_preview(
             if not consumers:
                 continue
             selected_consumer = random.choice(consumers)
-            ad_variant_id = await execute_ad_job(campaign_id, product_id, selected_consumer.id, version_number)
+            ad_variant_id = await execute_ad_job(campaign_id, product_id, selected_consumer.id, version_number, is_preview=True)
             created_ad_variant_ids.append(ad_variant_id)
         return created_ad_variant_ids
     finally:
@@ -221,6 +221,7 @@ async def generate_campaign_ad_variants(
                 user_id=batch_user_id,
                 status="pending",
                 total_jobs=len(need_to_generate),
+                idempotency_key=None,
             ),
         )
         ad_job_batch_id = ad_job_batch.id

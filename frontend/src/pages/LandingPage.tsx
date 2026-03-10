@@ -22,8 +22,9 @@ export function LandingPage() {
 
   const navLinks = [
     { label: 'Features', href: '#features' },
-    { label: 'Pricing', to: '/pricing' },
     { label: 'How It Works', to: '/how-it-works' },
+    { label: 'Pricing', to: '/pricing' },
+    { label: 'Team', to: '/team' },
   ];
 
   const features = [
@@ -49,7 +50,7 @@ export function LandingPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
           <Logo size="md" />
 
           <nav className="hidden lg:flex items-center gap-8">
@@ -107,7 +108,7 @@ export function LandingPage() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-border px-6 py-4 flex flex-col gap-3 bg-background">
+          <div className="lg:hidden border-t border-border px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-3 bg-background">
             {navLinks.map((link) =>
               link.to ? (
                 <Link
@@ -144,11 +145,6 @@ export function LandingPage() {
       {/* Hero */}
       <section className="py-28 px-6 border-b border-border">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-border rounded-full mb-8">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span className="text-xs text-muted-foreground">Powered by Advanced AI</span>
-          </div>
-
           <h1 className="text-5xl md:text-6xl font-semibold mb-6 leading-tight tracking-tight">
             Advertising that actually drives results
           </h1>
@@ -201,9 +197,6 @@ export function LandingPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((feature, i) => (
               <div key={i} className="bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-colors">
-                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center mb-5">
-                  <feature.icon className="w-5 h-5 text-foreground" />
-                </div>
                 <h3 className="text-base font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>

@@ -91,6 +91,35 @@ export function AllConsumersPage() {
             .join(' ');
     };
 
+    const renderPersonas = (consumer: Consumer) => {
+        const { primary_persona, secondary_persona } = consumer;
+
+        if (!primary_persona && !secondary_persona) {
+            return (
+                <span className="text-slate-400 italic text-xs">
+                    No persona assigned
+                </span>
+            );
+        }
+
+        return (
+            <div className="flex flex-col gap-1">
+                {primary_persona && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-100">
+                        <span className="truncate max-w-[140px]">{primary_persona.name}</span>
+                    </span>
+                )}
+                {secondary_persona && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-slate-50 text-slate-700 border border-slate-200">
+                        <span className="truncate max-w-[140px]">
+                            {secondary_persona.name}
+                        </span>
+                    </span>
+                )}
+            </div>
+        );
+    };
+
     const renderTraits = (consumer: Consumer) => {
         const traits = consumer.traits;
         if (!traits || Object.keys(traits).length === 0) {
@@ -292,6 +321,9 @@ export function AllConsumersPage() {
                                                 Traits
                                             </th>
                                             <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                Personas
+                                            </th>
+                                            <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
                                                 Added
                                             </th>
                                         </tr>
@@ -299,7 +331,7 @@ export function AllConsumersPage() {
                                     <tbody className="bg-white divide-y divide-slate-200">
                                         {filteredConsumers.length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} className="px-6 py-12 text-center">
+                                                <td colSpan={5} className="px-6 py-12 text-center">
                                                     <UsersIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                                                     <p className="text-slate-500 font-medium">
                                                         {searchQuery ? 'No consumers found' : 'No consumers yet'}
@@ -344,6 +376,9 @@ export function AllConsumersPage() {
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         {renderTraits(consumer)}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {renderPersonas(consumer)}
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-2 text-sm text-slate-600">

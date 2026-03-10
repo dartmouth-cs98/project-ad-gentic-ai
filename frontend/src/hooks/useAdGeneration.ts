@@ -9,10 +9,10 @@ import type { UpdateCampaignPayload } from '../types';
 
 export const AD_VARIANTS_KEY = ['ad-variants'] as const;
 
-/** Fetch ad variants for a campaign, with optional status/preview filters. */
+/** Fetch ad variants for a campaign, with optional status/preview filters and polling. */
 export function useCampaignAdVariants(
   campaignId: number | undefined,
-  opts?: { enabled?: boolean; status?: string; isPreview?: boolean },
+  opts?: { enabled?: boolean; status?: string; isPreview?: boolean; refetchInterval?: number | false },
 ) {
   return useQuery({
     queryKey: [...AD_VARIANTS_KEY, campaignId, opts?.status ?? 'any', opts?.isPreview ?? 'any'],
@@ -22,6 +22,7 @@ export function useCampaignAdVariants(
         isPreview: opts?.isPreview,
       }),
     enabled: !!campaignId && (opts?.enabled ?? true),
+    refetchInterval: opts?.refetchInterval ?? false,
   });
 }
 

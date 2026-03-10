@@ -347,12 +347,12 @@ export function DashboardPage() {
                 <div className="h-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.06)] rounded-3xl p-8 relative overflow-hidden">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <BrainIcon className="w-5 h-5 text-teal-600" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-teal-600">
-                          Top Performing Segment
-                        </span>
-                      </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <BrainIcon className="w-5 h-5 text-teal-600" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-teal-600">
+                      Top Performing Segment
+                    </span>
+                  </div>
                       <h3 className="text-2xl font-bold text-slate-900">
                         The Skeptic
                       </h3>
@@ -398,6 +398,9 @@ export function DashboardPage() {
                       <p className="text-sm text-slate-600 font-light leading-relaxed">
                         This segment responds best to data-heavy comparisons and
                         transparency.
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        Once you upload consumers and generate personas, this chart will reflect your real segments and their performance.
                       </p>
                       <div className="flex gap-2">
                         <Badge

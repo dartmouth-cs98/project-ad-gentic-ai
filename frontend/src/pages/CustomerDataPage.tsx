@@ -24,6 +24,7 @@ import {
 import { useConsumerContext } from '../contexts/ConsumerContext';
 import { usePersonasContext } from '../contexts/PersonasContext';
 import type { Consumer, Persona } from '../types';
+import { CLIENT_ID_KEY } from '../api/config';
 
 // ─── Color palette (cycles for >6 personas) ─────────────────────────────────
 const PERSONA_COLORS = [
@@ -171,7 +172,9 @@ export function CustomerDataPage() {
 
   const lastUploadInfo = useMemo(() => {
     try {
-      const raw = localStorage.getItem('adgentic_last_upload');
+      const clientId = localStorage.getItem(CLIENT_ID_KEY);
+      if (!clientId) return null;
+      const raw = localStorage.getItem(`adgentic_last_upload_${clientId}`);
       if (raw) return JSON.parse(raw) as { filename: string; date: string };
     } catch { /* ignore */ }
     if (consumers.length > 0) {
@@ -186,8 +189,11 @@ export function CustomerDataPage() {
 
   // ── Donut chart segments ────────────────────────────────────────────────────
   const circumference = 2 * Math.PI * 40; // ≈ 251.33
+  const hasPersonaAssignments = consumers.length > 0 && activeSegments > 0;
+
   const donutSegments = useMemo(() => {
-    const total = consumers.length || 1;
+    if (!hasPersonaAssignments) return [];
+    const total = consumers.length;
     let cumulative = 0;
     return personas.map((p, i) => {
       const count = personaStats[p.id]?.primary ?? 0;
@@ -202,7 +208,7 @@ export function CustomerDataPage() {
         color: PERSONA_COLORS[i % PERSONA_COLORS.length].stroke,
       };
     });
-  }, [personas, personaStats, consumers.length, circumference]);
+  }, [personas, personaStats, consumers.length, circumference, hasPersonaAssignments]);
 
   // ── Upload handlers ─────────────────────────────────────────────────────────
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
@@ -223,7 +229,9 @@ export function CustomerDataPage() {
     setUploadResult(null);
     uploadCsv.mutate(file, {
       onSuccess: (data) => {
-        localStorage.setItem('adgentic_last_upload', JSON.stringify({
+        const clientId = localStorage.getItem(CLIENT_ID_KEY);
+        const key = clientId ? `adgentic_last_upload_${clientId}` : 'adgentic_last_upload';
+        localStorage.setItem(key, JSON.stringify({
           filename: file.name,
           date: new Date().toISOString(),
         }));
@@ -361,7 +369,7 @@ export function CustomerDataPage() {
               {/* Donut */}
               <div className="relative aspect-square max-w-[240px] mx-auto mb-6">
                 <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
-                  {personasLoading || donutSegments.length === 0 ? (
+                  {personasLoading || !hasPersonaAssignments ? (
                     <circle cx="50" cy="50" r="40" fill="none" stroke="#e2e8f0" strokeWidth="20" />
                   ) : (
                     donutSegments.map((seg) => (
@@ -379,9 +387,11 @@ export function CustomerDataPage() {
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center flex-col">
                   <span className="text-3xl font-bold text-slate-900">
-                    {personasLoading ? '—' : personas.length}
+                    {personasLoading ? '—' : hasPersonaAssignments ? personas.length : '—'}
                   </span>
-                  <span className="text-xs text-slate-500">Personas</span>
+                  <span className="text-xs text-slate-500">
+                    {hasPersonaAssignments ? 'Personas' : 'No assigned personas'}
+                  </span>
                 </div>
               </div>
 
@@ -392,6 +402,10 @@ export function CustomerDataPage() {
                 </div>
               ) : personas.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-2">No personas available</p>
+              ) : !hasPersonaAssignments ? (
+                <p className="text-xs text-slate-400 text-center py-2">
+                  Upload consumers and assign personas to see distribution.
+                </p>
               ) : (
                 <div className="space-y-2">
                   {personas.map((persona, i) => {

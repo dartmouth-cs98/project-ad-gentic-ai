@@ -199,6 +199,11 @@ export function AllConsumersPage() {
                             <h1 className="text-2xl font-bold text-slate-900">All Consumers</h1>
                             <p className="text-slate-500">
                                 {filteredConsumers.length} of {consumers.length} consumers
+                                {consumers.length === 0 && (
+                                    <span className="block text-xs text-slate-400 mt-1">
+                                        Upload your customer CSV to populate consumer cards and power persona-based charts.
+                                    </span>
+                                )}
                             </p>
                         </div>
                         <div className="flex items-center gap-3">

@@ -1,11 +1,14 @@
 import asyncio
 import io
 import os
+import logging
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SECONDS = 5
 MAX_POLL_ATTEMPTS = 120  # 10 minutes at 5s interval
@@ -32,6 +35,7 @@ async def generate_ad_video(
     )
 
     job_id = creation_response.id
+    logger.info("Video generation job created: %s", job_id)
     job_status = creation_response
     attempt = 0
 
@@ -46,9 +50,10 @@ async def generate_ad_video(
                 f"Video generation job {job_id} did not complete within {MAX_POLL_ATTEMPTS * POLL_INTERVAL_SECONDS}s."
             )
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
-        job_status = await video_client.videos.retrieve(id=job_id)
-
-    download_response = await video_client.videos.download_content(id=job_id)
+        # SDK expects positional job_id for retrieve and download_content
+        job_status = await video_client.videos.retrieve(job_id)
+    logger.info("Video generation job %s completed", job_id)
+    download_response = await video_client.videos.download_content(job_id)
     ad_video_bytes = await download_response.aread()
 
 

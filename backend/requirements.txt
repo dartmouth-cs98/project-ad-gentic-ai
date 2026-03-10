@@ -11,6 +11,7 @@ azure-identity>=1.15.0
 openai>=1.0.0
 xai-sdk>=0.1.0
 azure-storage-blob>=12.0.0
+Pillow>=10.0.0
 
 # Test dependencies
 pytest>=9.0.0

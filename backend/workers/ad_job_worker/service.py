@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+import logging
 
 from workers.ad_job_worker.worker import (
     execute_ad_job,
@@ -7,10 +8,10 @@ from workers.ad_job_worker.worker import (
 )
 
 router = APIRouter()
-
+logger = logging.getLogger(__name__)
 
 @router.post("/run-ad-job")
-async def run_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int):
+async def run_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int):
     ad_variant_id = await execute_ad_job(campaign_id, product_id, consumer_id, version_number)
     return {"status": "completed", "ad_variant_id": ad_variant_id}
 
@@ -30,6 +31,7 @@ async def generate_campaign_ad_variants(campaign_id: int, product_id: int, versi
 
 @router.get("/hello")
 async def hello():
+    logger.info("Hello from Ad Job Worker!")
     return {
         "service": "Ad Job Worker",
         "message": "Hello from Ad Job Worker!",

@@ -1,7 +1,16 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
+# Configure logging so logger.info(), etc. show in the terminal
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    force=True,
+)
 from fastapi.middleware.cors import CORSMiddleware
 
 #  Worker routes

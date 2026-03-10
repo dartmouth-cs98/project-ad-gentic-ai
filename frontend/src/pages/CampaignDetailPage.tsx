@@ -9,6 +9,7 @@ import {
   BarChart3Icon,
   UsersIcon,
   GlobeIcon,
+  PackageIcon,
   EditIcon,
   TrashIcon,
   Loader2Icon,
@@ -22,72 +23,17 @@ import { EditCampaignModal } from '../components/campaigns/EditCampaignModal';
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
 import { statusColors } from '../components/campaigns/CampaignGridCard';
 
-import type { AdVariant } from '../components/campaigns/AdVariantsGrid';
 import type { AnalyticsMetric, PersonaPerf } from '../components/campaigns/CampaignAnalytics';
 import type { EditFormData } from '../components/campaigns/EditCampaignModal';
 import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
 
 import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns';
-import type { CampaignStatus } from '../types';
+import { useCampaignAdVariants } from '../hooks/useAdGeneration';
+import { useUser } from '../contexts/UserContext';
+import { useProducts } from '../hooks/useProducts';
+import type { CampaignStatus, Product } from '../types';
 
-// ---------- Static placeholder data (ad variants & analytics not yet in API) ----------
-
-const adVariants: AdVariant[] = [
-  {
-    id: 'a',
-    label: 'Variant A',
-    persona: 'The Skeptic',
-    personaColors: 'bg-teal-50 text-teal-600 border-teal-100',
-    headline: "Stop Wasting Money on Ads That Don't Convert — Try Ad-gentic Today",
-    ctr: '4.2%',
-    image: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'b',
-    label: 'Variant B',
-    persona: 'The Impulse Buyer',
-    personaColors: 'bg-orange-50 text-orange-600 border-orange-100',
-    headline: "🔥 Flash Sale: 48 Hours Only — Don't Miss Out",
-    ctr: '5.8%',
-    image: 'https://images.unsplash.com/photo-1563986768609-322da13575f2?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'c',
-    label: 'Variant C',
-    persona: 'The Researcher',
-    personaColors: 'bg-blue-50 text-blue-600 border-blue-100',
-    headline: 'Side-by-Side: How We Compare to 5 Competitors',
-    ctr: '3.1%',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'd',
-    label: 'Variant D',
-    persona: 'The Skeptic',
-    personaColors: 'bg-teal-50 text-teal-600 border-teal-100',
-    headline: "See the Data: 12,847 Verified Reviews Can't Be Wrong",
-    ctr: '4.5%',
-    image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'e',
-    label: 'Variant E',
-    persona: 'The Impulse Buyer',
-    personaColors: 'bg-orange-50 text-orange-600 border-orange-100',
-    headline: 'Last Chance — 73% Already Sold Out',
-    ctr: '6.2%',
-    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'f',
-    label: 'Variant F',
-    persona: 'The Researcher',
-    personaColors: 'bg-blue-50 text-blue-600 border-blue-100',
-    headline: '14-Feature Comparison: The Complete Breakdown',
-    ctr: '2.9%',
-    image: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&h=300&fit=crop',
-  },
-];
+// ---------- Static placeholder data (analytics not yet in API) ----------
 
 const analyticsMetrics: AnalyticsMetric[] = [
   { label: 'Impressions', value: '342,180', change: '+14%', positive: true },
@@ -104,14 +50,84 @@ const personaPerformance: PersonaPerf[] = [
   { name: 'The Researcher', convRate: '3.0%', impressions: '82K', color: 'blue' },
 ];
 
+function parseProductIds(raw: string | null): number[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((v) => Number(v))
+      .filter((n) => Number.isFinite(n));
+  } catch {
+    return [];
+  }
+}
+
+function parseProductContext(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed.text ?? parsed.name ?? null;
+    }
+    if (typeof parsed === 'string') return parsed;
+    return null;
+  } catch {
+    return raw;
+  }
+}
+
+function AttachedProducts({ products }: { products: Product[] }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {products.map((product) => (
+        <Card key={product.id} padding="md">
+          <div className="flex items-start gap-3">
+            {product.image_url ? (
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <PackageIcon className="w-5 h-5 text-slate-400" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-slate-900 truncate">
+                {product.name}
+              </h3>
+              {product.description && (
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                  {product.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 // ---------- Component ----------
 
 export function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useUser();
 
   const campaignId = Number(id);
   const { data: campaign, isLoading, isError, error } = useCampaign(campaignId);
+  const businessClientId = user?.client_id;
+  const { data: products = [], isLoading: isProductsLoading } = useProducts(businessClientId);
+  const {
+    data: campaignVariants = [],
+    isLoading: isVariantsLoading,
+    isError: isVariantsError,
+    error: variantsError,
+  } = useCampaignAdVariants(campaignId, { enabled: !!campaign });
 
   // Two separate mutation instances — one for the edit modal, one for the settings tab
   const editMutation = useUpdateCampaign();
@@ -225,6 +241,12 @@ export function CampaignDetailPage() {
   };
 
   const statusVariant = statusColors[campaign.status as keyof typeof statusColors] ?? 'default';
+  const attachedProductIds = parseProductIds(campaign.product_ids);
+  const attachedProducts = attachedProductIds
+    .map((productId) => products.find((p) => p.id === productId))
+    .filter((p): p is Product => !!p);
+  const productContextText = parseProductContext(campaign.product_context);
+  const approvedVariants = campaignVariants.filter((variant) => variant.status === 'completed');
 
   // ---------- Render ----------
 
@@ -356,7 +378,64 @@ export function CampaignDetailPage() {
         </div>
 
         {/* Tab content */}
-        {activeTab === 'variants' && <AdVariantsGrid variants={adVariants} />}
+        {activeTab === 'variants' && (
+          <>
+            {isVariantsLoading && (
+              <div className="flex items-center justify-center py-14 text-slate-400">
+                <Loader2Icon className="w-6 h-6 animate-spin mr-2" />
+                <span className="text-sm">Loading ad variants...</span>
+              </div>
+            )}
+
+            {!isVariantsLoading && isVariantsError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Failed to load ad variants: {(variantsError as Error)?.message}
+              </div>
+            )}
+
+            {!isVariantsLoading && !isVariantsError && approvedVariants.length === 0 && (
+              <Card variant="elevated" padding="lg">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <PackageIcon className="w-6 h-6 text-slate-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      No approved ad variants yet
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Approve a plan in the Generate flow to create variants for this campaign.
+                      Once created and approved, they will appear here.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Attached products</h3>
+                </div>
+
+                {isProductsLoading ? (
+                  <div className="flex items-center text-sm text-slate-500">
+                    <Loader2Icon className="w-4 h-4 animate-spin mr-2" />
+                    Loading products...
+                  </div>
+                ) : attachedProducts.length > 0 ? (
+                  <AttachedProducts products={attachedProducts} />
+                ) : (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    {productContextText
+                      ? `Attached product context: ${productContextText}`
+                      : 'No attached products were found for this campaign.'}
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {!isVariantsLoading && !isVariantsError && approvedVariants.length > 0 && (
+              <AdVariantsGrid variants={approvedVariants} />
+            )}
+          </>
+        )}
 
         {activeTab === 'analytics' && (
           <CampaignAnalytics

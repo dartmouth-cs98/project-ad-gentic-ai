@@ -38,11 +38,11 @@ export function AdVariantCard({ variant, isSelected, onToggle }: AdVariantCardPr
       onClick={() => onToggle(id)}
     >
       {/* Media area */}
-      <div className="relative aspect-[9/16] max-h-[280px] bg-slate-900">
+      <div className="relative w-full aspect-video bg-black">
         {variant.status === 'completed' && variant.media_url ? (
           <video
             src={variant.media_url}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain object-center"
             controls
             preload="metadata"
             onClick={(e) => e.stopPropagation()}

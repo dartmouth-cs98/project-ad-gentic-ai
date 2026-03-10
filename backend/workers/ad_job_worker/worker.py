@@ -1,12 +1,14 @@
 import base64
+import io
 import json
 import os
 import random
 import traceback
 import uuid
 from typing import Optional
-
+import logging
 from dotenv import load_dotenv
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
 from database import _get_session_factory
@@ -29,6 +31,35 @@ from workers.ad_video_generation_worker.worker import generate_ad_video
 from azure.storage.blob import BlobClient, ContentSettings
 
 load_dotenv()
+logger = logging.getLogger(__name__)
+
+# Target size for product images (portrait, e.g. for short-form video).
+PRODUCT_IMAGE_WIDTH = 720
+PRODUCT_IMAGE_HEIGHT = 1280
+
+
+def _resize_product_image(image_bytes: bytes, content_type: str) -> tuple[bytes, str]:
+    """Resize product image to 720x1280. Returns (resized_bytes, content_type). On failure, returns original."""
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGBA")
+            out_format = "PNG"
+            out_content_type = "image/png"
+        else:
+            img = img.convert("RGB")
+            out_format = "JPEG"
+            out_content_type = "image/jpeg"
+        img = img.resize((PRODUCT_IMAGE_WIDTH, PRODUCT_IMAGE_HEIGHT), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        if out_format == "JPEG":
+            img.save(buf, format=out_format, quality=95)
+        else:
+            img.save(buf, format=out_format)
+        return buf.getvalue(), out_content_type
+    except (UnidentifiedImageError, OSError) as e:
+        logger.warning("Resize failed, using original image: %s", e)
+        return image_bytes, content_type
 
 
 def _brief_for_version(brief_json: Optional[str], version_number: int) -> str:
@@ -49,6 +80,10 @@ def _brief_for_version(brief_json: Optional[str], version_number: int) -> str:
 
 
 async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int) -> int:
+    logger.info(
+        "Executing ad job for campaign %s, product %s, consumer %s, version %s",
+        campaign_id, product_id, consumer_id, version_number,
+    )
     factory = _get_session_factory()
     db: Session = factory()
     ad_variant = create_ad_variant(
@@ -87,20 +122,27 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         )
         product_image_download = product_image_blob_client.download_blob()
         product_image_bytes = product_image_download.readall()
-        base64_product_image = base64.b64encode(product_image_bytes).decode("utf-8")
         props = product_image_blob_client.get_blob_properties()
-        product_image_type = props.content_settings.content_type
+        product_image_type = props.content_settings.content_type or "image/png"
         product_image_filename = props.name
+        product_image_bytes, product_image_type = _resize_product_image(
+            product_image_bytes, product_image_type
+        )
+        base64_product_image = base64.b64encode(product_image_bytes).decode("utf-8")
         product_image_data_url = f"data:{product_image_type};base64,{base64_product_image}"
 
+        logger.info("Generating ad script")
         script = await generate_ad_script(
             product_name, product_description, product_image_data_url, consumer_traits_string, campaign_brief
         )
         update_ad_variant(db, ad_variant_id, AdVariantUpdate(meta=json.dumps({"script": script})))
+        logger.info("Finished generating ad script")
 
+        logger.info("Generating ad video")
         ad_video_bytes = await generate_ad_video(
             script, product_image_bytes, product_image_type, product_image_filename
         )
+        logger.info("Finished generating ad video")
         blob_client = BlobClient.from_connection_string(
             conn_str=os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip(),
             container_name="ad-videos",

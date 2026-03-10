@@ -9,6 +9,12 @@ import type { ChatCompletionRequest, ChatCompletionResponse } from '../api/chat'
 import type { ChatMessage, ChatMessagePayload } from '../types';
 
 export const CHAT_MESSAGES_KEY = ['chatMessages'] as const;
+let optimisticMessageId = -1;
+
+function getNextOptimisticId(): number {
+  optimisticMessageId -= 1;
+  return optimisticMessageId;
+}
 
 /** Fetch all chat messages for a campaign. */
 export function useChatMessages(campaignId: number | undefined) {
@@ -37,7 +43,7 @@ export function useSendChatMessage() {
 
       // Optimistic message with a temporary negative id
       const optimistic: ChatMessage = {
-        id: -Date.now(),
+        id: getNextOptimisticId(),
         campaign_id: data.campaign_id,
         business_client_id: 0,
         role: data.role,
@@ -83,7 +89,7 @@ export function useChatCompletion() {
 
       // Optimistically append the user message
       const optimisticUser: ChatMessage = {
-        id: -Date.now(),
+        id: getNextOptimisticId(),
         campaign_id: data.campaign_id,
         business_client_id: 0,
         role: 'user',

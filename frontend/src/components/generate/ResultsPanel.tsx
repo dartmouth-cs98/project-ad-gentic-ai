@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   MessageSquareIcon,
-  CopyIcon,
-  EyeOffIcon,
   Trash2Icon,
   XIcon,
   SlidersHorizontalIcon,
@@ -11,9 +9,10 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { FilterControls } from './FilterControls';
-import { PersonaGroupCard } from './PersonaGroupCard';
+import { AdVariantCard } from './AdVariantCard';
 import { GeneratingView } from './GeneratingView';
-import type { Phase, PersonaGroup } from './types';
+import type { Phase } from './types';
+import type { AdVariant } from '../../types';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters } from '../../hooks/useFilterState';
 
@@ -21,21 +20,15 @@ interface ResultsPanelProps {
   phase: Phase;
   filterState: FilterState;
   filterDispatch: React.Dispatch<FilterAction>;
-  personaGroups: PersonaGroup[];
+  adVariants: AdVariant[];
   progressIdx: number;
   // Selection
   selectedVariants: Set<string>;
   onVariantToggle: (variantId: string) => void;
-  onGroupSelect: (group: PersonaGroup) => void;
   onClearSelection: () => void;
   // Actions
   onReviseSelected: () => void;
-  onDuplicateSelected: () => void;
-  onExcludeSelected: () => void;
   onDeleteSelected: () => void;
-  // Expand state
-  expandedGroups: Set<string>;
-  onToggleGroup: (groupId: string) => void;
   // Filters
   onApplyFilters?: () => void;
 }
@@ -44,18 +37,13 @@ export function ResultsPanel({
   phase,
   filterState,
   filterDispatch,
-  personaGroups,
+  adVariants,
   progressIdx,
   selectedVariants,
   onVariantToggle,
-  onGroupSelect,
   onClearSelection,
   onReviseSelected,
-  onDuplicateSelected,
-  onExcludeSelected,
   onDeleteSelected,
-  expandedGroups,
-  onToggleGroup,
   onApplyFilters,
 }: ResultsPanelProps) {
   const rightPanelRef = useRef<HTMLDivElement>(null);
@@ -83,7 +71,7 @@ export function ResultsPanel({
     <div ref={rightPanelRef} className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
       {/* GENERATING */}
       {phase === 'generating' && (
-        <GeneratingView progressIdx={progressIdx} personaGroups={personaGroups} />
+        <GeneratingView progressIdx={progressIdx} variantCount={6} />
       )}
 
       {/* RESULTS */}
@@ -149,22 +137,6 @@ export function ResultsPanel({
                 </Button>
                 <Button
                   size="sm"
-                  variant="secondary"
-                  leftIcon={<CopyIcon className="w-3.5 h-3.5" />}
-                  onClick={onDuplicateSelected}
-                >
-                  Duplicate
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  leftIcon={<EyeOffIcon className="w-3.5 h-3.5" />}
-                  onClick={onExcludeSelected}
-                >
-                  Exclude
-                </Button>
-                <Button
-                  size="sm"
                   variant="ghost"
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   leftIcon={<Trash2Icon className="w-3.5 h-3.5" />}
@@ -184,21 +156,27 @@ export function ResultsPanel({
             </div>
           )}
 
-          {/* Grouped Variants */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {personaGroups.map((group, gi) => (
-              <PersonaGroupCard
-                key={group.id}
-                group={group}
-                isExpanded={expandedGroups.has(group.id)}
-                onToggle={onToggleGroup}
-                selectedVariants={selectedVariants}
-                onVariantToggle={onVariantToggle}
-                onGroupSelect={onGroupSelect}
-                variantCols={variantCols}
-                animationDelay={gi * 100}
-              />
-            ))}
+          {/* Variant grid */}
+          <div className="flex-1 overflow-y-auto p-5">
+            {adVariants.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-slate-400">
+                No ad variants found for this campaign.
+              </div>
+            ) : (
+              <div
+                className="grid gap-4"
+                style={{ gridTemplateColumns: `repeat(${variantCols}, minmax(0, 1fr))` }}
+              >
+                {adVariants.map((variant) => (
+                  <AdVariantCard
+                    key={variant.id}
+                    variant={variant}
+                    isSelected={selectedVariants.has(String(variant.id))}
+                    onToggle={onVariantToggle}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

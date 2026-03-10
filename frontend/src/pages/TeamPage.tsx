@@ -1,405 +1,185 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import {
-  SparklesIcon,
-  LinkedinIcon,
-  TwitterIcon,
-  GithubIcon,
-  HeartIcon,
-  EyeIcon,
-  ZapIcon } from
-'lucide-react';
+import { Logo } from '../components/ui/Logo';
+import { Sun, Moon, ArrowRight } from 'lucide-react';
+
+const team = [
+  {
+    name: 'Isaac Cheon',
+    initials: 'IC',
+    role: 'Co-founder',
+    bio: 'Obsessed with building products that actually change how people think about marketing. Believes the best ads don\'t feel like ads.',
+  },
+  {
+    name: 'Dickson Alexander',
+    initials: 'DA',
+    role: 'Co-founder',
+    bio: 'Driven by the gap between what ad tech promises and what it delivers. Building the platform he always wished existed.',
+  },
+  {
+    name: 'Kasuti Makau',
+    initials: 'KM',
+    role: 'Co-founder',
+    bio: 'Focused on making AI genuinely useful — not impressive on demos, but transformative in production. Ships fast, thinks deep.',
+  },
+  {
+    name: 'Arshdeep Singh',
+    initials: 'AS',
+    role: 'Co-founder',
+    bio: 'Turns complex systems into things that feel simple. Cares deeply about the craft of building and the impact of what gets built.',
+  },
+  {
+    name: 'Kevin Guo',
+    initials: 'KG',
+    role: 'Co-founder',
+    bio: 'Sees the big picture without losing sight of the details. Relentlessly focused on what it takes to build something people actually need.',
+  },
+];
+
 export function TeamPage() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
   return (
-    <div className="min-h-screen bg-white font-sans">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <SparklesIcon className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-semibold text-lg text-slate-900">
-                Ad-gentic AI
-              </span>
-            </Link>
-
+            <Link to="/"><Logo size="md" /></Link>
             <div className="hidden md:flex items-center gap-8">
-              <Link
-                to="/features"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                Features
-              </Link>
-              <Link
-                to="/how-it-works"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                How It Works
-              </Link>
-              <Link
-                to="/pricing"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                Pricing
-              </Link>
-              <Link
-                to="/team"
-                className="text-sm font-medium text-slate-900 transition-colors">
-
-                Team
-              </Link>
+              <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</Link>
+              <Link to="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
+              <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/team" className="text-sm text-foreground font-medium">Team</Link>
             </div>
-
             <div className="flex items-center gap-3">
               <Link to="/sign-in">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
+                <button className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">Sign In</button>
               </Link>
               <Link to="/sign-up">
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none shadow-md shadow-orange-500/20">
-
-                  Get Started
-                </Button>
+                <button className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</button>
               </Link>
+              <button onClick={toggleTheme} className="p-2 border border-border rounded-lg hover:bg-muted transition-colors" aria-label="Toggle theme">
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">
-            The Minds Behind Ad-gentic AI
-          </h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            We are a team of marketers, engineers, and psychologists building
-            the future of advertising.
-          </p>
-        </div>
-      </section>
-
-      {/* Team Grid */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-12 max-w-5xl mx-auto">
-            {/* Sarah */}
-            <Card
-              variant="elevated"
-              padding="lg"
-              className="flex flex-col sm:flex-row gap-6 items-start">
-
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0 flex items-center justify-center text-white text-3xl font-bold">
-                SJ
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  Sarah Johnson
-                </h3>
-                <p className="text-blue-600 font-medium mb-3">
-                  CEO & Co-founder
-                </p>
-                <p className="text-slate-600 mb-4 text-sm leading-relaxed">
-                  Former VP of Marketing at Shopify. 15 years in digital
-                  advertising. Passionate about making ads that respect the
-                  viewer.
-                </p>
-                <a
-                  href="#"
-                  className="text-slate-400 hover:text-blue-600 transition-colors">
-
-                  <LinkedinIcon className="w-5 h-5" />
-                </a>
-              </div>
-            </Card>
-
-            {/* Michael */}
-            <Card
-              variant="elevated"
-              padding="lg"
-              className="flex flex-col sm:flex-row gap-6 items-start">
-
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-3xl font-bold">
-                MC
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  Michael Chen
-                </h3>
-                <p className="text-purple-600 font-medium mb-3">
-                  CTO & Co-founder
-                </p>
-                <p className="text-slate-600 mb-4 text-sm leading-relaxed">
-                  Ex-Google AI researcher. Built ML systems processing 1B+ data
-                  points daily. Believes AI should augment human creativity, not
-                  replace it.
-                </p>
-                <a
-                  href="#"
-                  className="text-slate-400 hover:text-blue-600 transition-colors">
-
-                  <LinkedinIcon className="w-5 h-5" />
-                </a>
-              </div>
-            </Card>
-
-            {/* Emily */}
-            <Card
-              variant="elevated"
-              padding="lg"
-              className="flex flex-col sm:flex-row gap-6 items-start">
-
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-400 to-pink-600 flex-shrink-0 flex items-center justify-center text-white text-3xl font-bold">
-                EP
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Emily Park</h3>
-                <p className="text-pink-600 font-medium mb-3">
-                  Head of AI Research
-                </p>
-                <p className="text-slate-600 mb-4 text-sm leading-relaxed">
-                  PhD in Computational Psychology from MIT. Published 20+ papers
-                  on behavioral prediction models. Leads our persona engine
-                  development.
-                </p>
-                <a
-                  href="#"
-                  className="text-slate-400 hover:text-blue-600 transition-colors">
-
-                  <LinkedinIcon className="w-5 h-5" />
-                </a>
-              </div>
-            </Card>
-
-            {/* David */}
-            <Card
-              variant="elevated"
-              padding="lg"
-              className="flex flex-col sm:flex-row gap-6 items-start">
-
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex-shrink-0 flex items-center justify-center text-white text-3xl font-bold">
-                DR
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  David Rodriguez
-                </h3>
-                <p className="text-emerald-600 font-medium mb-3">
-                  Head of Psychology
-                </p>
-                <p className="text-slate-600 mb-4 text-sm leading-relaxed">
-                  Clinical psychologist turned ad-tech innovator. 10 years
-                  studying consumer decision-making. Ensures our AI truly
-                  understands human motivation.
-                </p>
-                <a
-                  href="#"
-                  className="text-slate-400 hover:text-blue-600 transition-colors">
-
-                  <LinkedinIcon className="w-5 h-5" />
-                </a>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Values Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 mb-12">
-            Our Values
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-6">
-                <HeartIcon className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">
-                Human-First AI
-              </h3>
-              <p className="text-slate-600">
-                We build technology that enhances human connection rather than
-                exploiting it.
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-6">
-                <EyeIcon className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">
-                Radical Transparency
-              </h3>
-              <p className="text-slate-600">
-                We believe in open algorithms and clear data usage policies.
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-6">
-                <ZapIcon className="w-8 h-8 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">
-                Creative Excellence
-              </h3>
-              <p className="text-slate-600">
-                We never settle for "good enough." Every ad should be a piece of
-                art.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Join Us CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white text-center">
+      {/* Hero */}
+      <section className="pt-24 pb-20 px-6 border-b border-border">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">Join Us</h2>
-          <p className="text-lg text-slate-600 mb-8">
-            We are always looking for exceptional people to join our mission.
+          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-4">The team</p>
+          <h1 className="text-5xl sm:text-6xl font-semibold tracking-tight mb-6 leading-tight">
+            We're building the next great advertising platform.
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-xl">
+            Four builders who got tired of watching brands waste budgets on ads that miss. We think advertising can be smarter, more honest, and actually effective — so we're making it happen.
           </p>
-          <Button variant="secondary" size="lg">
-            View Open Positions
-          </Button>
+        </div>
+      </section>
+
+      {/* Team */}
+      <section className="py-20 px-6 border-b border-border">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
+            {team.map(({ name, initials, role, bio }, i) => (
+              <div key={name} className={`bg-card border border-border rounded-xl p-8 hover:bg-muted transition-colors col-span-2 ${i === 3 ? 'lg:col-start-2' : ''} ${i === 4 ? 'lg:col-start-4' : ''}`}>
+                <div className="w-14 h-14 rounded-xl bg-foreground flex items-center justify-center text-background font-semibold text-lg mb-6">
+                  {initials}
+                </div>
+                <h3 className="text-xl font-semibold mb-1">{name}</h3>
+                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-4">{role}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{bio}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Mission */}
+      <section className="py-24 px-6 border-b border-border">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-4">Our mission</p>
+          <blockquote className="text-3xl sm:text-4xl font-semibold tracking-tight leading-snug mb-8">
+            "Advertising should work for everyone — not just the brands with the biggest budgets."
+          </blockquote>
+          <p className="text-muted-foreground leading-relaxed max-w-xl">
+            We started Ad-gentic because we watched brands burn money on campaigns that didn't understand their audience. The tools existed to do better — they just weren't being used right. We're fixing that. AI-powered, data-driven, human-approved.
+          </p>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section className="py-20 px-6 bg-muted border-b border-border">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-10">What we believe</p>
+          <div className="grid sm:grid-cols-3 gap-10">
+            {[
+              {
+                title: 'Ship things that matter',
+                body: 'We build for impact, not optics. Every feature has to earn its place by making something meaningfully better.',
+              },
+              {
+                title: 'Honest by default',
+                body: 'With advertisers, with users, with each other. The best products are built on trust, and trust starts with honesty.',
+              },
+              {
+                title: 'Move fast, stay sharp',
+                body: 'Speed without thought is noise. We move quickly because we think clearly — not instead of it.',
+              },
+            ].map(({ title, body }) => (
+              <div key={title}>
+                <h3 className="font-semibold mb-3">{title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Join */}
+      <section className="py-24 px-6">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Want to help build this?</h2>
+            <p className="text-muted-foreground">We're always looking for people who give a damn.</p>
+          </div>
+          <Link to="/sign-up">
+            <button className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+              Get in touch
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0A1628] text-white py-16 px-4 sm:px-6 lg:px-8 border-t border-white/10">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <SparklesIcon className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-semibold text-lg">Ad-gentic AI</span>
-              </div>
-              <p className="text-white/60 text-sm">
-                Making advertising better for everyone through AI-powered
-                psychological profiling.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <Link
-                    to="/features"
-                    className="hover:text-white transition-colors">
-
-                    Features
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/pricing"
-                    className="hover:text-white transition-colors">
-
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Integrations
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    API
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <Link
-                    to="/team"
-                    className="hover:text-white transition-colors">
-
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Careers
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    to="/team#contact"
-                    className="hover:text-white transition-colors">
-
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Cookie Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
+      <footer className="py-10 px-6 border-t border-border">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <Logo size="sm" />
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            {['Privacy', 'Terms', 'Contact', 'Careers'].map((label) => (
+              <a key={label} href="#" className="hover:text-foreground transition-colors">{label}</a>
+            ))}
           </div>
-
-          <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-white/40">
-              © 2026 Ad-gentic AI. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4">
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <TwitterIcon className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <LinkedinIcon className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <GithubIcon className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">© 2026 Ad-gentic. All rights reserved.</p>
         </div>
       </footer>
-    </div>);
-
+    </div>
+  );
 }

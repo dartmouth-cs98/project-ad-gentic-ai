@@ -87,8 +87,8 @@ async def test_generate_ad_script_returns_script_from_mock_client():
     """generate_ad_script calls the API and returns the script content."""
     fake_content = "Scene 1: Open on product. Scene 2: ..."
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.output.content[0].text = fake_content
+    # Responses API shape: output is list of items, each with content list and text
+    mock_response.output = [MagicMock(content=[MagicMock(text=fake_content)])]
 
     mock_client = MagicMock()
     mock_client.responses.create = AsyncMock(return_value=mock_response)

@@ -79,11 +79,16 @@ async def generate_ad_script(
                 ]
             }
         ],
-        max_tokens=2000
+        max_output_tokens=2000
     )
 
-    script = response.output.content[0].text
-    
+    # Responses API: output is a list of items; each item has content (list) with text.
+    if not response.output or len(response.output) == 0:
+        raise ValueError("Script API returned no output")
+    first_output = response.output[0]
+    if not getattr(first_output, "content", None) or len(first_output.content) == 0:
+        raise ValueError("Script API returned output with no content")
+    script = first_output.content[0].text
     return script
 
 def batch_generate_ad_scripts(product_name: str, product_description: str, consumers: list["Consumer"], product_image_data_url: str, campaign_brief: str):

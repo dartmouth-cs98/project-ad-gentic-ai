@@ -5,6 +5,7 @@ import { useCompany } from '../../contexts/CompanyContext';
 import {
   LayoutDashboardIcon,
   FolderIcon,
+  PackageIcon,
   SparklesIcon,
   ChevronLeftIcon,
   LogOutIcon,
@@ -22,6 +23,11 @@ const navItems = [
     path: '/campaigns',
     label: 'Campaigns',
     icon: FolderIcon
+  },
+  {
+    path: '/products',
+    label: 'Products',
+    icon: PackageIcon
   },
   {
     path: '/generate',

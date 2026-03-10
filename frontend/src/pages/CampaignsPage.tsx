@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
-import { Button } from '../components/ui/Button';
 import {
   LayoutGridIcon,
   ListIcon,
@@ -10,6 +9,8 @@ import {
   Loader2Icon,
   MegaphoneIcon,
   AlertCircleIcon,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 import { CampaignGridCard } from '../components/campaigns/CampaignGridCard';
@@ -19,6 +20,7 @@ import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal
 import type { CampaignItem } from '../components/campaigns/CampaignGridCard';
 
 import { useUser } from '../contexts/UserContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
 import type { Campaign } from '../types';
 
@@ -66,6 +68,7 @@ function campaignToItem(c: Campaign): CampaignItem {
 // ---------- Component ----------
 
 export function CampaignsPage() {
+  const { collapsed } = useSidebar();
   const { user } = useUser();
   const businessClientId = user?.client_id;
 
@@ -75,6 +78,7 @@ export function CampaignsPage() {
 
   const campaigns = rawCampaigns.map(campaignToItem);
 
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -85,6 +89,19 @@ export function CampaignsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<{ id: number; name: string } | null>(null);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
 
   // ---------- Filter helpers ----------
 
@@ -171,89 +188,93 @@ export function CampaignsPage() {
   // ---------- Render ----------
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">
-            Campaign Manager
-          </h1>
-          <div className="flex items-center gap-4">
-            <div className="flex bg-white rounded-lg border border-slate-200 p-1">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage and track your ad campaigns.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="inline-flex items-center bg-muted border border-border rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <LayoutGridIcon className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'table'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <ListIcon className="w-4 h-4" />
               </button>
             </div>
-            <Button
-              leftIcon={<PlusIcon className="w-4 h-4" />}
+            <button
               onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
             >
+              <PlusIcon className="w-4 h-4" />
               Create Campaign
-            </Button>
+            </button>
+            <button
+              onClick={toggleTheme}
+              className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           </div>
         </div>
 
         {/* Bulk Actions Bar */}
         {selectedCampaigns.length > 0 && (
-          <div className="mb-4 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-            <span className="text-sm font-medium text-blue-700">
-              {selectedCampaigns.length} campaign
-              {selectedCampaigns.length > 1 ? 's' : ''} selected
+          <div className="mb-4 flex items-center gap-3 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3">
+            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+              {selectedCampaigns.length} campaign{selectedCampaigns.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex-1" />
-            <Button size="sm" variant="secondary" onClick={handleBulkPause}>
+            <button
+              onClick={handleBulkPause}
+              className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+            >
               Pause Selected
-            </Button>
-            <Button size="sm" variant="danger" onClick={handleBulkDelete}>
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              className="px-3 py-1.5 text-sm border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
+            >
               Delete Selected
-            </Button>
+            </button>
             <button
               onClick={() => setSelectedCampaigns([])}
-              className="p-1 rounded hover:bg-blue-100 transition-colors"
+              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
             >
-              <XIcon className="w-4 h-4 text-blue-500" />
+              <XIcon className="w-4 h-4" />
             </button>
           </div>
         )}
 
         <div className="flex gap-8">
           {/* Filters Sidebar */}
-          <div className="w-64 flex-shrink-0 space-y-6">
+          <div className="w-56 flex-shrink-0 space-y-6">
             <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search campaigns..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20 placeholder:text-muted-foreground"
               />
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                Date Range
-              </h3>
-              <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Date Range</h3>
+              <select className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20">
                 <option>Last 30 days</option>
                 <option>Last 7 days</option>
                 <option>Last 90 days</option>
@@ -262,20 +283,15 @@ export function CampaignsPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                Platform
-              </h3>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Platform</h3>
               <div className="space-y-2">
                 {['meta', 'tiktok', 'youtube', 'linkedin'].map((platform) => (
-                  <label
-                    key={platform}
-                    className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer"
-                  >
+                  <label key={platform} className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                     <input
                       type="checkbox"
                       checked={selectedPlatforms.includes(platform)}
                       onChange={() => togglePlatform(platform)}
-                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-border text-blue-600 focus:ring-blue-500"
                     />
                     <span className="capitalize">{platform}</span>
                   </label>
@@ -284,26 +300,19 @@ export function CampaignsPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                Objective
-              </h3>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Objective</h3>
               <div className="space-y-2">
-                {['sales', 'awareness', 'engagement', 'leads'].map(
-                  (objective) => (
-                    <label
-                      key={objective}
-                      className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedObjectives.includes(objective)}
-                        onChange={() => toggleObjective(objective)}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="capitalize">{objective}</span>
-                    </label>
-                  ),
-                )}
+                {['sales', 'awareness', 'engagement', 'leads'].map((objective) => (
+                  <label key={objective} className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={selectedObjectives.includes(objective)}
+                      onChange={() => toggleObjective(objective)}
+                      className="rounded border-border text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="capitalize">{objective}</span>
+                  </label>
+                ))}
               </div>
             </div>
           </div>
@@ -312,8 +321,8 @@ export function CampaignsPage() {
           <div className="flex-1">
             {/* Loading state */}
             {isLoading && (
-              <div className="flex flex-col items-center justify-center py-24 text-slate-400">
-                <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
+              <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+                <Loader2Icon className="w-6 h-6 animate-spin mb-3" />
                 <p className="text-sm">Loading campaigns...</p>
               </div>
             )}
@@ -321,52 +330,36 @@ export function CampaignsPage() {
             {/* Error state */}
             {isError && (
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                  <AlertCircleIcon className="w-7 h-7 text-red-500" />
-                </div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-1">
-                  Failed to load campaigns
-                </h2>
-                <p className="text-sm text-slate-500">
-                  {(error as Error).message}
-                </p>
+                <AlertCircleIcon className="w-8 h-8 text-red-500 mb-3" />
+                <h2 className="text-base font-semibold mb-1">Failed to load campaigns</h2>
+                <p className="text-sm text-muted-foreground">{(error as Error).message}</p>
               </div>
             )}
 
             {/* Empty state */}
             {!isLoading && !isError && campaigns.length === 0 && (
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                  <MegaphoneIcon className="w-9 h-9 text-slate-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-slate-900 mb-2">
-                  No campaigns yet
-                </h2>
-                <p className="text-slate-500 mb-8 max-w-sm text-sm">
-                  Create your first campaign to start reaching your audience
-                  with AI-generated ads.
+                <MegaphoneIcon className="w-8 h-8 text-muted-foreground mb-4" />
+                <h2 className="text-base font-semibold mb-1">No campaigns yet</h2>
+                <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+                  Create your first campaign to start reaching your audience with AI-generated ads.
                 </p>
-                <Button
-                  leftIcon={<PlusIcon className="w-4 h-4" />}
+                <button
                   onClick={() => setShowCreateModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
+                  <PlusIcon className="w-4 h-4" />
                   Create your first campaign
-                </Button>
+                </button>
               </div>
             )}
 
-            {/* No search results (has campaigns, but filter yields nothing) */}
+            {/* No search results */}
             {!isLoading && !isError && campaigns.length > 0 && filteredCampaigns.length === 0 && (
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <SearchIcon className="w-7 h-7 text-slate-400" />
-                </div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-1">
-                  No campaigns match your filters
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Try adjusting your search or filter criteria.
-                </p>
+                <SearchIcon className="w-8 h-8 text-muted-foreground mb-3" />
+                <h2 className="text-base font-semibold mb-1">No campaigns match your filters</h2>
+                <p className="text-sm text-muted-foreground">Try adjusting your search or filter criteria.</p>
               </div>
             )}
 
@@ -397,9 +390,9 @@ export function CampaignsPage() {
         </div>
 
         {/* Modals */}
-        {showCreateModal && businessClientId && (
+        {showCreateModal && (
           <CreateCampaignModal
-            businessClientId={businessClientId}
+            businessClientId={businessClientId ?? 0}
             onClose={() => setShowCreateModal(false)}
           />
         )}

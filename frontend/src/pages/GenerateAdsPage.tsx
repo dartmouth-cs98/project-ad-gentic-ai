@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Sidebar } from '../components/layout/Sidebar';
 import { ChatPanel, ResultsPanel } from '../components/generate';
 import type { Phase, Version } from '../components/generate';
@@ -100,8 +101,25 @@ export function GenerateAdsPage() {
     containerRef: splitContainerRef,
   });
 
+  // ─── Theme ──────────────────────────────────────────────────
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  useEffect(() => {
+    const saved = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(saved);
+    document.documentElement.classList.toggle('dark', saved === 'dark');
+  }, []);
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    localStorage.setItem('theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  };
+
   // ─── Sidebar collapse ───────────────────────────────────────
-  const sidebarCollapsed = phase !== 'idle' && !sidebarManualExpand;
+  const { collapsed: ctxCollapsed, setCollapsed: ctxSetCollapsed } = useSidebar();
+  // In idle phase the sidebar is uncontrolled (uses context, so chevron works).
+  // In active phases it auto-collapses unless manually expanded.
+  const sidebarCollapsed = phase !== 'idle' ? !sidebarManualExpand : ctxCollapsed;
 
   // ─── Set first campaign as active when campaigns load ───────
   useEffect(() => {
@@ -273,10 +291,17 @@ export function GenerateAdsPage() {
   // ─── Render ─────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={(val) => setSidebarManualExpand(!val)}
+        {...(phase !== 'idle'
+          ? {
+              collapsed: sidebarCollapsed,
+              onCollapsedChange: (val) => setSidebarManualExpand(!val),
+            }
+          : {
+              collapsed: ctxCollapsed,
+              onCollapsedChange: (val) => ctxSetCollapsed(val),
+            })}
       />
 
       <div
@@ -308,6 +333,8 @@ export function GenerateAdsPage() {
           variantCount={previewVariants.length}
           className={phase === 'idle' ? 'flex-1' : 'flex-shrink-0'}
           style={phase !== 'idle' ? { width: chatPanelWidth } : undefined}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Resize Handle */}
@@ -319,12 +346,12 @@ export function GenerateAdsPage() {
             <div
               onMouseDown={handleDragStart}
               className={`absolute inset-0 flex items-center justify-center cursor-col-resize transition-colors ${
-                isDragging ? 'bg-blue-500/20' : 'hover:bg-slate-300/40'
+                isDragging ? 'bg-blue-500/20' : 'hover:bg-border/40'
               }`}
             >
               <div
                 className={`w-1 h-8 rounded-full transition-colors ${
-                  isDragging ? 'bg-blue-500' : 'bg-slate-300 group-hover/handle:bg-slate-400'
+                  isDragging ? 'bg-blue-500' : 'bg-border group-hover/handle:bg-muted-foreground'
                 }`}
               />
             </div>

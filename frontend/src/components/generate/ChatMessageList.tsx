@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { SparklesIcon } from 'lucide-react';
 import { PlanCard } from './PlanCard';
 import type { ChatMessage } from '../../types';
 
@@ -24,7 +23,6 @@ export function ChatMessageList({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  /** Check if a plan has a subsequent plan_response (means it was approved or declined). */
   const isPlanResolved = (planMsg: ChatMessage): boolean => {
     const planIdx = messages.indexOf(planMsg);
     return messages.slice(planIdx + 1).some(
@@ -39,8 +37,8 @@ export function ChatMessageList({
         if (msg.message_type === 'plan' && msg.role === 'assistant') {
           return (
             <div key={msg.id} className="flex gap-2.5">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                <SparklesIcon className="w-3.5 h-3.5" />
+              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold bg-blue-600 text-white">
+                A
               </div>
               <PlanCard
                 content={msg.content}
@@ -61,20 +59,16 @@ export function ChatMessageList({
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium ${
                 msg.role === 'assistant'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
-                  : 'bg-slate-200 text-slate-600'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-muted text-muted-foreground'
               }`}
             >
-              {msg.role === 'assistant' ? (
-                <SparklesIcon className="w-3.5 h-3.5" />
-              ) : (
-                userName.charAt(0)
-              )}
+              {msg.role === 'assistant' ? 'A' : userName.charAt(0)}
             </div>
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === 'assistant'
-                  ? 'bg-slate-50 border border-slate-100 text-slate-700'
+                  ? 'bg-muted border border-border text-foreground'
                   : 'bg-blue-600 text-white'
               }`}
             >
@@ -85,13 +79,13 @@ export function ChatMessageList({
       })}
       {isGenerating && (
         <div className="flex gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-            <SparklesIcon className="w-3.5 h-3.5 text-white" />
+          <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-white">
+            A
           </div>
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot" />
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot" style={{ animationDelay: '0.2s' }} />
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot" style={{ animationDelay: '0.4s' }} />
+          <div className="bg-muted border border-border rounded-2xl px-4 py-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full typing-dot" />
+            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full typing-dot" style={{ animationDelay: '0.2s' }} />
+            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full typing-dot" style={{ animationDelay: '0.4s' }} />
           </div>
         </div>
       )}

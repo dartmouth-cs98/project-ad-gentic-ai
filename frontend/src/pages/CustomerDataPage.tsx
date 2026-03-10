@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -110,6 +111,7 @@ function renderTraits(traits: Record<string, unknown> | null) {
 }
 
 export function CustomerDataPage() {
+  const { collapsed } = useSidebar();
   const { consumers, loading: consumersLoading, error: consumersError, uploadCsv, refetch } = useConsumerContext();
   const { personas, personasLoading } = usePersonasContext();
 
@@ -245,7 +247,7 @@ export function CustomerDataPage() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

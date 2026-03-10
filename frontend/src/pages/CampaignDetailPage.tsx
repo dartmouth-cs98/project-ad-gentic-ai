@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -107,6 +108,7 @@ const personaPerformance: PersonaPerf[] = [
 // ---------- Component ----------
 
 export function CampaignDetailPage() {
+  const { collapsed } = useSidebar();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -169,7 +171,7 @@ export function CampaignDetailPage() {
     return (
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar />
-        <main className="ml-64 flex-1 flex items-center justify-center">
+        <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 flex items-center justify-center`}>
           <div className="flex flex-col items-center text-slate-400">
             <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
             <p className="text-sm">Loading campaign...</p>
@@ -185,7 +187,7 @@ export function CampaignDetailPage() {
     return (
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar />
-        <main className="ml-64 flex-1 flex items-center justify-center">
+        <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 flex items-center justify-center`}>
           <div className="flex flex-col items-center text-center">
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
               <AlertCircleIcon className="w-7 h-7 text-red-500" />
@@ -232,7 +234,7 @@ export function CampaignDetailPage() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
         {/* Header */}
         <div className="mb-8">
           <Link

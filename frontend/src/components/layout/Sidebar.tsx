@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { HealthBadge } from '../ui/HealthBadge';
 import { Link, useLocation } from 'react-router-dom';
 import { useCompany } from '../../contexts/CompanyContext';
+import { useSidebar } from '../../contexts/SidebarContext';
 import { Logo } from '../ui/Logo';
 import {
   LayoutDashboardIcon,
@@ -29,39 +29,32 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: SidebarProps = {}) {
   const location = useLocation();
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const sidebar = useSidebar();
   const { profile } = useCompany();
 
-  const collapsed = controlledCollapsed ?? internalCollapsed;
+  const collapsed = controlledCollapsed ?? sidebar.collapsed;
   const setCollapsed = (value: boolean) => {
     if (controlledCollapsed !== undefined) {
       onCollapsedChange?.(value);
     } else {
-      setInternalCollapsed(value);
+      sidebar.setCollapsed(value);
     }
   };
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-full bg-card border-r border-border flex flex-col transition-all duration-300 ease-out z-50 ${collapsed ? 'w-16' : 'w-64'}`}
+      className={`fixed left-0 top-0 h-full bg-card dark:bg-[#0D1117] border-r border-border flex flex-col transition-all duration-300 ease-out z-50 text-foreground ${collapsed ? 'w-16' : 'w-64'}`}
     >
       {/* Logo / Company */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         {!collapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            <Logo size="sm" showText={false} />
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm truncate text-foreground">
-                  {profile.companyName}
-                </span>
-                {profile.plan !== 'basic' && (
-                  <span className="px-1.5 py-0.5 bg-blue-600 text-[10px] font-bold rounded text-white capitalize">
-                    {profile.plan === 'enterprise' ? 'ENT' : 'PRO'}
-                  </span>
-                )}
-              </div>
-            </div>
+            <Logo size="sm" />
+            {profile.plan !== 'basic' && (
+              <span className="px-1.5 py-0.5 bg-blue-600 text-[10px] font-bold rounded text-white capitalize flex-shrink-0">
+                {profile.plan === 'enterprise' ? 'ENT' : 'PRO'}
+              </span>
+            )}
           </div>
         )}
         {collapsed && (

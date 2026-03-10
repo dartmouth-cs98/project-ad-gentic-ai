@@ -64,11 +64,11 @@ html, body, #root {
 }
 /* Dark mode theme variable overrides */
 .dark {
-  --background: #0A0E14;
+  --background: #0F1520;
   --foreground: #E6E9EF;
-  --card: #0F1419;
+  --card: #111720;
   --card-foreground: #E6E9EF;
-  --popover: #0F1419;
+  --popover: #111720;
   --popover-foreground: #E6E9EF;
   --primary: #4A9EBD;
   --primary-foreground: #FFFFFF;
@@ -78,7 +78,7 @@ html, body, #root {
   --accent-foreground: #FFFFFF;
   --muted: #1A1F29;
   --muted-foreground: #8B92A8;
-  --border: #1E242E;
+  --border: #252D3A;
   --ring: #4A9EBD;
   --gradient-start: #8b5cf6;
   --gradient-middle: #ec4899;
@@ -204,6 +204,10 @@ html, body, #root {
   background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+.dark .shimmer-bg {
+  background: linear-gradient(90deg, #1A1F29 25%, #252D3A 50%, #1A1F29 75%);
+  background-size: 200% 100%;
 }
 .fade-up { animation: fade-up 0.5s ease-out forwards; opacity: 0; }
 .progress-pulse { animation: progress-pulse 2s ease-in-out infinite; }

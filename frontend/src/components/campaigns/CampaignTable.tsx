@@ -1,10 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
 import { EditIcon, TrashIcon } from 'lucide-react';
 import type { CampaignItem } from './CampaignGridCard';
-import { statusColors } from './CampaignGridCard';
+
+const statusStyles = {
+  active: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  completed: 'bg-muted text-muted-foreground',
+  draft: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  paused: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+} as const;
 
 interface CampaignTableProps {
   campaigns: CampaignItem[];
@@ -14,99 +17,79 @@ interface CampaignTableProps {
   onDeleteClick: (campaignId: string, campaignName: string) => void;
 }
 
-export function CampaignTable({
-  campaigns,
-  selectedCampaigns,
-  onToggleSelection,
-  onToggleSelectAll,
-  onDeleteClick,
-}: CampaignTableProps) {
+export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection, onToggleSelectAll, onDeleteClick }: CampaignTableProps) {
   const navigate = useNavigate();
 
   return (
-    <Card variant="elevated" padding="none" className="overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 border-b border-slate-200">
+        <thead className="border-b border-border">
           <tr>
             <th className="px-4 py-3 w-10">
               <input
                 type="checkbox"
-                checked={
-                  selectedCampaigns.length === campaigns.length &&
-                  campaigns.length > 0
-                }
+                checked={selectedCampaigns.length === campaigns.length && campaigns.length > 0}
                 onChange={onToggleSelectAll}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
             </th>
-            <th className="px-4 py-3 font-semibold text-slate-900">Name</th>
-            <th className="px-4 py-3 font-semibold text-slate-900">Status</th>
-            <th className="px-4 py-3 font-semibold text-slate-900">Product</th>
-            <th className="px-4 py-3 font-semibold text-slate-900">Reach</th>
-            <th className="px-4 py-3 font-semibold text-slate-900">Engagement</th>
-            <th className="px-4 py-3 font-semibold text-slate-900">Date Created</th>
-            <th className="px-4 py-3 font-semibold text-slate-900 text-right">Actions</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Product</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reach</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Engagement</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Created</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-right">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {campaigns.map((campaign) => (
             <tr
               key={campaign.id}
-              className={`hover:bg-slate-50 transition-colors ${
-                selectedCampaigns.includes(campaign.id) ? 'bg-blue-50/50' : ''
-              }`}
+              className={`transition-colors ${selectedCampaigns.includes(campaign.id) ? 'bg-blue-600/5' : 'hover:bg-muted/50'}`}
             >
-              <td className="px-4 py-4">
+              <td className="px-4 py-3">
                 <input
                   type="checkbox"
                   checked={selectedCampaigns.includes(campaign.id)}
                   onChange={() => onToggleSelection(campaign.id)}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
               </td>
-              <td className="px-4 py-4">
-                <Link
-                  to={`/campaign/${campaign.id}`}
-                  className="font-medium text-slate-900 hover:text-blue-600"
-                >
+              <td className="px-4 py-3">
+                <Link to={`/campaign/${campaign.id}`} className="font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                   {campaign.name}
                 </Link>
               </td>
-              <td className="px-4 py-4">
-                <Badge variant={statusColors[campaign.status]}>
+              <td className="px-4 py-3">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyles[campaign.status]}`}>
                   {campaign.status}
-                </Badge>
+                </span>
               </td>
-              <td className="px-4 py-4 text-slate-600">{campaign.product}</td>
-              <td className="px-4 py-4 font-medium text-slate-900">{campaign.reach}</td>
-              <td className="px-4 py-4 font-medium text-slate-900">{campaign.engagement}</td>
-              <td className="px-4 py-4 text-slate-500">{campaign.dateCreated}</td>
-              <td className="px-4 py-4 text-right">
-                <div className="flex items-center justify-end gap-3">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="h-9 px-3"
+              <td className="px-4 py-3 text-muted-foreground">{campaign.product}</td>
+              <td className="px-4 py-3 font-medium">{campaign.reach}</td>
+              <td className="px-4 py-3 font-medium">{campaign.engagement}</td>
+              <td className="px-4 py-3 text-muted-foreground">{campaign.dateCreated}</td>
+              <td className="px-4 py-3 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <button
                     onClick={() => navigate(`/campaign/${campaign.id}`)}
-                    leftIcon={<EditIcon className="w-3.5 h-3.5" />}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                   >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    <EditIcon className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
                     onClick={() => onDeleteClick(campaign.id, campaign.name)}
-                    leftIcon={<TrashIcon className="w-3.5 h-3.5" />}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-red-500/20 rounded-lg hover:bg-red-500/10 transition-colors text-red-500"
                   >
-                    Delete
-                  </Button>
+                    <TrashIcon className="w-3.5 h-3.5" /> Delete
+                  </button>
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </Card>
+    </div>
   );
 }

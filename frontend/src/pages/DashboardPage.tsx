@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
+import { useSidebar } from '../contexts/SidebarContext';
 import {
   SparklesIcon,
   TrendingUpIcon,
@@ -51,6 +52,7 @@ const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-
 const labelClass = 'block text-sm font-medium mb-1.5';
 
 export function DashboardPage() {
+  const { collapsed } = useSidebar();
   const navigate = useNavigate();
   const authFlow = localStorage.getItem('adgentic_auth_flow');
   const isReturningUser = authFlow === 'signin';
@@ -115,7 +117,7 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Sidebar />
-      <main className="ml-64 p-8">
+      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 p-8`}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

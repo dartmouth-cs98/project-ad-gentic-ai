@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -18,6 +19,7 @@ import {
 } from
   'lucide-react';
 export function ProfilePage() {
+  const { collapsed } = useSidebar();
   const { profile, updateProfile } = useCompany();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(profile);
@@ -39,7 +41,7 @@ export function ProfilePage() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>

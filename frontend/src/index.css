@@ -10,6 +10,27 @@
 /* DO NOT DELETE THESE TAILWIND IMPORTS, OTHERWISE THE STYLING WILL NOT RENDER AT ALL - DO NOT DELETE THIS COMMENT */
 
 :root {
+  /* === Figma Landing Theme Variables === */
+  --background: #F5F7FA;
+  --foreground: #0F1419;
+  --card: #FFFFFF;
+  --card-foreground: #0F1419;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F1419;
+  --primary: #4A9EBD;
+  --primary-foreground: #FFFFFF;
+  --secondary: #7AB85C;
+  --secondary-foreground: #FFFFFF;
+  --accent: #D97742;
+  --accent-foreground: #FFFFFF;
+  --muted: #E6E9EF;
+  --muted-foreground: #5C6370;
+  --border: #D1D5DB;
+  --ring: #4A9EBD;
+  --gradient-start: #4A9EBD;
+  --gradient-middle: #7AB85C;
+  --gradient-end: #D97742;
+
   /* Primary Colors - Deep Navy */
   --color-navy-900: #0A1628;
   --color-navy-800: #0F2137;
@@ -41,6 +62,29 @@ html, body, #root {
   margin: 0;
   padding: 0;
 }
+/* Dark mode theme variable overrides */
+.dark {
+  --background: #0A0E14;
+  --foreground: #E6E9EF;
+  --card: #0F1419;
+  --card-foreground: #E6E9EF;
+  --popover: #0F1419;
+  --popover-foreground: #E6E9EF;
+  --primary: #4A9EBD;
+  --primary-foreground: #FFFFFF;
+  --secondary: #7AB85C;
+  --secondary-foreground: #0A0E14;
+  --accent: #D97742;
+  --accent-foreground: #FFFFFF;
+  --muted: #1A1F29;
+  --muted-foreground: #8B92A8;
+  --border: #1E242E;
+  --ring: #4A9EBD;
+  --gradient-start: #8b5cf6;
+  --gradient-middle: #ec4899;
+  --gradient-end: #f97316;
+}
+
 /* Custom scrollbar for dark sections */
 .dark-scrollbar::-webkit-scrollbar {
   width: 6px;

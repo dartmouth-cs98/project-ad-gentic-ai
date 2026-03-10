@@ -1,6 +1,14 @@
 import { apiUrl, authHeaders } from './config';
 import type { Consumer, ConsumerUploadResponse } from '../types';
 
+export interface PersonaProcessingSummary {
+    processed: number;
+    failed: number;
+    skipped: number;
+    low_confidence: number;
+    errors: string[];
+}
+
 export type { Consumer, ConsumerUploadResponse };
 
 /**
@@ -40,4 +48,30 @@ export async function uploadConsumersCsv(
     }
 
     return (await res.json()) as ConsumerUploadResponse;
+}
+
+/**
+ * Trigger persona assignment for consumers.
+ * If consumerIds is omitted, the backend will process all unassigned consumers.
+ */
+export async function assignPersonas(
+    consumerIds?: number[],
+): Promise<PersonaProcessingSummary> {
+    const res = await fetch(apiUrl('/consumers/assign-personas'), {
+        method: 'POST',
+        headers: {
+            ...authHeaders(),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            consumer_ids: consumerIds ?? null,
+        }),
+    });
+
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Failed to assign personas.');
+    }
+
+    return (await res.json()) as PersonaProcessingSummary;
 }

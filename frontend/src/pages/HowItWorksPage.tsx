@@ -1,422 +1,282 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import {
-  SparklesIcon,
-  UploadIcon,
-  UsersIcon,
-  WandIcon,
-  BarChart3Icon,
-  TwitterIcon,
-  LinkedinIcon,
-  GithubIcon,
-  ArrowRightIcon } from
-'lucide-react';
+import { Logo } from '../components/ui/Logo';
+import { ArrowRightIcon, Sun, Moon, FileText, Upload } from 'lucide-react';
+
 export function HowItWorksPage() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+      <nav className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <SparklesIcon className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-semibold text-lg text-slate-900">
-                Ad-gentic AI
-              </span>
-            </Link>
-
+            <Link to="/"><Logo size="md" /></Link>
             <div className="hidden md:flex items-center gap-8">
-              <Link
-                to="/features"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                Features
-              </Link>
-              <Link
-                to="/how-it-works"
-                className="text-sm font-medium text-slate-900 transition-colors">
-
-                How It Works
-              </Link>
-              <Link
-                to="/pricing"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                Pricing
-              </Link>
-              <Link
-                to="/team"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                Team
-              </Link>
+              <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</Link>
+              <Link to="/how-it-works" className="text-sm text-foreground font-medium">How It Works</Link>
+              <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/team" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Team</Link>
             </div>
-
             <div className="flex items-center gap-3">
               <Link to="/sign-in">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
+                <button className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">Sign In</button>
               </Link>
               <Link to="/sign-up">
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none shadow-md shadow-orange-500/20">
-
-                  Get Started
-                </Button>
+                <button className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</button>
               </Link>
+              <button onClick={toggleTheme} className="p-2 border border-border rounded-lg hover:bg-muted transition-colors" aria-label="Toggle theme">
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">
-            Four Steps to Ads That Actually Connect
+      {/* Hero */}
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 bg-muted border-b border-border">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-4xl sm:text-5xl font-semibold text-foreground mb-4 tracking-tight">
+            Four steps to ads that connect
           </h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Our streamlined process makes ad creation effortless, from data
-            upload to deployment.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            From raw customer data to live, optimized campaigns — here's exactly how it works.
           </p>
         </div>
       </section>
 
       {/* Steps */}
-      <section className="pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto space-y-12">
-          {/* Step 1 */}
-          <Card
-            variant="elevated"
-            className="overflow-hidden border-l-4 border-l-blue-500">
+      <section className="pb-20 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-5xl mx-auto space-y-12 pt-12">
 
+          {/* Step 1: Upload */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="grid md:grid-cols-2">
               <div className="p-8 md:p-12 flex flex-col justify-center">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-6">
-                  <UploadIcon className="w-6 h-6 text-blue-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                  Step 1: Upload Your Data
-                </h2>
-                <p className="text-slate-600 mb-6">
-                  Simply upload your customer data via CSV or connect directly
-                  to your CRM. We support all major data formats and handle the
-                  cleaning automatically.
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-3">Step 1</p>
+                <h2 className="text-2xl font-semibold text-foreground mb-4">Upload your data</h2>
+                <p className="text-muted-foreground mb-6">
+                  Upload your customer data via CSV or connect your CRM directly.
+                  We handle data cleaning and formatting automatically.
                 </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full w-fit">
-                  <SparklesIcon className="w-3 h-3" />
-                  Average setup time: 4 minutes
-                </div>
+                <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-600/10 dark:bg-blue-400/10 border border-blue-600/20 dark:border-blue-400/20 rounded-full px-3 py-1 w-fit">Average setup time: 4 minutes</span>
               </div>
-              <div className="bg-blue-50 p-8 md:p-12 flex items-center justify-center">
-                <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm border border-blue-100 border-dashed border-2">
-                  <div className="flex flex-col items-center text-center py-8">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                      <UploadIcon className="w-8 h-8 text-blue-400" />
+              <div className="bg-muted p-8 md:p-12 flex items-center justify-center border-t md:border-t-0 md:border-l border-border">
+                <div className="w-full max-w-sm">
+                  {/* Drop zone */}
+                  <div className="bg-card rounded-xl border-2 border-dashed border-border p-6 flex flex-col items-center text-center mb-4">
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                      <Upload className="w-5 h-5 text-muted-foreground" />
                     </div>
-                    <p className="font-medium text-slate-900">
-                      Drag & drop files here
-                    </p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      CSV, JSON, or Excel
-                    </p>
+                    <p className="text-sm font-medium text-foreground mb-1">Drag & drop files here</p>
+                    <p className="text-xs text-muted-foreground">CSV, JSON, or Excel</p>
+                  </div>
+                  {/* File list */}
+                  <div className="space-y-2">
+                    {[
+                      { name: 'customers_q4.csv', size: '2.4 MB', done: true },
+                      { name: 'purchase_history.csv', size: '5.1 MB', done: true },
+                      { name: 'email_list.xlsx', size: '890 KB', done: false },
+                    ].map(({ name, size, done }, i) => (
+                      <div key={i} className="flex items-center justify-between bg-card border border-border rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs text-foreground font-medium truncate max-w-[140px]">{name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{size}</span>
+                          <div className={`w-2 h-2 rounded-full ${done ? 'bg-blue-600' : 'bg-muted-foreground/40 animate-pulse'}`} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
-          {/* Step 2 */}
-          <Card
-            variant="elevated"
-            className="overflow-hidden border-l-4 border-l-purple-500">
-
+          {/* Step 2: AI Builds Segments */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="grid md:grid-cols-2">
               <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-1">
-                <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-6">
-                  <UsersIcon className="w-6 h-6 text-purple-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                  Step 2: AI Builds Personas
-                </h2>
-                <p className="text-slate-600 mb-6">
-                  Our AI analyzes your data to identify distinct audience
-                  segments and builds detailed psychological profiles for each
-                  one.
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-3">Step 2</p>
+                <h2 className="text-2xl font-semibold text-foreground mb-4">AI builds your audience segments</h2>
+                <p className="text-muted-foreground mb-6">
+                  The AI analyzes your data and groups customers into distinct segments based on
+                  real buying behavior — each one gets its own tailored ad angle.
                 </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-700 text-sm font-medium rounded-full w-fit">
-                  <SparklesIcon className="w-3 h-3" />
-                  Analyzed 2.4M+ ad interactions
-                </div>
+                <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-600/10 dark:bg-blue-400/10 border border-blue-600/20 dark:border-blue-400/20 rounded-full px-3 py-1 w-fit">Trained on 2.4M+ ad interactions</span>
               </div>
-              <div className="bg-purple-50 p-8 md:p-12 flex items-center justify-center order-1 md:order-2">
-                <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-                  <div className="bg-white p-4 rounded-lg shadow-sm animate-pulse">
-                    <div className="h-20 bg-purple-100 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg shadow-md transform scale-105 border border-purple-200">
-                    <div className="h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-800 rounded w-3/4 mb-1"></div>
-                    <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg shadow-sm animate-pulse">
-                    <div className="h-20 bg-purple-100 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg shadow-sm animate-pulse">
-                    <div className="h-20 bg-purple-100 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                  </div>
+              <div className="bg-muted p-8 md:p-12 flex items-center justify-center order-1 md:order-2 border-b md:border-b-0 md:border-l border-border">
+                <div className="w-full max-w-sm space-y-3">
+                  {[
+                    { initial: 'D', label: 'Deal Seekers', trait: 'Driven by discounts & urgency', pct: 34 },
+                    { initial: 'L', label: 'Brand Loyalists', trait: 'Value trust & consistency', pct: 28 },
+                    { initial: 'R', label: 'Researchers', trait: 'Need data & comparisons', pct: 22 },
+                    { initial: 'C', label: 'Casual Browsers', trait: 'Need discovery & inspiration', pct: 16 },
+                  ].map(({ initial, label, trait, pct }, i) => (
+                    <div key={i} className="bg-card border border-border rounded-lg px-4 py-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-xs font-semibold text-foreground">
+                            {initial}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{label}</p>
+                            <p className="text-xs text-muted-foreground">{trait}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-semibold text-blue-600">{pct}%</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-1">
+                        <div className="bg-blue-600 h-1 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
-          {/* Step 3 */}
-          <Card
-            variant="elevated"
-            className="overflow-hidden border-l-4 border-l-pink-500">
-
+          {/* Step 3: Generate & Iterate */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="grid md:grid-cols-2">
               <div className="p-8 md:p-12 flex flex-col justify-center">
-                <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-6">
-                  <WandIcon className="w-6 h-6 text-pink-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                  Step 3: Generate & Iterate
-                </h2>
-                <p className="text-slate-600 mb-6">
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-3">Step 3</p>
+                <h2 className="text-2xl font-semibold text-foreground mb-4">Generate & iterate</h2>
+                <p className="text-muted-foreground mb-6">
                   Chat with the AI to refine your ads. Request changes to tone,
                   imagery, or copy and see updates instantly.
                 </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-pink-50 text-pink-700 text-sm font-medium rounded-full w-fit">
-                  <SparklesIcon className="w-3 h-3" />
-                  Average: 3 iterations to perfection
-                </div>
+                <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-600/10 dark:bg-blue-400/10 border border-blue-600/20 dark:border-blue-400/20 rounded-full px-3 py-1 w-fit">Average: 3 iterations to final draft</span>
               </div>
-              <div className="bg-pink-50 p-8 md:p-12 flex items-center justify-center">
-                <div className="bg-white rounded-xl shadow-lg p-4 w-full max-w-sm border border-pink-100">
+              <div className="bg-muted p-8 md:p-12 flex items-center justify-center border-t md:border-t-0 md:border-l border-border">
+                <div className="bg-card rounded-xl p-4 w-full max-w-sm border border-border">
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-border">
+                    <span className="text-xs font-medium text-foreground">Ad Chat</span>
+                    <span className="text-xs text-muted-foreground">Deal Seekers · Draft 3</span>
+                  </div>
                   <div className="space-y-3">
                     <div className="flex justify-end">
-                      <div className="bg-pink-500 text-white px-3 py-2 rounded-lg rounded-tr-none text-xs max-w-[80%]">
-                        Make it more energetic!
+                      <div className="bg-blue-600 text-white px-3 py-2 rounded-lg rounded-tr-none text-xs max-w-[80%]">
+                        Make it more urgent — limited time offer
                       </div>
                     </div>
                     <div className="flex justify-start">
-                      <div className="bg-slate-100 text-slate-800 px-3 py-2 rounded-lg rounded-tl-none text-xs max-w-[80%]">
-                        Sure! Here's a high-energy version for the Impulse Buyer
-                        persona.
+                      <div className="bg-muted text-foreground px-3 py-2 rounded-lg rounded-tl-none text-xs max-w-[80%]">
+                        Updated! Added countdown language and "only 12 left" scarcity hook.
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 mt-2">
-                      <div className="h-24 bg-gradient-to-r from-orange-400 to-red-400 rounded mb-2"></div>
-                      <div className="h-3 bg-slate-200 rounded w-full"></div>
+                    <div className="bg-muted border border-border rounded-lg p-3">
+                      <p className="text-xs font-semibold text-foreground mb-1">⚡ Last chance — 48hrs only</p>
+                      <p className="text-xs text-muted-foreground mb-2">Get 30% off before it's gone. Only 12 spots left.</p>
+                      <div className="h-2 bg-blue-600/20 rounded-full">
+                        <div className="h-2 bg-blue-600 rounded-full w-3/4" />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Quality score: 9.4 / 10</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
-          {/* Step 4 */}
-          <Card
-            variant="elevated"
-            className="overflow-hidden border-l-4 border-l-emerald-500">
-
+          {/* Step 4: Deploy & Measure */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="grid md:grid-cols-2">
               <div className="p-8 md:p-12 flex flex-col justify-center order-2 md:order-1">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mb-6">
-                  <BarChart3Icon className="w-6 h-6 text-emerald-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                  Step 4: Deploy & Measure
-                </h2>
-                <p className="text-slate-600 mb-6">
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-3">Step 4</p>
+                <h2 className="text-2xl font-semibold text-foreground mb-4">Deploy & measure</h2>
+                <p className="text-muted-foreground mb-6">
                   Launch campaigns across all platforms with one click. Track
                   performance in real-time from a single dashboard.
                 </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-full w-fit">
-                  <SparklesIcon className="w-3 h-3" />
-                  Real-time results in under 60 seconds
-                </div>
+                <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-600/10 dark:bg-blue-400/10 border border-blue-600/20 dark:border-blue-400/20 rounded-full px-3 py-1 w-fit">Results visible in under 60 seconds</span>
               </div>
-              <div className="bg-emerald-50 p-8 md:p-12 flex items-center justify-center order-1 md:order-2">
-                <div className="bg-white rounded-xl shadow-lg p-4 w-full max-w-sm border border-emerald-100">
-                  <div className="flex items-end gap-2 h-32 pb-2 border-b border-slate-100">
-                    <div className="w-1/5 bg-emerald-200 h-[40%] rounded-t"></div>
-                    <div className="w-1/5 bg-emerald-300 h-[60%] rounded-t"></div>
-                    <div className="w-1/5 bg-emerald-400 h-[50%] rounded-t"></div>
-                    <div className="w-1/5 bg-emerald-500 h-[80%] rounded-t"></div>
-                    <div className="w-1/5 bg-emerald-600 h-[90%] rounded-t"></div>
+              <div className="bg-muted p-8 md:p-12 flex items-center justify-center order-1 md:order-2 border-b md:border-b-0 md:border-l border-border">
+                <div className="bg-card rounded-xl p-5 w-full max-w-sm border border-border">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-medium text-foreground">Campaign Performance</span>
+                    <span className="text-xs text-blue-600 font-semibold">+124% CTR</span>
                   </div>
-                  <div className="flex justify-between mt-2">
-                    <div className="text-xs text-slate-500">CTR</div>
-                    <div className="text-xs font-bold text-emerald-600">
-                      +124%
-                    </div>
+                  {/* Bar chart */}
+                  <div className="flex items-end gap-1.5 h-28 mb-2">
+                    {[22, 35, 28, 45, 38, 55, 42, 62, 58, 75, 68, 90].map((h, i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-t ${i >= 8 ? 'bg-blue-600' : 'bg-muted-foreground/25'}`}
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
+                  {/* X-axis labels */}
+                  <div className="flex justify-between text-[10px] text-muted-foreground border-t border-border pt-2 mb-4">
+                    {['Jan', 'Feb', 'Mar', 'Apr'].map(m => (
+                      <span key={m}>{m}</span>
+                    ))}
+                  </div>
+                  {/* Metrics row */}
+                  <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
+                    {[
+                      { label: 'CTR', value: '4.8%', up: true },
+                      { label: 'Conversions', value: '1,240', up: true },
+                      { label: 'CPC', value: '$0.42', up: false },
+                    ].map(({ label, value, up }) => (
+                      <div key={label} className="text-center">
+                        <p className={`text-xs font-semibold ${up ? 'text-blue-600' : 'text-foreground'}`}>{value}</p>
+                        <p className="text-[10px] text-muted-foreground">{label}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
+
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">
-            Ready to get started?
-          </h2>
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted text-center border-t border-border">
+        <div className="max-w-xl mx-auto">
+          <h2 className="text-3xl font-semibold text-foreground mb-4">Ready to get started?</h2>
+          <p className="text-muted-foreground mb-8">Launch your first campaign in minutes.</p>
           <Link to="/sign-up">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none shadow-lg shadow-orange-500/25"
-              rightIcon={<ArrowRightIcon className="w-4 h-4" />}>
-
+            <button className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
               Start your first campaign
-            </Button>
+              <ArrowRightIcon className="w-4 h-4" />
+            </button>
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0A1628] text-white py-16 px-4 sm:px-6 lg:px-8 border-t border-white/10">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <SparklesIcon className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-semibold text-lg">Ad-gentic AI</span>
-              </div>
-              <p className="text-white/60 text-sm">
-                Making advertising better for everyone through AI-powered
-                psychological profiling.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <Link
-                    to="/features"
-                    className="hover:text-white transition-colors">
-
-                    Features
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/pricing"
-                    className="hover:text-white transition-colors">
-
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Integrations
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    API
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <Link
-                    to="/team"
-                    className="hover:text-white transition-colors">
-
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Careers
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    to="/team#contact"
-                    className="hover:text-white transition-colors">
-
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Cookie Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
+      <footer className="py-10 px-6 border-t border-border">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <Logo size="sm" />
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            {['Privacy', 'Terms', 'Contact', 'Careers'].map((label) => (
+              <a key={label} href="#" className="hover:text-foreground transition-colors">{label}</a>
+            ))}
           </div>
-
-          <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-white/40">
-              © 2026 Ad-gentic AI. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4">
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <TwitterIcon className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <LinkedinIcon className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <GithubIcon className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">© 2026 Ad-gentic. All rights reserved.</p>
         </div>
       </footer>
-    </div>);
-
+    </div>
+  );
 }

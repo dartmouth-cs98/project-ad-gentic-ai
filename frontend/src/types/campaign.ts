@@ -43,4 +43,5 @@ export interface UpdateCampaignPayload {
     target_audience?: string | null;
     product_context?: string | null;
     product_ids?: string | null;
+    brief?: string | null;
 }

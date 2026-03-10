@@ -1,499 +1,281 @@
-import { Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import {
-  SparklesIcon,
-  BrainIcon,
-  Share2Icon,
-  ShieldCheckIcon,
-  TwitterIcon,
-  LinkedinIcon,
-  GithubIcon,
-  CheckIcon
-} from 'lucide-react';
+import { Logo } from '../components/ui/Logo';
+import { Sun, Moon, CheckIcon } from 'lucide-react';
+
 export function FeaturesPage() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+      <nav className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <SparklesIcon className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-semibold text-lg text-slate-900">
-                Ad-gentic AI
-              </span>
-            </Link>
+            <Link to="/"><Logo size="md" /></Link>
 
             <div className="hidden md:flex items-center gap-8">
-              <Link
-                to="/features"
-                className="text-sm font-medium text-slate-900 transition-colors">
-
-                Features
-              </Link>
-              <Link
-                to="/how-it-works"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                How It Works
-              </Link>
-              <Link
-                to="/pricing"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                Pricing
-              </Link>
-              <Link
-                to="/team"
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-
-                Team
-              </Link>
+              <Link to="/features" className="text-sm text-foreground font-medium">Features</Link>
+              <Link to="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
+              <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/team" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Team</Link>
             </div>
 
             <div className="flex items-center gap-3">
               <Link to="/sign-in">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
+                <button className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">Sign In</button>
               </Link>
               <Link to="/sign-up">
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none shadow-md shadow-orange-500/20">
-
-                  Get Started
-                </Button>
+                <button className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</button>
               </Link>
+              <button
+                onClick={toggleTheme}
+                className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">
-            Features
+      {/* Hero */}
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 bg-muted border-b border-border">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-4xl sm:text-5xl font-semibold mb-4 tracking-tight">
+            What Ad-gentic does
           </h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Everything you need to create ads that resonate with real humans.
+          <p className="text-lg text-muted-foreground">
+            From customer data to live campaigns — here's how the platform works.
           </p>
         </div>
       </section>
 
-      {/* Feature 1: AI Psychological Profiling */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
+      {/* Feature 1: Audience Segmentation */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-background border-b border-border">
+        <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-6">
-                <BrainIcon className="w-6 h-6 text-blue-600" />
-              </div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">
-                AI Psychological Profiling
+              <h2 className="text-3xl font-semibold text-foreground mb-4">
+                Audience segmentation, automatically
               </h2>
-              <p className="text-lg text-slate-600 mb-8">
-                Our AI goes beyond basic demographics. It analyzes millions of
-                data points to build comprehensive psychological profiles of
-                your target audience, understanding their motivations, fears,
-                and desires.
+              <p className="text-lg text-muted-foreground mb-8">
+                Upload your customer data and Ad-gentic figures out who your buyers actually are.
+                It groups them into distinct segments based on real behavior — so your ads speak
+                directly to each type of customer.
               </p>
               <ul className="space-y-4">
                 {[
-                  '10+ distinct persona types including The Skeptic, The Impulse Buyer, and The Researcher',
-                  'Real-time adaptation based on current market trends and sentiment',
-                  'Cultural context awareness for global campaigns',
-                  'Emotional trigger mapping for higher conversion rates'].
-                  map((item, i) =>
-                    <li key={i} className="flex items-start gap-3">
-                      <CheckIcon className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-700">{item}</span>
-                    </li>
-                  )}
+                  'Identifies 10+ customer segments from your data, like deal-seekers, brand loyalists, and first-time buyers',
+                  'Updates segments in real-time as new data comes in',
+                  'Works across industries and audience sizes',
+                  'Each segment gets its own tailored ad angle',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-foreground">{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-3xl transform rotate-3" />
-              <Card
-                variant="elevated"
-                className="relative bg-white p-8 transform -rotate-2 transition-transform hover:rotate-0 duration-500">
-
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <p className="text-xs text-muted-foreground mb-4 font-medium uppercase tracking-wide">Detected segments</p>
+              <div className="space-y-3">
+                {[
+                  { label: 'Deal Seekers', sub: 'Respond to discounts & urgency', match: '98%' },
+                  { label: 'Brand Loyalists', sub: 'Value trust & reputation', match: '85%' },
+                  { label: 'Researchers', sub: 'Need details & comparisons', match: '92%' },
+                ].map(({ label, sub, match }, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-muted rounded-lg border border-border">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold">
-                        S
+                      <div className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center text-foreground font-semibold text-sm">
+                        {label[0]}
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900">
-                          The Skeptic
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Needs data & proof
-                        </p>
+                        <p className="font-medium text-foreground text-sm">{label}</p>
+                        <p className="text-xs text-muted-foreground">{sub}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-teal-600">
-                        98% Match
-                      </p>
-                    </div>
+                    <span className="text-sm font-semibold text-blue-600">{match}</span>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
-                        I
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">
-                          The Impulse Buyer
-                        </p>
-                        <p className="text-xs text-slate-500">Needs urgency</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-orange-600">
-                        85% Match
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                        R
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">
-                          The Researcher
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Needs comparison
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-blue-600">
-                        92% Match
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Feature 2: Multi-Platform Deployment */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
-        <div className="max-w-7xl mx-auto">
+      {/* Feature 2: Publish Everywhere */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted border-b border-border">
+        <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="order-2 lg:order-1 relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-3xl transform -rotate-3" />
-              <Card
-                variant="elevated"
-                className="relative bg-white p-12 flex items-center justify-center min-h-[400px]">
-
-                <div className="relative w-full h-full flex items-center justify-center">
-                  {/* Central Hub */}
-                  <div className="w-24 h-24 bg-slate-900 rounded-2xl flex items-center justify-center z-10 shadow-xl">
-                    <SparklesIcon className="w-10 h-10 text-white" />
-                  </div>
-
-                  {/* Connected Platforms */}
+            <div className="order-2 lg:order-1">
+              <div className="bg-muted border border-border rounded-xl p-6">
+                <p className="text-xs text-muted-foreground mb-4 font-medium uppercase tracking-wide">Your ad, formatted for every platform</p>
+                <div className="space-y-2">
                   {[
-                    {
-                      icon: 'M',
-                      color: 'bg-blue-600',
-                      pos: 'top-0 left-1/2 -translate-x-1/2 -translate-y-16'
-                    },
-                    {
-                      icon: 'Tk',
-                      color: 'bg-black',
-                      pos: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-16'
-                    },
-                    {
-                      icon: 'G',
-                      color: 'bg-green-500',
-                      pos: 'top-1/2 right-0 translate-x-16 -translate-y-1/2'
-                    },
-                    {
-                      icon: 'Y',
-                      color: 'bg-red-600',
-                      pos: 'top-1/2 left-0 -translate-x-16 -translate-y-1/2'
-                    }].
-                    map((p, i) =>
-                      <Fragment key={i}>
-                        <div
-                          className={`absolute ${p.pos} w-16 h-16 rounded-xl ${p.color} flex items-center justify-center text-white font-bold shadow-lg z-10`}>
-
-                          {p.icon}
-                        </div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div
-                            className={`w-32 h-0.5 bg-slate-200 absolute ${i === 0 ? 'rotate-90 -translate-y-12' : i === 1 ? 'rotate-90 translate-y-12' : i === 2 ? 'translate-x-12' : '-translate-x-12'}`} />
-
-                        </div>
-                      </Fragment>
-                    )}
+                    { name: 'Meta & Instagram', formats: '1:1 · 9:16 · 16:9' },
+                    { name: 'TikTok', formats: '9:16 vertical' },
+                    { name: 'Google', formats: '16:9 · banner · responsive' },
+                    { name: 'YouTube', formats: '16:9 · bumper · skippable' },
+                  ].map(({ name, formats }, i) => (
+                    <div key={i} className="flex items-center justify-between px-4 py-3 bg-background rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-600" />
+                        <span className="text-sm font-medium text-foreground">{name}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-mono">{formats}</span>
+                    </div>
+                  ))}
                 </div>
-              </Card>
+                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                  <span>1 ad created</span>
+                  <span className="text-blue-600 font-medium">→ 4 platforms, auto-formatted</span>
+                </div>
+              </div>
             </div>
             <div className="order-1 lg:order-2">
-              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-6">
-                <Share2Icon className="w-6 h-6 text-purple-600" />
-              </div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">
-                Multi-Platform Deployment
+              <h2 className="text-3xl font-semibold text-foreground mb-4">
+                Publish to every platform at once
               </h2>
-              <p className="text-lg text-slate-600 mb-8">
-                Stop manually resizing and reformatting ads. Create once and
-                deploy everywhere with a single click. Our system automatically
-                adjusts creative assets to match the best practices of each
-                platform.
+              <p className="text-lg text-muted-foreground mb-8">
+                Create your ad once and let Ad-gentic handle the rest. It automatically formats
+                and sizes your creative for each platform — no manual resizing, no copy-pasting.
               </p>
               <ul className="space-y-4">
                 {[
                   'One-click publishing to Meta, TikTok, Instagram, YouTube, and Google',
-                  'Automatic aspect ratio adjustment (9:16, 1:1, 16:9)',
-                  'Platform-specific caption and hashtag generation',
-                  'Unified analytics dashboard for all channels'].
-                  map((item, i) =>
-                    <li key={i} className="flex items-start gap-3">
-                      <CheckIcon className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-700">{item}</span>
-                    </li>
-                  )}
+                  'Auto-resizes to the right format for each platform (9:16, 1:1, 16:9)',
+                  'Generates platform-native captions and hashtags',
+                  'All your channel performance in one dashboard',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-foreground">{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Feature 3: Human-Verified Creative */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
+      {/* Feature 3: Review & Approve */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-background border-b border-border">
+        <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mb-6">
-                <ShieldCheckIcon className="w-6 h-6 text-emerald-600" />
-              </div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">
-                Human-Verified Creative
+              <h2 className="text-3xl font-semibold text-foreground mb-4">
+                You stay in control
               </h2>
-              <p className="text-lg text-slate-600 mb-8">
-                AI is powerful, but human intuition is irreplaceable. That's why
-                every ad generated by Ad-gentic passes through a human review
-                layer to ensure brand safety, tone accuracy, and creative
-                quality.
+              <p className="text-lg text-muted-foreground mb-8">
+                The AI does the heavy lifting, but nothing goes live without your sign-off.
+                Every ad goes through a review step so your brand always looks the way you want it to.
               </p>
               <ul className="space-y-4">
                 {[
-                  'Expert human review for every campaign',
-                  'Brand safety and compliance checks',
-                  'Tone and voice consistency verification',
-                  'Quality scoring before any ad goes live'].
-                  map((item, i) =>
-                    <li key={i} className="flex items-start gap-3">
-                      <CheckIcon className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-700">{item}</span>
-                    </li>
-                  )}
+                  'Review every ad before it publishes',
+                  'Flag anything that doesn\'t fit your brand voice',
+                  'Built-in quality scoring to surface the best variations first',
+                  'Full edit access before and after approval',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-foreground">{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 rounded-3xl transform rotate-3" />
-              <Card variant="elevated" className="relative bg-white p-8">
-                <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-sm font-medium text-slate-600">
-                        Review in progress
-                      </span>
-                    </div>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">
-                      Quality Score: 9.8/10
-                    </span>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <div className="bg-muted rounded-xl p-6 border border-border">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                    <span className="text-sm text-muted-foreground">Awaiting review</span>
                   </div>
-                  <div className="aspect-video bg-slate-200 rounded-lg mb-6 relative overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                      Ad Preview
+                  <span className="px-2 py-1 bg-card border border-border text-foreground text-xs font-semibold rounded">
+                    Score: 9.8 / 10
+                  </span>
+                </div>
+                {/* Social ad mockup */}
+                <div className="rounded-lg mb-5 overflow-hidden border border-border bg-card text-xs">
+                  {/* Brand bar */}
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+                    <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-[9px]">A</div>
+                    <div>
+                      <div className="font-semibold text-foreground text-[10px] leading-none">Ad-gentic</div>
+                      <div className="text-[9px] text-muted-foreground">Sponsored</div>
                     </div>
                   </div>
-                  <div className="flex gap-4">
-                    <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white border-none">
-                      Approve
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="flex-1 text-red-500 hover:text-red-600 border-red-200 hover:bg-red-50">
-
-                      Reject
-                    </Button>
+                  {/* Image area */}
+                  <div className="h-28 bg-muted flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-blue-900/30" />
+                    <div className="relative w-10 h-10 rounded-full bg-white/20 border border-white/30 backdrop-blur-sm flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="2 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  {/* Copy */}
+                  <div className="px-3 py-2.5">
+                    <div className="font-semibold text-foreground mb-0.5">⚡ Last chance — 48hrs only</div>
+                    <div className="text-muted-foreground text-[10px] mb-2">Get 30% off before it's gone. Only 12 spots left.</div>
+                    <button className="w-full py-1.5 bg-blue-600 text-white rounded text-[10px] font-semibold">Shop Now</button>
                   </div>
                 </div>
-              </Card>
+                <div className="flex gap-3">
+                  <button className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    Approve
+                  </button>
+                  <button className="flex-1 py-2.5 border border-border rounded-lg text-sm hover:bg-background transition-colors">
+                    Request changes
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0A1628] text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Ready to see it in action?
-          </h2>
-          <p className="text-lg text-white/60 mb-8">
-            Join 500+ brands using Ad-gentic AI to transform their advertising.
-          </p>
+      {/* CTA */}
+      <section className="py-24 px-6 text-center bg-muted">
+        <div className="max-w-xl mx-auto">
+          <h2 className="text-3xl font-semibold mb-4">Ready to see it in action?</h2>
+          <p className="text-muted-foreground mb-8">Join 500+ brands using Ad-gentic to run smarter campaigns.</p>
           <Link to="/sign-up">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none shadow-lg shadow-orange-500/25">
-
-              Start Your Growth Engine
-            </Button>
+            <button className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+              Get started free
+            </button>
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0A1628] text-white py-16 px-4 sm:px-6 lg:px-8 border-t border-white/10">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <SparklesIcon className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-semibold text-lg">Ad-gentic AI</span>
-              </div>
-              <p className="text-white/60 text-sm">
-                Making advertising better for everyone through AI-powered
-                psychological profiling.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <Link
-                    to="/features"
-                    className="hover:text-white transition-colors">
-
-                    Features
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/pricing"
-                    className="hover:text-white transition-colors">
-
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Integrations
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    API
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <Link
-                    to="/team"
-                    className="hover:text-white transition-colors">
-
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Careers
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    to="/team#contact"
-                    className="hover:text-white transition-colors">
-
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Cookie Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
+      <footer className="py-10 px-6 border-t border-border">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <Logo size="sm" />
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            {['Privacy', 'Terms', 'Contact', 'Careers'].map((label) => (
+              <a key={label} href="#" className="hover:text-foreground transition-colors">{label}</a>
+            ))}
           </div>
-
-          <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-white/40">
-              © 2026 Ad-gentic AI. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4">
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <TwitterIcon className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <LinkedinIcon className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-white/40 hover:text-white transition-colors">
-
-                <GithubIcon className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">© 2026 Ad-gentic. All rights reserved.</p>
         </div>
       </footer>
-    </div>);
-
+    </div>
+  );
 }

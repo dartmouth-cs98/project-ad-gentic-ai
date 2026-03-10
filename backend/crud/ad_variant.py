@@ -17,6 +17,7 @@ def get_ad_variants(
     campaign_id: Optional[int] = None,
     version_number: Optional[int] = None,
     status: Optional[str] = None,
+    is_preview: Optional[bool] = None,
 ) -> list[AdVariant]:
     """Return a list of ad variants with optional filters."""
     query = select(AdVariant)
@@ -26,6 +27,8 @@ def get_ad_variants(
         query = query.where(AdVariant.version_number == version_number)
     if status is not None:
         query = query.where(AdVariant.status == status)
+    if is_preview is not None:
+        query = query.where(AdVariant.is_preview == is_preview)
     query = query.order_by(AdVariant.id).offset(skip).limit(limit)
     return list(db.scalars(query).all())
 

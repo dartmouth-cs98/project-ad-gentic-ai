@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchConsumers, uploadConsumersCsv } from '../api/consumers';
+import { fetchConsumers, uploadConsumersCsv, assignPersonas } from '../api/consumers';
 import type { Consumer, ConsumerUploadResponse } from '../types';
+import type { PersonaProcessingSummary } from '../api/consumers';
 
 export const CONSUMERS_KEY = ['consumers'] as const;
 
@@ -27,6 +28,20 @@ export function useUploadConsumersCsv() {
     const queryClient = useQueryClient();
     return useMutation<ConsumerUploadResponse, Error, File>({
         mutationFn: (file: File) => uploadConsumersCsv(file),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: CONSUMERS_KEY });
+        },
+    });
+}
+
+/**
+ * Run persona assignment for consumers.
+ * If consumerIds is omitted, the backend will assign personas for all unassigned consumers.
+ */
+export function useAssignPersonas() {
+    const queryClient = useQueryClient();
+    return useMutation<PersonaProcessingSummary, Error, number[] | undefined>({
+        mutationFn: (consumerIds) => assignPersonas(consumerIds),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: CONSUMERS_KEY });
         },

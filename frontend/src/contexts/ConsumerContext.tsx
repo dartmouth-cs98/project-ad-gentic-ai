@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useConsumers, useUploadConsumersCsv } from '../hooks/useConsumers';
+import { useAssignPersonas, useConsumers, useUploadConsumersCsv } from '../hooks/useConsumers';
 import type { Consumer, ConsumerUploadResponse } from '../types';
 import type { UseMutationResult } from '@tanstack/react-query';
 
@@ -9,6 +9,11 @@ interface ConsumerContextType {
     error: string | null;
     refetch: () => void;
     uploadCsv: UseMutationResult<ConsumerUploadResponse, Error, File>;
+    assignPersonas: UseMutationResult<
+        import('../api/consumers').PersonaProcessingSummary,
+        Error,
+        number[] | undefined
+    >;
 }
 
 const ConsumerContext = createContext<ConsumerContextType | undefined>(
@@ -18,6 +23,7 @@ const ConsumerContext = createContext<ConsumerContextType | undefined>(
 export function ConsumerProvider({ children }: { children: ReactNode }) {
     const { data: consumers = [], isLoading, error, refetch } = useConsumers(0, 1000);
     const uploadCsv = useUploadConsumersCsv();
+    const assignPersonas = useAssignPersonas();
 
     return (
         <ConsumerContext.Provider
@@ -27,6 +33,7 @@ export function ConsumerProvider({ children }: { children: ReactNode }) {
                 error: error ? (error as Error).message : null,
                 refetch,
                 uploadCsv,
+                assignPersonas,
             }}
         >
             {children}

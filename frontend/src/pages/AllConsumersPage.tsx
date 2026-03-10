@@ -20,12 +20,20 @@ import { usePersonasContext } from '../contexts/PersonasContext';
 import type { Consumer } from '../types';
 
 export function AllConsumersPage() {
-    const { consumers, loading, error, refetch } = useConsumerContext();
+    const { consumers, loading, error, refetch, assignPersonas } = useConsumerContext();
     const { personas } = usePersonasContext();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterPersonaId, setFilterPersonaId] = useState<string | null>(null);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const filterRef = useRef<HTMLDivElement>(null);
+    const [assignSummary, setAssignSummary] = useState<{
+        processed: number;
+        failed: number;
+        skipped: number;
+        low_confidence: number;
+        errors: string[];
+    } | null>(null);
+    const [assignError, setAssignError] = useState<string | null>(null);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -197,8 +205,68 @@ export function AllConsumersPage() {
                             <Button variant="secondary" leftIcon={<DownloadIcon className="w-4 h-4" />}>
                                 Export
                             </Button>
+                            <Button
+                                onClick={() => {
+                                    setAssignError(null);
+                                    setAssignSummary(null);
+                                    assignPersonas.mutate(undefined, {
+                                        onSuccess: (summary) => {
+                                            setAssignSummary(summary);
+                                        },
+                                        onError: (err) => {
+                                            setAssignError(err.message);
+                                        },
+                                    });
+                                }}
+                                disabled={assignPersonas.isPending}
+                            >
+                                {assignPersonas.isPending ? 'Assigning personas…' : 'Assign personas'}
+                            </Button>
                         </div>
                     </div>
+
+                    {assignSummary && (
+                        <Card variant="elevated" padding="sm" className="mb-4 border border-blue-100 bg-blue-50">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-medium text-blue-900">
+                                        Personas assignment completed: processed {assignSummary.processed}, skipped {assignSummary.skipped}, failed {assignSummary.failed}, low confidence {assignSummary.low_confidence}.
+                                    </p>
+                                    {assignSummary.errors.length > 0 && (
+                                        <ul className="mt-1 text-xs text-blue-900 list-disc list-inside space-y-0.5">
+                                            {assignSummary.errors.map((msg, idx) => (
+                                                <li key={idx}>{msg}</li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setAssignSummary(null)}
+                                    className="text-blue-500 hover:text-blue-700 text-xs font-semibold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </Card>
+                    )}
+
+                    {assignError && (
+                        <Card variant="elevated" padding="sm" className="mb-4 border border-red-100 bg-red-50">
+                            <div className="flex items-start justify-between gap-3">
+                                <p className="text-sm font-medium text-red-900">
+                                    Failed to assign personas: {assignError}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setAssignError(null)}
+                                    className="text-red-500 hover:text-red-700 text-xs font-semibold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </Card>
+                    )}
 
                     {/* Search and Filters */}
                     <Card variant="elevated" padding="md" className="mb-6">

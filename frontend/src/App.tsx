@@ -1,4 +1,11 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LandingPage } from './pages/LandingPage';
 import { SignUpPage } from './pages/SignUpPage';
@@ -31,6 +38,7 @@ export function App() {
           <ConsumerProvider>
             <PersonasProvider>
               <HashRouter>
+              <ScrollToTop />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/sign-up" element={<SignUpPage />} />

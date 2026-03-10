@@ -16,6 +16,7 @@ import { CampaignsPage } from './pages/CampaignsPage';
 import { CustomerDataPage } from './pages/CustomerDataPage';
 import { AllConsumersPage } from './pages/AllConsumersPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ProductsPage } from './pages/ProductsPage';
 import { UserProvider } from './contexts/UserContext';
 import { CompanyProvider } from './contexts/CompanyContext';
 import { ConsumerProvider } from './contexts/ConsumerContext';
@@ -38,6 +39,7 @@ export function App() {
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/campaigns" element={<CampaignsPage />} />
+                <Route path="/products" element={<ProductsPage />} />
                 <Route path="/customer-data" element={<CustomerDataPage />} />
                 <Route path="/campaign/:id" element={<CampaignDetailPage />} />
                 <Route path="/generate" element={<GenerateAdsPage />} />

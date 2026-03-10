@@ -3,16 +3,14 @@ import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
 import { Sidebar } from '../components/layout/Sidebar';
 import { ChatPanel, ResultsPanel } from '../components/generate';
-import type { Phase, Version, PersonaGroup } from '../components/generate';
+import type { Phase, Version } from '../components/generate';
 import type { Campaign, ChatMessage } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
-import {
-  personaGroups as mockPersonaGroups,
-  mockVersionHistory,
-} from '../components/generate/mockData';
+import { useGeneratePreview, usePreviewVariants, useUpdateCampaign } from '../hooks/useAdGeneration';
+import { mockVersionHistory } from '../components/generate/mockData';
 
 // ─── Constants ──────────────────────────────────────────────────
 
@@ -27,16 +25,6 @@ const WELCOME_MESSAGE: ChatMessage = {
   timestamp: new Date().toISOString(),
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────
-
-function getSelectedGroupNames(selectedIds: Set<string>, groups: PersonaGroup[]): string[] {
-  const names: string[] = [];
-  for (const g of groups) {
-    if (g.variants.some((v) => selectedIds.has(v.id))) names.push(g.name);
-  }
-  return names;
-}
-
 // ─── Main Component ──────────────────────────────────────────────
 
 export function GenerateAdsPage() {
@@ -47,6 +35,8 @@ export function GenerateAdsPage() {
   // ─── Data hooks ──────────────────────────────────────────────
   const { data: campaigns = [], isLoading: isCampaignsLoading } = useCampaigns(businessClientId);
   const [filterState, filterDispatch] = useFilterState();
+  const generatePreview = useGeneratePreview();
+  const updateCampaign = useUpdateCampaign();
 
   // ─── Core state ──────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('idle');
@@ -57,7 +47,14 @@ export function GenerateAdsPage() {
   // Campaign & version state
   const [activeCampaignId, setActiveCampaignId] = useState<number | undefined>(undefined);
   const [activeVersion, setActiveVersion] = useState<Version>(mockVersionHistory[0]);
-  const [versionCounter, setVersionCounter] = useState(3);
+  const [versionCounter, setVersionCounter] = useState(1);
+
+  // ─── Preview variants (poll while generating) ──────────────
+  const { data: previewVariants = [] } = usePreviewVariants(
+    activeCampaignId,
+    phase === 'generating' || phase === 'results',
+    phase === 'generating' ? 5000 : undefined, // poll every 5s while generating
+  );
 
   // ─── Chat messages (persisted via API) ────────────────────────
   const { data: serverMessages = [] } = useChatMessages(activeCampaignId);
@@ -95,7 +92,6 @@ export function GenerateAdsPage() {
   });
 
   // Variants state
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['young-pros']));
   const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set());
 
   // ─── Resizable panel ────────────────────────────────────────
@@ -127,26 +123,26 @@ export function GenerateAdsPage() {
     return () => clearInterval(interval);
   }, [phase]);
 
-  // ─── Auto-transition from generating to results ─────────────
+  // ─── Auto-transition: generating → results when preview completes ─
   useEffect(() => {
     if (phase !== 'generating') return;
-    const timer = setTimeout(() => {
-      setPhase('results');
-      const newV = versionCounter + 1;
-      setVersionCounter(newV);
-      const newVersion: Version = {
-        id: `v${newV}`,
-        label: `v${newV}`,
-        timestamp: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
-        variantCount: mockPersonaGroups.reduce((s, g) => s + g.variants.length, 0),
-      };
-      setActiveVersion(newVersion);
-      sendAssistantMessage(
-        `Done! I've generated 10 ad variants across 3 persona groups (${newVersion.label}). Use the controls to refine, or tell me what to change.`,
-      );
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [phase, versionCounter, activeCampaignId]);
+    // Transition once we have at least one completed preview variant
+    const completedCount = previewVariants.filter((v) => v.status === 'completed').length;
+    if (completedCount === 0) return;
+
+    setPhase('results');
+    const newVersion: Version = {
+      id: `v${versionCounter}`,
+      label: `v${versionCounter}`,
+      timestamp: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+      variantCount: completedCount,
+    };
+    setActiveVersion(newVersion);
+    setVersionCounter((v) => v + 1);
+    sendAssistantMessage(
+      `Done! I've generated ${completedCount} preview ad variant${completedCount > 1 ? 's' : ''} (${newVersion.label}). Review them on the right, or tell me what to change.`,
+    );
+  }, [phase, previewVariants]);
 
   // ─── Handlers ───────────────────────────────────────────────
 
@@ -172,10 +168,25 @@ export function GenerateAdsPage() {
     });
   };
 
-  const handleApprovePlan = (_planMessage: ChatMessage) => {
+  const handleApprovePlan = (planMessage: ChatMessage) => {
     if (!activeCampaignId) return;
 
-    // Persist a plan_response message indicating approval
+    const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
+    if (!activeCampaign) return;
+
+    // Extract product_id from campaign's product_ids JSON
+    let productId: number | null = null;
+    try {
+      const ids = JSON.parse(activeCampaign.product_ids || '[]');
+      if (Array.isArray(ids) && ids.length > 0) productId = ids[0];
+    } catch { /* no product_ids */ }
+
+    if (!productId) {
+      sendAssistantMessage('This campaign has no product linked. Please add a product in the Campaigns page first.');
+      return;
+    }
+
+    // Persist approval message
     sendMessage.mutate({
       campaign_id: activeCampaignId,
       role: 'user',
@@ -183,11 +194,33 @@ export function GenerateAdsPage() {
       content: 'Approved',
     });
 
+    // Save the plan as the campaign brief for this version
+    const newVersion = versionCounter;
+    const briefContent = planMessage.content;
+    const existingBrief = activeCampaign.brief ? JSON.parse(activeCampaign.brief) : {};
+    existingBrief[String(newVersion)] = briefContent;
+
+    updateCampaign.mutate({
+      campaignId: activeCampaignId,
+      data: { brief: JSON.stringify(existingBrief) },
+    });
+
     // Confirm in chat and start generating
     sendAssistantMessage(
-      'Plan approved! Starting ad generation — this may take a moment...',
+      'Plan approved! Starting ad generation — this may take a few minutes...',
     );
     setPhase('generating');
+
+    // Trigger preview generation
+    generatePreview.mutate(
+      { campaignId: activeCampaignId, productId, versionNumber: newVersion },
+      {
+        onError: (err) => {
+          setPhase('idle');
+          sendAssistantMessage(`Generation failed: ${(err as Error).message}. Please try again.`);
+        },
+      },
+    );
   };
 
   const handleDeclinePlan = (_planMessage: ChatMessage) => {
@@ -220,20 +253,8 @@ export function GenerateAdsPage() {
   };
 
   const handleReviseSelected = () => {
-    const groupNames = getSelectedGroupNames(selectedVariants, mockPersonaGroups);
     const count = selectedVariants.size;
-    const groupLabel = groupNames.length === 1 ? `in ${groupNames[0]}` : `across ${groupNames.join(', ')}`;
-    setInput(`Revise ${count} selected variant${count > 1 ? 's' : ''} ${groupLabel}: `);
-  };
-
-  const handleDuplicateSelected = () => {
-    sendAssistantMessage(`Duplicated ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''}. You can find the copies in each persona group.`);
-    setSelectedVariants(new Set());
-  };
-
-  const handleExcludeSelected = () => {
-    sendAssistantMessage(`Marked ${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''} as excluded from export.`);
-    setSelectedVariants(new Set());
+    setInput(`Revise ${count} selected variant${count > 1 ? 's' : ''}: `);
   };
 
   const handleDeleteSelected = () => {
@@ -241,27 +262,10 @@ export function GenerateAdsPage() {
     setSelectedVariants(new Set());
   };
 
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups((prev) => {
-      const n = new Set(prev);
-      n.has(groupId) ? n.delete(groupId) : n.add(groupId);
-      return n;
-    });
-  };
-
   const toggleVariant = (variantId: string) => {
     setSelectedVariants((prev) => {
       const n = new Set(prev);
       n.has(variantId) ? n.delete(variantId) : n.add(variantId);
-      return n;
-    });
-  };
-
-  const toggleGroupSelect = (group: PersonaGroup) => {
-    const allSelected = group.variants.every((v) => selectedVariants.has(v.id));
-    setSelectedVariants((prev) => {
-      const n = new Set(prev);
-      group.variants.forEach((v) => { allSelected ? n.delete(v.id) : n.add(v.id); });
       return n;
     });
   };
@@ -301,7 +305,7 @@ export function GenerateAdsPage() {
           selectedVariantCount={selectedVariants.size}
           onClearSelection={() => { setSelectedVariants(new Set()); setInput(''); }}
           isAiLoading={chatCompletion.isPending}
-          personaGroups={mockPersonaGroups}
+          variantCount={previewVariants.length}
           className={phase === 'idle' ? 'flex-1' : 'flex-shrink-0'}
           style={phase !== 'idle' ? { width: chatPanelWidth } : undefined}
         />
@@ -333,18 +337,13 @@ export function GenerateAdsPage() {
             phase={phase}
             filterState={filterState}
             filterDispatch={filterDispatch}
-            personaGroups={mockPersonaGroups}
+            adVariants={previewVariants}
             progressIdx={progressIdx}
             selectedVariants={selectedVariants}
             onVariantToggle={toggleVariant}
-            onGroupSelect={toggleGroupSelect}
             onClearSelection={() => setSelectedVariants(new Set())}
             onReviseSelected={handleReviseSelected}
-            onDuplicateSelected={handleDuplicateSelected}
-            onExcludeSelected={handleExcludeSelected}
             onDeleteSelected={handleDeleteSelected}
-            expandedGroups={expandedGroups}
-            onToggleGroup={toggleGroup}
             onApplyFilters={() => {
               sendAssistantMessage('Preferences updated! Regenerating variants with your new settings...');
               setPhase('generating');

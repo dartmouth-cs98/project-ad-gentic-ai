@@ -4,7 +4,7 @@ import { FilterPanel } from './FilterPanel';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import type { Campaign, ChatMessage } from '../../types';
-import type { Phase, PersonaGroup, Version } from './types';
+import type { Phase, Version } from './types';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 
 interface ChatPanelProps {
@@ -36,7 +36,7 @@ interface ChatPanelProps {
   // AI state
   isAiLoading?: boolean;
   // Layout
-  personaGroups: PersonaGroup[];
+  variantCount: number;
   style?: React.CSSProperties;
   className?: string;
 }
@@ -62,7 +62,7 @@ export function ChatPanel({
   selectedVariantCount,
   onClearSelection,
   isAiLoading,
-  personaGroups,
+  variantCount,
   style,
   className,
 }: ChatPanelProps) {
@@ -85,7 +85,7 @@ export function ChatPanel({
         filterState={filterState}
         showFilterPanel={showFilterPanel}
         onToggleFilterPanel={() => setShowFilterPanel((v) => !v)}
-        personaGroups={personaGroups}
+        variantCount={variantCount}
       />
 
       {/* Filter panel only in idle phase — results panel owns filters after generation */}

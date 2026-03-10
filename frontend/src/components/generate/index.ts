@@ -1,4 +1,5 @@
 export { FilterControls } from './FilterControls';
+export { AdVariantCard } from './AdVariantCard';
 export { VariantCard } from './VariantCard';
 export { PersonaGroupCard } from './PersonaGroupCard';
 export { GeneratingView } from './GeneratingView';

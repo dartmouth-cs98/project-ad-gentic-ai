@@ -3,7 +3,7 @@ import { Badge } from '../ui/Badge';
 import { CampaignSelector } from './CampaignSelector';
 import { VersionPopover } from './VersionPopover';
 import type { Campaign } from '../../types';
-import type { Phase, PersonaGroup, Version } from './types';
+import type { Phase, Version } from './types';
 import { countActiveFilters } from '../../hooks/useFilterState';
 import type { FilterState } from '../../hooks/useFilterState';
 
@@ -19,7 +19,7 @@ interface ChatHeaderProps {
   filterState: FilterState;
   showFilterPanel: boolean;
   onToggleFilterPanel: () => void;
-  personaGroups: PersonaGroup[];
+  variantCount: number;
 }
 
 export function ChatHeader({
@@ -34,10 +34,10 @@ export function ChatHeader({
   filterState,
   showFilterPanel,
   onToggleFilterPanel,
-  personaGroups,
+  variantCount,
 }: ChatHeaderProps) {
   const activeFilterCount = countActiveFilters(filterState);
-  const totalVariants = personaGroups.reduce((sum, g) => sum + g.variants.length, 0);
+  const totalVariants = variantCount;
 
   return (
     <header className="border-b border-slate-100 px-4 py-2.5 flex-shrink-0">

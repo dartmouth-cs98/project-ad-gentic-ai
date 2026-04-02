@@ -1,4 +1,4 @@
-import { SlidersHorizontalIcon } from 'lucide-react';
+import { SlidersHorizontalIcon, XIcon } from 'lucide-react';
 import { FilterControls } from './FilterControls';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters, DEFAULT_FILTERS } from '../../hooks/useFilterState';
@@ -55,6 +55,13 @@ export function FilterPanel({
                 className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Apply
+              </button>
+              <button
+                onClick={onClose}
+                className="ml-1 p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                aria-label="Close filters"
+              >
+                <XIcon className="w-4 h-4" />
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -193,6 +194,7 @@ const initialNotifications: NotificationSetting[] = [
   }];
 
 export function SettingsPage() {
+  const { collapsed } = useSidebar();
   const { profile, updateProfile } = useCompany();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<TabKey>('billing');
@@ -322,7 +324,7 @@ export function SettingsPage() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
 
-      <main className="ml-64 flex-1 p-8 relative">
+      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8 relative`}>
         {/* Success Overlay */}
         {showSuccess &&
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">

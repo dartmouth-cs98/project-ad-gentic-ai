@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import {
@@ -20,6 +21,7 @@ import { usePersonasContext } from '../contexts/PersonasContext';
 import type { Consumer } from '../types';
 
 export function AllConsumersPage() {
+    const { collapsed } = useSidebar();
     const { consumers, loading, error, refetch, assignPersonas } = useConsumerContext();
     const { personas } = usePersonasContext();
     const [searchQuery, setSearchQuery] = useState('');
@@ -191,7 +193,7 @@ export function AllConsumersPage() {
         <div className="flex min-h-screen bg-slate-50">
             <Sidebar />
 
-            <main className="ml-64 flex-1 p-8">
+            <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">

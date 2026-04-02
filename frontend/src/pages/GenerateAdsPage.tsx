@@ -177,6 +177,20 @@ export function GenerateAdsPage() {
     containerRef: splitContainerRef,
   });
 
+  // ─── Theme ──────────────────────────────────────────────────
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  useEffect(() => {
+    const saved = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(saved);
+    document.documentElement.classList.toggle('dark', saved === 'dark');
+  }, []);
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    localStorage.setItem('theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  };
+
   // ─── Layout state ─────────────────────────────────────────────
   // Show split layout when generating, viewing results, OR when variants exist
   const showSplit = phase !== 'idle' || hasVariants;
@@ -350,7 +364,7 @@ export function GenerateAdsPage() {
   const resultsPanelPhase: Phase = phase !== 'idle' ? phase : (hasVariants ? 'results' : 'idle');
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar
         collapsed={sidebarCollapsed}
         onCollapsedChange={(val) => setSidebarManualExpand(!val)}
@@ -385,6 +399,8 @@ export function GenerateAdsPage() {
           variantCount={activeVersionVariants.length}
           className={showSplit ? 'flex-shrink-0' : 'flex-1'}
           style={showSplit ? { width: chatPanelWidth } : undefined}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Resize Handle */}
@@ -396,12 +412,12 @@ export function GenerateAdsPage() {
             <div
               onMouseDown={handleDragStart}
               className={`absolute inset-0 flex items-center justify-center cursor-col-resize transition-colors ${
-                isDragging ? 'bg-blue-500/20' : 'hover:bg-slate-300/40'
+                isDragging ? 'bg-blue-500/20' : 'hover:bg-border/40'
               }`}
             >
               <div
                 className={`w-1 h-8 rounded-full transition-colors ${
-                  isDragging ? 'bg-blue-500' : 'bg-slate-300 group-hover/handle:bg-slate-400'
+                  isDragging ? 'bg-blue-500' : 'bg-border group-hover/handle:bg-muted-foreground'
                 }`}
               />
             </div>

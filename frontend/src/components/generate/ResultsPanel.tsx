@@ -7,7 +7,6 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
 } from 'lucide-react';
-import { Button } from '../ui/Button';
 import { FilterControls } from './FilterControls';
 import { AdVariantCard } from './AdVariantCard';
 import { GeneratingView } from './GeneratingView';
@@ -78,14 +77,14 @@ export function ResultsPanel({
       {phase === 'results' && (
         <>
           {/* Preferences Toolbar */}
-          <div className="flex-shrink-0 bg-white border-b border-slate-200">
+          <div className="flex-shrink-0 bg-card border-b border-border">
             {/* Toggle header */}
             <div className="px-5 py-2.5 flex items-center justify-between">
               <button
                 onClick={() => setShowFilters((v) => !v)}
-                className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
               >
-                <SlidersHorizontalIcon className="w-4 h-4 text-slate-400" />
+                <SlidersHorizontalIcon className="w-4 h-4 text-muted-foreground" />
                 {showFilters ? 'Hide Preferences' : 'Show Preferences'}
                 {!showFilters && activeFilterCount > 0 && (
                   <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold">
@@ -93,22 +92,25 @@ export function ResultsPanel({
                   </span>
                 )}
                 {showFilters ? (
-                  <ChevronUpIcon className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronUpIcon className="w-3.5 h-3.5 text-muted-foreground" />
                 ) : (
-                  <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDownIcon className="w-3.5 h-3.5 text-muted-foreground" />
                 )}
               </button>
               {showFilters && (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => filterDispatch({ type: 'RESET' })}
-                    className="text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
+                    className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
                   >
                     Reset
                   </button>
-                  <Button size="sm" onClick={onApplyFilters}>
+                  <button
+                    onClick={onApplyFilters}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
                     Apply
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
@@ -122,35 +124,32 @@ export function ResultsPanel({
 
           {/* Selection Action Bar */}
           {selectedVariants.size > 0 && (
-            <div className="flex-shrink-0 bg-blue-50 border-b border-blue-100 px-5 py-2.5 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-sm font-medium text-blue-700">
+            <div className="flex-shrink-0 bg-blue-600/10 border-b border-blue-600/20 px-5 py-2.5 flex items-center justify-between flex-wrap gap-2">
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
                 {selectedVariants.size} variant{selectedVariants.size > 1 ? 's' : ''} selected
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  leftIcon={<MessageSquareIcon className="w-3.5 h-3.5" />}
+                <button
                   onClick={onReviseSelected}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
+                  <MessageSquareIcon className="w-3.5 h-3.5" />
                   Revise Selected
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  leftIcon={<Trash2Icon className="w-3.5 h-3.5" />}
+                </button>
+                <button
                   onClick={onDeleteSelected}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-red-500/20 text-red-500 text-xs font-medium rounded-lg hover:bg-red-500/10 transition-colors"
                 >
+                  <Trash2Icon className="w-3.5 h-3.5" />
                   Delete
-                </Button>
-                <div className="w-px h-5 bg-blue-200 mx-0.5" />
+                </button>
+                <div className="w-px h-5 bg-blue-600/20 mx-0.5" />
                 <button
                   onClick={onClearSelection}
-                  className="p-1 rounded hover:bg-blue-100 transition-colors"
+                  className="p-1 rounded hover:bg-blue-600/10 transition-colors"
                   aria-label="Clear selection"
                 >
-                  <XIcon className="w-4 h-4 text-blue-400" />
+                  <XIcon className="w-4 h-4 text-blue-600/60 dark:text-blue-400/60" />
                 </button>
               </div>
             </div>
@@ -159,7 +158,7 @@ export function ResultsPanel({
           {/* Variant grid */}
           <div className="flex-1 overflow-y-auto p-5">
             {adVariants.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-slate-400">
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
                 No ad variants found for this campaign.
               </div>
             ) : (

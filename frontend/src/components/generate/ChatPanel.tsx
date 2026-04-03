@@ -39,6 +39,9 @@ interface ChatPanelProps {
   variantCount: number;
   style?: React.CSSProperties;
   className?: string;
+  // Theme
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
 export function ChatPanel({
@@ -65,12 +68,14 @@ export function ChatPanel({
   variantCount,
   style,
   className,
+  theme,
+  onToggleTheme,
 }: ChatPanelProps) {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   return (
     <div
-      className={`flex flex-col h-full bg-white border-r border-slate-200 relative ${className ?? ''}`}
+      className={`flex flex-col h-full bg-card border-r border-border relative ${className ?? ''}`}
       style={style}
     >
       <ChatHeader
@@ -86,6 +91,8 @@ export function ChatPanel({
         showFilterPanel={showFilterPanel}
         onToggleFilterPanel={() => setShowFilterPanel((v) => !v)}
         variantCount={variantCount}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
       />
 
       {/* Filter panel only in idle phase — results panel owns filters after generation */}

@@ -1,21 +1,16 @@
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import {
-  PlayCircleIcon,
-  DownloadIcon,
-  MoreVerticalIcon,
-  BarChart3Icon,
-} from 'lucide-react';
+import { FilmIcon, FileTextIcon } from 'lucide-react';
+import type { AdVariant } from '../../types';
 
-export interface AdVariant {
-  id: string;
-  label: string;
-  persona: string;
-  personaColors: string;
-  headline: string;
-  ctr: string;
-  image: string;
+function parseScript(meta: string | null): string | null {
+  if (!meta) return null;
+  try {
+    const parsed = JSON.parse(meta) as { script?: string };
+    return parsed.script ?? null;
+  } catch {
+    return null;
+  }
 }
 
 interface AdVariantsGridProps {
@@ -24,60 +19,67 @@ interface AdVariantsGridProps {
 
 export function AdVariantsGrid({ variants }: AdVariantsGridProps) {
   return (
-    <div className="grid grid-cols-3 gap-6">
-      {variants.map((variant) => (
-        <Card
-          key={variant.id}
-          variant="elevated"
-          padding="none"
-          className="overflow-hidden group"
-        >
-          <div className="relative aspect-video bg-slate-100">
-            <img
-              src={variant.image}
-              alt={`${variant.label} - ${variant.persona}`}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded text-xs text-white font-medium">
-              {variant.label}
-            </div>
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <Button size="sm" variant="secondary">
-                <PlayCircleIcon className="w-4 h-4" /> Preview
-              </Button>
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <Badge
-                variant="info"
-                className={`border ${variant.personaColors}`}
-              >
-                {variant.persona}
-              </Badge>
-              <div className="flex items-center gap-1 text-xs text-slate-500">
-                <BarChart3Icon className="w-3 h-3" />
-                <span>{variant.ctr} CTR</span>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {variants.map((variant) => {
+        const script = parseScript(variant.meta);
+        return (
+          <Card
+            key={variant.id}
+            variant="elevated"
+            padding="none"
+            className="overflow-hidden"
+          >
+            <div className="relative w-full aspect-video bg-black">
+              {variant.media_url ? (
+                <video
+                  src={variant.media_url}
+                  className="w-full h-full object-contain object-center bg-black"
+                  controls
+                  preload="metadata"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400">
+                  <FilmIcon className="w-8 h-8" />
+                  <p className="text-sm">No video URL available</p>
+                </div>
+              )}
+              <div className="absolute top-3 left-3">
+                <Badge variant="success">
+                  Approved
+                </Badge>
               </div>
             </div>
-            <h3 className="font-medium text-slate-900 mb-4 line-clamp-2 text-sm leading-relaxed">
-              {variant.headline}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="flex-1 text-xs"
-              >
-                <DownloadIcon className="w-3 h-3 mr-1" /> Download
-              </Button>
-              <Button size="sm" variant="ghost" className="px-2">
-                <MoreVerticalIcon className="w-4 h-4" />
-              </Button>
+
+            <div className="p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Variant #{variant.id}
+                </h3>
+                <span className="text-xs text-slate-500">
+                  v{variant.version_number}
+                </span>
+              </div>
+
+              <div className="text-xs text-slate-500">
+                Generated {new Date(variant.created_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </div>
+
+              {script && (
+                <div className="flex items-start gap-2 rounded-lg bg-slate-50 border border-slate-100 p-3">
+                  <FileTextIcon className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs leading-relaxed text-slate-600 line-clamp-3">
+                    {script}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 }

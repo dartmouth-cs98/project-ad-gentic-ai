@@ -4,17 +4,16 @@ import { useUser } from '../contexts/UserContext';
 import { Sidebar } from '../components/layout/Sidebar';
 import { ChatPanel, ResultsPanel } from '../components/generate';
 import type { Phase, Version } from '../components/generate';
-import type { Campaign, ChatMessage } from '../types';
+import type { Campaign, ChatMessage, AdVariant } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
-import { useGeneratePreview, usePreviewVariants, useUpdateCampaign } from '../hooks/useAdGeneration';
-import { mockVersionHistory } from '../components/generate/mockData';
+import { useCampaignAdVariants, useGeneratePreview, useUpdateCampaign } from '../hooks/useAdGeneration';
 
 // ─── Constants ──────────────────────────────────────────────────
 
-const WELCOME_MESSAGE: ChatMessage = {
+const WELCOME_NEW: ChatMessage = {
   id: 0,
   campaign_id: 0,
   business_client_id: 0,
@@ -24,6 +23,51 @@ const WELCOME_MESSAGE: ChatMessage = {
   version_ref: null,
   timestamp: new Date().toISOString(),
 };
+
+function buildWelcomeBack(campaign: Campaign | undefined, versions: Version[]): ChatMessage {
+  if (!campaign || versions.length === 0) return WELCOME_NEW;
+  const latest = versions[0]; // already sorted newest first
+  const completedCount = latest.variantCount;
+  return {
+    id: 0,
+    campaign_id: campaign.id,
+    business_client_id: 0,
+    role: 'assistant',
+    message_type: 'message',
+    content: `Welcome back! You're viewing **${campaign.name}** — ${versions.length} version${versions.length > 1 ? 's' : ''} with ${completedCount} variant${completedCount > 1 ? 's' : ''} in the latest (${latest.label}). Your ad variants are shown on the right.\n\nTell me what you'd like to change, or start a new version.`,
+    version_ref: null,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// ─── Helpers ────────────────────────────────────────────────────
+
+/** Build a Version list from real ad variants, grouped by version_number. */
+function buildVersionsFromVariants(variants: AdVariant[]): Version[] {
+  const map = new Map<number, { count: number; latest: string }>();
+  for (const v of variants) {
+    const existing = map.get(v.version_number);
+    if (!existing) {
+      map.set(v.version_number, { count: 1, latest: v.created_at });
+    } else {
+      existing.count += 1;
+      if (v.created_at > existing.latest) existing.latest = v.created_at;
+    }
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => b - a) // newest version first
+    .map(([vNum, { count, latest }]) => ({
+      id: `v${vNum}`,
+      label: `v${vNum}`,
+      timestamp: new Date(latest).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }),
+      variantCount: count,
+    }));
+}
 
 // ─── Main Component ──────────────────────────────────────────────
 
@@ -46,15 +90,45 @@ export function GenerateAdsPage() {
 
   // Campaign & version state
   const [activeCampaignId, setActiveCampaignId] = useState<number | undefined>(undefined);
-  const [activeVersion, setActiveVersion] = useState<Version>(mockVersionHistory[0]);
+  const [activeVersionNumber, setActiveVersionNumber] = useState<number | null>(null);
   const [versionCounter, setVersionCounter] = useState(1);
 
-  // ─── Preview variants (poll while generating) ──────────────
-  const { data: previewVariants = [] } = usePreviewVariants(
-    activeCampaignId,
-    phase === 'generating' || phase === 'results',
-    phase === 'generating' ? 5000 : undefined, // poll every 5s while generating
-  );
+  // ─── All variants for active campaign (always fetched) ───────
+  const { data: allVariants = [] } = useCampaignAdVariants(activeCampaignId, {
+    enabled: !!activeCampaignId,
+    refetchInterval: phase === 'generating' ? 5000 : false,
+  });
+
+  // ─── Derive versions & filtered variants ─────────────────────
+  const versions = useMemo(() => buildVersionsFromVariants(allVariants), [allVariants]);
+  const hasVariants = allVariants.length > 0;
+
+  // Auto-select latest version when variants first load or campaign changes
+  useEffect(() => {
+    if (versions.length > 0 && activeVersionNumber === null) {
+      // Latest version = highest version_number
+      const maxVer = Math.max(...allVariants.map((v) => v.version_number));
+      setActiveVersionNumber(maxVer);
+      setVersionCounter(maxVer + 1);
+    }
+  }, [versions, activeVersionNumber, allVariants]);
+
+  // Reset version selection on campaign switch
+  useEffect(() => {
+    setActiveVersionNumber(null);
+  }, [activeCampaignId]);
+
+  // Variants filtered to the active version
+  const activeVersionVariants = useMemo(() => {
+    if (activeVersionNumber === null) return allVariants;
+    return allVariants.filter((v) => v.version_number === activeVersionNumber);
+  }, [allVariants, activeVersionNumber]);
+
+  // Active version object for the header
+  const activeVersion: Version = useMemo(() => {
+    const found = versions.find((v) => v.id === `v${activeVersionNumber}`);
+    return found ?? { id: 'v0', label: 'v0', timestamp: '', variantCount: 0 };
+  }, [versions, activeVersionNumber]);
 
   // ─── Chat messages (persisted via API) ────────────────────────
   const { data: serverMessages = [] } = useChatMessages(activeCampaignId);
@@ -62,12 +136,15 @@ export function GenerateAdsPage() {
   const chatCompletion = useChatCompletion();
 
   // Show welcome message when no persisted messages exist
+  const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
   const messages: ChatMessage[] = useMemo(
-    () => (serverMessages.length === 0 ? [WELCOME_MESSAGE] : serverMessages),
-    [serverMessages],
+    () => (serverMessages.length === 0
+      ? [buildWelcomeBack(activeCampaign, versions)]
+      : serverMessages),
+    [serverMessages, activeCampaign, versions],
   );
 
-  /** Persist an assistant message to the current campaign (for system-generated messages, not AI). */
+  /** Persist an assistant message to the current campaign. */
   const sendAssistantMessage = (content: string, messageType: ChatMessage['message_type'] = 'message') => {
     if (!activeCampaignId) return;
     sendMessage.mutate({
@@ -91,7 +168,7 @@ export function GenerateAdsPage() {
     colorMode: filterState.colorMode,
   });
 
-  // Variants state
+  // Variants selection state
   const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set());
 
   // ─── Resizable panel ────────────────────────────────────────
@@ -100,8 +177,24 @@ export function GenerateAdsPage() {
     containerRef: splitContainerRef,
   });
 
-  // ─── Sidebar collapse ───────────────────────────────────────
-  const sidebarCollapsed = phase !== 'idle' && !sidebarManualExpand;
+  // ─── Theme ──────────────────────────────────────────────────
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  useEffect(() => {
+    const saved = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(saved);
+    document.documentElement.classList.toggle('dark', saved === 'dark');
+  }, []);
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    localStorage.setItem('theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  };
+
+  // ─── Layout state ─────────────────────────────────────────────
+  // Show split layout when generating, viewing results, OR when variants exist
+  const showSplit = phase !== 'idle' || hasVariants;
+  const sidebarCollapsed = showSplit && !sidebarManualExpand;
 
   // ─── Set first campaign as active when campaigns load ───────
   useEffect(() => {
@@ -123,26 +216,24 @@ export function GenerateAdsPage() {
     return () => clearInterval(interval);
   }, [phase]);
 
-  // ─── Auto-transition: generating → results when preview completes ─
+  // ─── Auto-transition: generating → results when variant completes ─
+  const [generatingVersionNumber, setGeneratingVersionNumber] = useState<number | null>(null);
+
   useEffect(() => {
-    if (phase !== 'generating') return;
-    // Transition once we have at least one completed preview variant
-    const completedCount = previewVariants.filter((v) => v.status === 'completed').length;
+    if (phase !== 'generating' || generatingVersionNumber === null) return;
+    const completedCount = allVariants.filter(
+      (v) => v.version_number === generatingVersionNumber && v.status === 'completed',
+    ).length;
     if (completedCount === 0) return;
 
     setPhase('results');
-    const newVersion: Version = {
-      id: `v${versionCounter}`,
-      label: `v${versionCounter}`,
-      timestamp: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
-      variantCount: completedCount,
-    };
-    setActiveVersion(newVersion);
-    setVersionCounter((v) => v + 1);
+    setActiveVersionNumber(generatingVersionNumber);
+    setVersionCounter(generatingVersionNumber + 1);
+    setGeneratingVersionNumber(null);
     sendAssistantMessage(
-      `Done! I've generated ${completedCount} preview ad variant${completedCount > 1 ? 's' : ''} (${newVersion.label}). Review them on the right, or tell me what to change.`,
+      `Done! I've generated ${completedCount} preview ad variant${completedCount > 1 ? 's' : ''} (v${generatingVersionNumber}). Review them on the right, or tell me what to change.`,
     );
-  }, [phase, previewVariants]);
+  }, [phase, allVariants, generatingVersionNumber]);
 
   // ─── Handlers ───────────────────────────────────────────────
 
@@ -152,11 +243,9 @@ export function GenerateAdsPage() {
     const messageText = input;
     setInput('');
 
-    // Find the most recent plan for context (if revising from an existing version)
     const lastPlan = [...messages].reverse().find((m) => m.message_type === 'plan');
     const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
 
-    // Send to AI — persists both user message and AI response server-side
     chatCompletion.mutate({
       campaign_id: activeCampaignId,
       message: messageText,
@@ -174,7 +263,6 @@ export function GenerateAdsPage() {
     const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
     if (!activeCampaign) return;
 
-    // Extract product_id from campaign's product_ids JSON
     let productId: number | null = null;
     try {
       const ids = JSON.parse(activeCampaign.product_ids || '[]');
@@ -186,7 +274,6 @@ export function GenerateAdsPage() {
       return;
     }
 
-    // Persist approval message
     sendMessage.mutate({
       campaign_id: activeCampaignId,
       role: 'user',
@@ -194,7 +281,6 @@ export function GenerateAdsPage() {
       content: 'Approved',
     });
 
-    // Save the plan as the campaign brief for this version
     const newVersion = versionCounter;
     const briefContent = planMessage.content;
     const existingBrief = activeCampaign.brief ? JSON.parse(activeCampaign.brief) : {};
@@ -205,18 +291,18 @@ export function GenerateAdsPage() {
       data: { brief: JSON.stringify(existingBrief) },
     });
 
-    // Confirm in chat and start generating
     sendAssistantMessage(
       'Plan approved! Starting ad generation — this may take a few minutes...',
     );
     setPhase('generating');
+    setGeneratingVersionNumber(newVersion);
 
-    // Trigger preview generation
     generatePreview.mutate(
       { campaignId: activeCampaignId, productId, versionNumber: newVersion },
       {
         onError: (err) => {
           setPhase('idle');
+          setGeneratingVersionNumber(null);
           sendAssistantMessage(`Generation failed: ${(err as Error).message}. Please try again.`);
         },
       },
@@ -226,7 +312,6 @@ export function GenerateAdsPage() {
   const handleDeclinePlan = (_planMessage: ChatMessage) => {
     if (!activeCampaignId) return;
 
-    // Persist a plan_response message indicating decline
     sendMessage.mutate({
       campaign_id: activeCampaignId,
       role: 'user',
@@ -241,15 +326,17 @@ export function GenerateAdsPage() {
 
   const handleCampaignSelect = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
-    // Messages auto-load via useChatMessages(campaign.id) — no manual reset needed
-    if (phase === 'results') setSelectedVariants(new Set());
+    setSelectedVariants(new Set());
+    if (phase === 'generating') {
+      setPhase('idle');
+      setGeneratingVersionNumber(null);
+    }
   };
 
   const handleVersionSelect = (version: Version) => {
-    setActiveVersion(version);
-    sendAssistantMessage(
-      `Loaded ${version.label} (${version.timestamp}) with ${version.variantCount} variants.`,
-    );
+    const vNum = parseInt(version.id.replace('v', ''), 10);
+    setActiveVersionNumber(vNum);
+    setSelectedVariants(new Set());
   };
 
   const handleReviseSelected = () => {
@@ -272,8 +359,12 @@ export function GenerateAdsPage() {
 
   // ─── Render ─────────────────────────────────────────────────
 
+  // Determine the effective phase for the results panel
+  // When idle but has variants, show them in "results" mode
+  const resultsPanelPhase: Phase = phase !== 'idle' ? phase : (hasVariants ? 'results' : 'idle');
+
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar
         collapsed={sidebarCollapsed}
         onCollapsedChange={(val) => setSidebarManualExpand(!val)}
@@ -291,7 +382,7 @@ export function GenerateAdsPage() {
           onCampaignSelect={handleCampaignSelect}
           isCampaignsLoading={isCampaignsLoading}
           activeVersion={activeVersion}
-          versions={mockVersionHistory}
+          versions={versions}
           onVersionSelect={handleVersionSelect}
           filterState={filterState}
           filterDispatch={filterDispatch}
@@ -305,13 +396,15 @@ export function GenerateAdsPage() {
           selectedVariantCount={selectedVariants.size}
           onClearSelection={() => { setSelectedVariants(new Set()); setInput(''); }}
           isAiLoading={chatCompletion.isPending}
-          variantCount={previewVariants.length}
-          className={phase === 'idle' ? 'flex-1' : 'flex-shrink-0'}
-          style={phase !== 'idle' ? { width: chatPanelWidth } : undefined}
+          variantCount={activeVersionVariants.length}
+          className={showSplit ? 'flex-shrink-0' : 'flex-1'}
+          style={showSplit ? { width: chatPanelWidth } : undefined}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Resize Handle */}
-        {phase !== 'idle' && (
+        {showSplit && (
           <div
             className="relative flex-shrink-0 z-10 group/handle"
             style={{ width: '6px', marginLeft: '-3px', marginRight: '-3px' }}
@@ -319,12 +412,12 @@ export function GenerateAdsPage() {
             <div
               onMouseDown={handleDragStart}
               className={`absolute inset-0 flex items-center justify-center cursor-col-resize transition-colors ${
-                isDragging ? 'bg-blue-500/20' : 'hover:bg-slate-300/40'
+                isDragging ? 'bg-blue-500/20' : 'hover:bg-border/40'
               }`}
             >
               <div
                 className={`w-1 h-8 rounded-full transition-colors ${
-                  isDragging ? 'bg-blue-500' : 'bg-slate-300 group-hover/handle:bg-slate-400'
+                  isDragging ? 'bg-blue-500' : 'bg-border group-hover/handle:bg-muted-foreground'
                 }`}
               />
             </div>
@@ -332,12 +425,12 @@ export function GenerateAdsPage() {
         )}
 
         {/* Results Panel */}
-        {phase !== 'idle' && (
+        {showSplit && (
           <ResultsPanel
-            phase={phase}
+            phase={resultsPanelPhase}
             filterState={filterState}
             filterDispatch={filterDispatch}
-            adVariants={previewVariants}
+            adVariants={activeVersionVariants}
             progressIdx={progressIdx}
             selectedVariants={selectedVariants}
             onVariantToggle={toggleVariant}

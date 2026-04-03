@@ -1,9 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Textarea } from '../components/ui/Textarea';
 import {
   PlusIcon,
   SearchIcon,
@@ -15,9 +11,12 @@ import {
   TrashIcon,
   UploadIcon,
   ExternalLinkIcon,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 import { useUser } from '../contexts/UserContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import {
   useProducts,
   useCreateProduct,
@@ -26,37 +25,31 @@ import {
 } from '../hooks/useProducts';
 import type { Product } from '../types';
 
+const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
+const labelClass = 'block text-sm font-medium mb-1.5';
+
 // ---------- Product Card ----------
 
-function ProductCard({
-  product,
-  onDelete,
-  onUploadImage,
-}: {
+function ProductCard({ product, onDelete, onUploadImage }: {
   product: Product;
   onDelete: (p: Product) => void;
   onUploadImage: (p: Product) => void;
 }) {
   return (
-    <Card variant="default" padding="none" className="overflow-hidden group">
+    <div className="bg-card border border-border rounded-xl overflow-hidden group hover:border-foreground/20 transition-colors">
       {/* Image area */}
-      <div className="h-40 bg-slate-100 flex items-center justify-center relative">
+      <div className="h-40 bg-muted flex items-center justify-center relative">
         {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-cover"
-          />
+          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="flex flex-col items-center gap-2 text-slate-400">
-            <ImageIcon className="w-8 h-8" />
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <ImageIcon className="w-7 h-7" />
             <span className="text-xs">No image</span>
           </div>
         )}
-        {/* Upload overlay on hover */}
         <button
           onClick={() => onUploadImage(product)}
-          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-sm font-medium"
+          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-sm font-medium"
         >
           <UploadIcon className="w-4 h-4" />
           {product.image_url ? 'Replace Image' : 'Upload Image'}
@@ -67,17 +60,13 @@ function ProductCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-slate-900 text-sm truncate">
-              {product.name}
-            </h3>
+            <h3 className="font-medium text-sm truncate">{product.name}</h3>
             {product.description && (
-              <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                {product.description}
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
             )}
           </div>
           {product.image_url && (
-            <span className="flex-shrink-0 px-1.5 py-0.5 bg-green-50 text-green-600 text-[10px] font-medium rounded">
+            <span className="flex-shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium rounded">
               Image
             </span>
           )}
@@ -88,17 +77,17 @@ function ProductCard({
             href={product.product_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
           >
             <ExternalLinkIcon className="w-3 h-3" />
             Product link
           </a>
         )}
 
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
           <button
             onClick={() => onUploadImage(product)}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
           >
             <ImageIcon className="w-3 h-3" />
             {product.image_url ? 'Replace' : 'Add'} Image
@@ -106,13 +95,13 @@ function ProductCard({
           <div className="flex-1" />
           <button
             onClick={() => onDelete(product)}
-            className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+            className="p-1 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
           >
             <TrashIcon className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -120,118 +109,77 @@ function ProductCard({
 
 function CreateProductModal({ onClose }: { onClose: () => void }) {
   const createMutation = useCreateProduct();
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    product_link: '',
-  });
+  const [form, setForm] = useState({ name: '', description: '', product_link: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const isCreating = createMutation.isPending;
 
   const handleCreate = () => {
     const newErrors: Record<string, string> = {};
     if (!form.name.trim()) newErrors.name = 'Product name is required';
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     createMutation.mutate(
-      {
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        product_link: form.product_link.trim() || null,
-      },
+      { name: form.name.trim(), description: form.description.trim() || null, product_link: form.product_link.trim() || null },
       { onSuccess: onClose },
     );
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-        onClick={() => !isCreating && onClose()}
-      />
-
-      <Card
-        variant="elevated"
-        padding="lg"
-        className="relative w-full max-w-md"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-slate-900">Add Product</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
-            disabled={isCreating}
-          >
-            <XIcon className="w-5 h-5 text-slate-500" />
+      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => !isCreating && onClose()} />
+      <div className="relative w-full max-w-md bg-card border border-border rounded-xl">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-lg font-semibold">Add Product</h2>
+          <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+            <XIcon className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <Input
-            label="Product Name *"
-            placeholder="e.g., AirPods Pro 2"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            error={errors.name}
-            disabled={isCreating}
-          />
+        <div className="p-6 space-y-4">
+          <div>
+            <label className={labelClass}>Product Name <span className="text-red-500">*</span></label>
+            <input className={inputClass} placeholder="e.g., AirPods Pro 2" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={isCreating} />
+            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+          </div>
 
-          <Textarea
-            label="Description"
-            placeholder="Brief description of the product..."
-            rows={3}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            disabled={isCreating}
-          />
+          <div>
+            <label className={labelClass}>Description</label>
+            <textarea className={`${inputClass} resize-none`} rows={3} placeholder="Brief description of the product..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={isCreating} />
+          </div>
 
-          <Input
-            label="Product Link"
-            placeholder="https://example.com/product"
-            value={form.product_link}
-            onChange={(e) => setForm({ ...form, product_link: e.target.value })}
-            disabled={isCreating}
-          />
+          <div>
+            <label className={labelClass}>Product Link</label>
+            <input className={inputClass} placeholder="https://example.com/product" value={form.product_link} onChange={(e) => setForm({ ...form, product_link: e.target.value })} disabled={isCreating} />
+          </div>
 
-          <p className="text-xs text-slate-500">
-            You can upload a product image after creating the product.
-          </p>
+          <p className="text-xs text-muted-foreground">You can upload a product image after creating the product.</p>
         </div>
 
         {createMutation.isError && (
-          <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <div className="mx-6 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
             {(createMutation.error as Error).message}
-          </p>
+          </div>
         )}
 
-        <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-100">
-          <Button variant="ghost" onClick={onClose} disabled={isCreating}>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
+          <button onClick={onClose} disabled={isCreating} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleCreate}
-            leftIcon={<PlusIcon className="w-4 h-4" />}
-            isLoading={isCreating}
+            disabled={isCreating}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {isCreating ? 'Creating...' : 'Add Product'}
-          </Button>
+            {isCreating ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Creating...</> : <><PlusIcon className="w-4 h-4" /> Add Product</>}
+          </button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
 
-// ---------- Delete Confirmation Modal ----------
+// ---------- Delete Product Modal ----------
 
-function DeleteProductModal({
-  product,
-  onClose,
-  onConfirm,
-  isLoading,
-}: {
+function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
   product: Product;
   onClose: () => void;
   onConfirm: () => void;
@@ -239,19 +187,26 @@ function DeleteProductModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <Card variant="elevated" padding="lg" className="relative w-full max-w-sm">
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Delete Product</h2>
-        <p className="text-sm text-slate-600 mb-6">
-          Are you sure you want to delete <strong>{product.name}</strong>? This action cannot be undone.
+      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-card border border-border rounded-xl p-6">
+        <h2 className="text-base font-semibold mb-1">Delete Product</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Are you sure you want to delete <span className="font-medium text-foreground">{product.name}</span>? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose} disabled={isLoading}>Cancel</Button>
-          <Button variant="danger" onClick={onConfirm} isLoading={isLoading}>
-            Delete
-          </Button>
+          <button onClick={onClose} disabled={isLoading} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+          >
+            {isLoading && <Loader2Icon className="w-4 h-4 animate-spin" />}
+            {isLoading ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -259,6 +214,7 @@ function DeleteProductModal({
 // ---------- Main Page ----------
 
 export function ProductsPage() {
+  const { collapsed } = useSidebar();
   const { user } = useUser();
   const businessClientId = user?.client_id;
 
@@ -266,13 +222,26 @@ export function ProductsPage() {
   const deleteMutation = useDeleteProduct();
   const uploadMutation = useUploadProductImage();
 
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  // Hidden file input for image uploads
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetProduct, setUploadTargetProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -287,112 +256,103 @@ export function ProductsPage() {
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !uploadTargetProduct) return;
-
     uploadMutation.mutate(
       { productId: uploadTargetProduct.id, file },
-      {
-        onSettled: () => {
-          setUploadTargetProduct(null);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-        },
-      },
+      { onSettled: () => { setUploadTargetProduct(null); if (fileInputRef.current) fileInputRef.current.value = ''; } },
     );
   };
 
   const handleConfirmDelete = () => {
     if (!productToDelete) return;
-    deleteMutation.mutate(productToDelete.id, {
-      onSuccess: () => setProductToDelete(null),
-    });
+    deleteMutation.mutate(productToDelete.id, { onSuccess: () => setProductToDelete(null) });
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Products</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Manage the products and services you advertise
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage the products and services you advertise.</p>
           </div>
-          <Button
-            leftIcon={<PlusIcon className="w-4 h-4" />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            Add Product
-          </Button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Add Product
+            </button>
+            <button onClick={toggleTheme} className="p-2 border border-border rounded-lg hover:bg-muted transition-colors" aria-label="Toggle theme">
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
         {/* Search */}
         <div className="relative max-w-sm mb-6">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20 placeholder:text-muted-foreground"
           />
         </div>
 
         {/* Upload status banner */}
         {uploadMutation.isPending && (
-          <div className="mb-4 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+          <div className="mb-4 flex items-center gap-2 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3 text-sm text-blue-600 dark:text-blue-400">
             <Loader2Icon className="w-4 h-4 animate-spin" />
             Uploading image for {uploadTargetProduct?.name}...
           </div>
         )}
 
-        {/* Loading state */}
+        {/* Loading */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
-            <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
+          <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+            <Loader2Icon className="w-6 h-6 animate-spin mb-3" />
             <p className="text-sm">Loading products...</p>
           </div>
         )}
 
-        {/* Error state */}
+        {/* Error */}
         {isError && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <AlertCircleIcon className="w-7 h-7 text-red-500" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">Failed to load products</h2>
-            <p className="text-sm text-slate-500">{(error as Error).message}</p>
+            <AlertCircleIcon className="w-8 h-8 text-red-500 mb-3" />
+            <h2 className="text-base font-semibold mb-1">Failed to load products</h2>
+            <p className="text-sm text-muted-foreground">{(error as Error).message}</p>
           </div>
         )}
 
         {/* Empty state */}
         {!isLoading && !isError && products.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-              <PackageIcon className="w-9 h-9 text-slate-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">No products yet</h2>
-            <p className="text-slate-500 mb-8 max-w-sm text-sm">
+            <PackageIcon className="w-8 h-8 text-muted-foreground mb-4" />
+            <h2 className="text-base font-semibold mb-1">No products yet</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
               Add your first product to start creating campaigns and generating ads.
             </p>
-            <Button
-              leftIcon={<PlusIcon className="w-4 h-4" />}
+            <button
               onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
             >
+              <PlusIcon className="w-4 h-4" />
               Add your first product
-            </Button>
+            </button>
           </div>
         )}
 
         {/* No search results */}
         {!isLoading && !isError && products.length > 0 && filteredProducts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-              <SearchIcon className="w-7 h-7 text-slate-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">No products match your search</h2>
-            <p className="text-sm text-slate-500">Try a different search term.</p>
+            <SearchIcon className="w-8 h-8 text-muted-foreground mb-3" />
+            <h2 className="text-base font-semibold mb-1">No products match your search</h2>
+            <p className="text-sm text-muted-foreground">Try a different search term.</p>
           </div>
         )}
 
@@ -400,30 +360,16 @@ export function ProductsPage() {
         {!isLoading && !isError && filteredProducts.length > 0 && (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onDelete={setProductToDelete}
-                onUploadImage={handleUploadImage}
-              />
+              <ProductCard key={product.id} product={product} onDelete={setProductToDelete} onUploadImage={handleUploadImage} />
             ))}
           </div>
         )}
 
-        {/* Hidden file input for image uploads */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={handleFileSelected}
-        />
+        {/* Hidden file input */}
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFileSelected} />
 
         {/* Modals */}
-        {showCreateModal && (
-          <CreateProductModal onClose={() => setShowCreateModal(false)} />
-        )}
-
+        {showCreateModal && <CreateProductModal onClose={() => setShowCreateModal(false)} />}
         {productToDelete && (
           <DeleteProductModal
             product={productToDelete}

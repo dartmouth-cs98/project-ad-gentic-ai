@@ -152,6 +152,8 @@ export function CustomerDataPage() {
     return ids.size;
   }, [consumers]);
 
+  const hasPersonaAssignments = activeSegments > 0;
+
   const topPersona = useMemo(() => {
     if (!personas.length || !consumers.length) return null;
     let topId: string | null = null;

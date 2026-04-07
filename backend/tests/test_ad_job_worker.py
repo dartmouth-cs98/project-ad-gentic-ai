@@ -21,6 +21,9 @@ from workers.ad_job_worker.worker import (
     generate_campaign_preview,
     generate_campaign_ad_variants,
 )
+from workers.script_moderation_worker.worker import ModerationVerdict
+
+_PASS_MODERATION = ModerationVerdict(passed=True, feedback="")
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +137,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Mock script text"),
         patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"mock video bytes"),
     ):
@@ -173,6 +177,7 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", mock_gen_script),
         patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"video"),
     ):
@@ -210,6 +215,7 @@ async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Script"),
         patch("workers.ad_job_worker.worker.generate_ad_video", mock_generate_video),
     ):
@@ -241,6 +247,7 @@ async def test_execute_ad_job_uses_image_name_fallback(mock_db, mock_session_fac
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="S"),
         patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"v"),
     ):

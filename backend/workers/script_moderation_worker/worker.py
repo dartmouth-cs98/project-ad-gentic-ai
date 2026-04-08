@@ -25,13 +25,33 @@ class ModerationVerdict:
     feedback: str
 
 
+def _coerce_passed_value(raw: object) -> bool:
+    """Resolve `passed` from parsed JSON. Only bool or explicit true/false strings; anything else raises."""
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, str):
+        key = raw.strip().lower()
+        if key == "true":
+            return True
+        if key == "false":
+            return False
+    raise ValueError(
+        'moderation verdict "passed" must be JSON true/false or the string "true"/"false", '
+        f"got {type(raw).__name__}: {raw!r}"
+    )
+
+
 def _parse_verdict_json(text: str) -> ModerationVerdict:
     raw = text.strip()
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw)
     if fence:
         raw = fence.group(1).strip()
     data = json.loads(raw)
-    passed = bool(data.get("passed"))
+    if not isinstance(data, dict):
+        raise ValueError(f"moderation verdict must be a JSON object, got {type(data).__name__}")
+    if "passed" not in data:
+        raise ValueError('moderation verdict JSON missing required "passed" key')
+    passed = _coerce_passed_value(data["passed"])
     fb = data.get("feedback")
     feedback = "" if fb is None else str(fb).strip()
     return ModerationVerdict(passed=passed, feedback=feedback)

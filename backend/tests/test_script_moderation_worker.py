@@ -59,10 +59,35 @@ class TestParseVerdictJson:
         assert v.passed is True
         assert v.feedback == ""
 
-    def test_missing_passed_is_false(self):
-        v = _parse_verdict_json('{"feedback": "only feedback"}')
+    def test_missing_passed_raises(self):
+        with pytest.raises(ValueError, match='missing required "passed"'):
+            _parse_verdict_json('{"feedback": "only feedback"}')
+
+    def test_passed_string_false_is_fail_not_truthy_string(self):
+        """Regression: bool(\"false\") is True in Python; must parse as fail."""
+        v = _parse_verdict_json('{"passed": "false", "feedback": "bad"}')
         assert v.passed is False
-        assert v.feedback == "only feedback"
+        assert v.feedback == "bad"
+
+    def test_passed_string_true_accepted(self):
+        v = _parse_verdict_json('{"passed": "true", "feedback": ""}')
+        assert v == ModerationVerdict(passed=True, feedback="")
+
+    def test_passed_invalid_string_raises(self):
+        with pytest.raises(ValueError, match="must be JSON true/false"):
+            _parse_verdict_json('{"passed": "no", "feedback": ""}')
+
+    def test_passed_number_raises(self):
+        with pytest.raises(ValueError, match="must be JSON true/false"):
+            _parse_verdict_json('{"passed": 0, "feedback": ""}')
+
+    def test_passed_null_raises(self):
+        with pytest.raises(ValueError, match="must be JSON true/false"):
+            _parse_verdict_json('{"passed": null, "feedback": ""}')
+
+    def test_root_not_object_raises(self):
+        with pytest.raises(ValueError, match="must be a JSON object"):
+            _parse_verdict_json("[true]")
 
     def test_whitespace_around_payload(self):
         v = _parse_verdict_json('  \n{"passed": true, "feedback": ""}\n  ')

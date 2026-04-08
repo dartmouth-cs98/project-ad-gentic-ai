@@ -173,6 +173,27 @@ html, body, #root {
   stroke-dashoffset: 300;
   animation: draw-line 2s ease-out forwards;
 }
+/* ===== Smooth theme transition ===== */
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+}
+
+/* ===== Technical UI Utilities (SimpleLanding) ===== */
+.tech-grid {
+  background-image:
+    linear-gradient(rgba(74, 158, 189, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 158, 189, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.font-mono-tech {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+.hexagon {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
 /* ===== Generate Ads Page Animations ===== */
 @keyframes deal-in {
   0% { opacity: 0; transform: translateY(40px) scale(0.9) rotate(-2deg); }

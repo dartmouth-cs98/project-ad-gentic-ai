@@ -8,6 +8,7 @@ function ScrollToTop() {
 }
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LandingPage } from './pages/LandingPage';
+import { SimpleLanding } from './pages/SimpleLanding';
 import { SignUpPage } from './pages/SignUpPage';
 import { SignInPage } from './pages/SignInPage';
 import { OnboardingPage } from './pages/OnboardingPage';
@@ -43,7 +44,8 @@ export function App() {
               <HashRouter>
               <ScrollToTop />
               <Routes>
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<SimpleLanding />} />
+                <Route path="/old-landing" element={<LandingPage />} />
                 <Route path="/sign-up" element={<SignUpPage />} />
                 <Route path="/sign-in" element={<SignInPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />

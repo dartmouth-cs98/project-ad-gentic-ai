@@ -1,25 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/ui/Logo';
 import { Sun, Moon, ArrowRight, Menu, X, Target, Brain, Zap, Sparkles } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function SimpleLanding() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.add('theme-transitioning');
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300);
-  };
 
   const navLinks = [
     { label: 'Features', to: '/features' },

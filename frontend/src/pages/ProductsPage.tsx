@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import {
   PlusIcon,
@@ -17,6 +17,7 @@ import {
 
 import { useUser } from '../contexts/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   useProducts,
   useCreateProduct,
@@ -215,6 +216,7 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
 
 export function ProductsPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const { user } = useUser();
   const businessClientId = user?.client_id;
 
@@ -222,28 +224,13 @@ export function ProductsPage() {
   const deleteMutation = useDeleteProduct();
   const uploadMutation = useUploadProductImage();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetProduct, setUploadTargetProduct] = useState<Product | null>(null);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  const filteredProducts = products.filter((p) =>
+const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
   );

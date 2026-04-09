@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useCompany } from '../contexts/CompanyContext';
 import {
   CreditCardIcon,
@@ -75,29 +76,13 @@ const initialNotifications: NotificationSetting[] = [
 
 export function SettingsPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const { profile, updateProfile } = useCompany();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<TabKey>('billing');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.add('theme-transitioning');
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300);
-  };
-
-  const [brandForm, setBrandForm] = useState({
+const [brandForm, setBrandForm] = useState({
     companyName: profile.companyName,
     primaryColor: '#3B82F6',
     secondaryColor: '#1E293B',

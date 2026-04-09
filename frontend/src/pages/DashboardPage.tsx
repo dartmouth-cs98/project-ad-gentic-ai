@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   SparklesIcon,
   TrendingUpIcon,
@@ -53,13 +54,13 @@ const labelClass = 'block text-sm font-medium mb-1.5';
 
 export function DashboardPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const authFlow = localStorage.getItem('adgentic_auth_flow');
   const isReturningUser = authFlow === 'signin';
   const userName = localStorage.getItem('adgentic_last_name');
   const firstName = userName ? userName.split(' ')[0] : 'there';
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [timeRange, setTimeRange] = useState('30d');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isAutofilling, setIsAutofilling] = useState(false);
@@ -73,21 +74,7 @@ export function DashboardPage() {
     platforms: [] as string[],
     region: '',
   });
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  const togglePlatform = (platformId: string) => {
+const togglePlatform = (platformId: string) => {
     setNewCampaign({
       ...newCampaign,
       platforms: newCampaign.platforms.includes(platformId)

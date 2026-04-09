@@ -30,12 +30,14 @@ import { CompanyProvider } from './contexts/CompanyContext';
 import { ConsumerProvider } from './contexts/ConsumerContext';
 import { PersonasProvider } from './contexts/PersonasContext';
 import { SidebarProvider } from './contexts/SidebarContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const queryClient = new QueryClient();
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <UserProvider>
         <CompanyProvider>
           <ConsumerProvider>
@@ -72,6 +74,7 @@ export function App() {
           </ConsumerProvider>
         </CompanyProvider>
       </UserProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Sidebar } from '../components/layout/Sidebar';
 import { ChatPanel, ResultsPanel } from '../components/generate';
 import type { Phase, Version } from '../components/generate';
@@ -74,6 +75,7 @@ function buildVersionsFromVariants(variants: AdVariant[]): Version[] {
 export function GenerateAdsPage() {
   const { profile } = useCompany();
   const { user } = useUser();
+  const { theme, toggleTheme } = useTheme();
   const businessClientId = user?.client_id;
 
   // ─── Data hooks ──────────────────────────────────────────────
@@ -177,21 +179,8 @@ export function GenerateAdsPage() {
     containerRef: splitContainerRef,
   });
 
-  // ─── Theme ──────────────────────────────────────────────────
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  useEffect(() => {
-    const saved = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(saved);
-    document.documentElement.classList.toggle('dark', saved === 'dark');
-  }, []);
-  const toggleTheme = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
-    localStorage.setItem('theme', next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-  };
 
-  // ─── Layout state ─────────────────────────────────────────────
+// ─── Layout state ─────────────────────────────────────────────
   // Show split layout when generating, viewing results, OR when variants exist
   const showSplit = phase !== 'idle' || hasVariants;
   const sidebarCollapsed = showSplit && !sidebarManualExpand;

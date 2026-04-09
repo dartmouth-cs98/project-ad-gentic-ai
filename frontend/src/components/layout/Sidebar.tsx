@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { Logo } from '../ui/Logo';
-import { useState, useEffect } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   LayoutDashboardIcon,
   FolderIcon,
@@ -34,22 +34,8 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
   const location = useLocation();
   const sidebar = useSidebar();
   const { profile } = useCompany();
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.add('theme-transitioning');
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300);
-  };
-
+  const { theme, toggleTheme } = useTheme();
   const collapsed = controlledCollapsed ?? sidebar.collapsed;
   const setCollapsed = (value: boolean) => {
     if (controlledCollapsed !== undefined) {

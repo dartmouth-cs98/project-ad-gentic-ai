@@ -1,7 +1,8 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import { useConsumerContext } from '../contexts/ConsumerContext';
 import { usePersonasContext } from '../contexts/PersonasContext';
@@ -93,23 +94,12 @@ function renderTraits(traits: Record<string, unknown> | null) {
 
 export function CustomerDataPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const { consumers, loading: consumersLoading, error: consumersError, uploadCsv, refetch } = useConsumerContext();
   const { personas, personasLoading } = usePersonasContext();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  useEffect(() => {
-    const saved = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(saved);
-    document.documentElement.classList.toggle('dark', saved === 'dark');
-  }, []);
-  const toggleTheme = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
-    localStorage.setItem('theme', next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-  };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadResult, setUploadResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);

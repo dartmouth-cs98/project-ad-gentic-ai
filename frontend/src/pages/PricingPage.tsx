@@ -1,28 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/ui/Logo';
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, Sun, Moon, Menu, X } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function PricingPage() {
+  const { theme, toggleTheme } = useTheme();
   const [isAnnual, setIsAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.add('theme-transitioning');
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300);
-  };
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);

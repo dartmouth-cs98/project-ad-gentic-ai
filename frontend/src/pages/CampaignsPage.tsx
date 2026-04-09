@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import {
   LayoutGridIcon,
@@ -21,6 +21,7 @@ import type { CampaignItem } from '../components/campaigns/CampaignGridCard';
 
 import { useUser } from '../contexts/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
 import type { Campaign } from '../types';
 
@@ -69,6 +70,7 @@ function campaignToItem(c: Campaign): CampaignItem {
 
 export function CampaignsPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const { user } = useUser();
   const businessClientId = user?.client_id;
 
@@ -78,7 +80,6 @@ export function CampaignsPage() {
 
   const campaigns = rawCampaigns.map(campaignToItem);
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -89,21 +90,7 @@ export function CampaignsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<{ id: number; name: string } | null>(null);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  // ---------- Filter helpers ----------
+// ---------- Filter helpers ----------
 
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms((prev) =>

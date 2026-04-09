@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { useConsumerContext } from '../contexts/ConsumerContext';
 import { usePersonasContext } from '../contexts/PersonasContext';
 import type { Consumer, Persona } from '../types';
+import { CLIENT_ID_KEY } from '../api/config';
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 const PERSONA_COLORS = [
@@ -151,6 +152,8 @@ export function CustomerDataPage() {
     return ids.size;
   }, [consumers]);
 
+  const hasPersonaAssignments = activeSegments > 0;
+
   const topPersona = useMemo(() => {
     if (!personas.length || !consumers.length) return null;
     let topId: string | null = null;
@@ -167,7 +170,9 @@ export function CustomerDataPage() {
 
   const lastUploadInfo = useMemo(() => {
     try {
-      const raw = localStorage.getItem('adgentic_last_upload');
+      const clientId = localStorage.getItem(CLIENT_ID_KEY);
+      if (!clientId) return null;
+      const raw = localStorage.getItem(`adgentic_last_upload_${clientId}`);
       if (raw) return JSON.parse(raw) as { filename: string; date: string };
     } catch { /* ignore */ }
     if (consumers.length > 0) {
@@ -182,7 +187,8 @@ export function CustomerDataPage() {
 
   const circumference = 2 * Math.PI * 40;
   const donutSegments = useMemo(() => {
-    const total = consumers.length || 1;
+    if (!hasPersonaAssignments) return [];
+    const total = consumers.length;
     let cumulative = 0;
     return personas.map((p, i) => {
       const count = personaStats[p.id]?.primary ?? 0;
@@ -197,7 +203,7 @@ export function CustomerDataPage() {
         color: PERSONA_COLORS[i % PERSONA_COLORS.length].stroke,
       };
     });
-  }, [personas, personaStats, consumers.length, circumference]);
+  }, [personas, personaStats, consumers.length, circumference, hasPersonaAssignments]);
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const handleDrop = (e: React.DragEvent) => {
@@ -217,7 +223,9 @@ export function CustomerDataPage() {
     setUploadResult(null);
     uploadCsv.mutate(file, {
       onSuccess: (data) => {
-        localStorage.setItem('adgentic_last_upload', JSON.stringify({
+        const clientId = localStorage.getItem(CLIENT_ID_KEY);
+        const key = clientId ? `adgentic_last_upload_${clientId}` : 'adgentic_last_upload';
+        localStorage.setItem(key, JSON.stringify({
           filename: file.name,
           date: new Date().toISOString(),
         }));

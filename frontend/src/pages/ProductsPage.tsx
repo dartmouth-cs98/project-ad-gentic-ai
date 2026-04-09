@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import {
   PlusIcon,
@@ -17,6 +17,7 @@ import {
 
 import { useUser } from '../contexts/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   useProducts,
   useCreateProduct,
@@ -66,7 +67,7 @@ function ProductCard({ product, onDelete, onUploadImage }: {
             )}
           </div>
           {product.image_url && (
-            <span className="flex-shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium rounded">
+            <span className="flex-shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-medium rounded">
               Image
             </span>
           )}
@@ -77,7 +78,7 @@ function ProductCard({ product, onDelete, onUploadImage }: {
             href={product.product_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+            className="inline-flex items-center gap-1 text-xs text-blue-500 hover:underline mt-2"
           >
             <ExternalLinkIcon className="w-3 h-3" />
             Product link
@@ -215,6 +216,7 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
 
 export function ProductsPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const { user } = useUser();
   const businessClientId = user?.client_id;
 
@@ -222,28 +224,13 @@ export function ProductsPage() {
   const deleteMutation = useDeleteProduct();
   const uploadMutation = useUploadProductImage();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetProduct, setUploadTargetProduct] = useState<Product | null>(null);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  const filteredProducts = products.filter((p) =>
+const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
   );
@@ -286,7 +273,7 @@ export function ProductsPage() {
               <PlusIcon className="w-4 h-4" />
               Add Product
             </button>
-            <button onClick={toggleTheme} className="p-2 border border-border rounded-lg hover:bg-muted transition-colors" aria-label="Toggle theme">
+            <button onClick={toggleTheme} className="p-2 bg-muted rounded-lg hover:bg-border transition-colors" aria-label="Toggle theme">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
@@ -306,7 +293,7 @@ export function ProductsPage() {
 
         {/* Upload status banner */}
         {uploadMutation.isPending && (
-          <div className="mb-4 flex items-center gap-2 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3 text-sm text-blue-600 dark:text-blue-400">
+          <div className="mb-4 flex items-center gap-2 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3 text-sm text-blue-500">
             <Loader2Icon className="w-4 h-4 animate-spin" />
             Uploading image for {uploadTargetProduct?.name}...
           </div>

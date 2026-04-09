@@ -8,6 +8,7 @@ function ScrollToTop() {
 }
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LandingPage } from './pages/LandingPage';
+import { SimpleLanding } from './pages/SimpleLanding';
 import { SignUpPage } from './pages/SignUpPage';
 import { SignInPage } from './pages/SignInPage';
 import { OnboardingPage } from './pages/OnboardingPage';
@@ -29,12 +30,14 @@ import { CompanyProvider } from './contexts/CompanyContext';
 import { ConsumerProvider } from './contexts/ConsumerContext';
 import { PersonasProvider } from './contexts/PersonasContext';
 import { SidebarProvider } from './contexts/SidebarContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const queryClient = new QueryClient();
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <UserProvider>
         <CompanyProvider>
           <ConsumerProvider>
@@ -43,7 +46,8 @@ export function App() {
               <HashRouter>
               <ScrollToTop />
               <Routes>
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<SimpleLanding />} />
+                <Route path="/old-landing" element={<LandingPage />} />
                 <Route path="/sign-up" element={<SignUpPage />} />
                 <Route path="/sign-in" element={<SignInPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
@@ -70,6 +74,7 @@ export function App() {
           </ConsumerProvider>
         </CompanyProvider>
       </UserProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

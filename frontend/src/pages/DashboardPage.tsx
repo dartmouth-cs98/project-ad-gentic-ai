@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   SparklesIcon,
   TrendingUpIcon,
@@ -53,13 +54,13 @@ const labelClass = 'block text-sm font-medium mb-1.5';
 
 export function DashboardPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const authFlow = localStorage.getItem('adgentic_auth_flow');
   const isReturningUser = authFlow === 'signin';
   const userName = localStorage.getItem('adgentic_last_name');
   const firstName = userName ? userName.split(' ')[0] : 'there';
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [timeRange, setTimeRange] = useState('30d');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isAutofilling, setIsAutofilling] = useState(false);
@@ -73,21 +74,7 @@ export function DashboardPage() {
     platforms: [] as string[],
     region: '',
   });
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  const togglePlatform = (platformId: string) => {
+const togglePlatform = (platformId: string) => {
     setNewCampaign({
       ...newCampaign,
       platforms: newCampaign.platforms.includes(platformId)
@@ -151,7 +138,7 @@ export function DashboardPage() {
             </button>
             <button
               onClick={toggleTheme}
-              className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -196,7 +183,7 @@ export function DashboardPage() {
                         <p className="text-sm font-medium leading-snug">{activity.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{activity.text}</p>
                         <div className="flex items-center justify-between mt-2">
-                          <Link to={activity.linkTo} className="inline-flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                          <Link to={activity.linkTo} className="inline-flex items-center gap-0.5 text-xs text-blue-500 hover:underline font-medium">
                             View <ArrowUpRightIcon className="w-3 h-3" />
                           </Link>
                           <span className="text-xs text-muted-foreground">{activity.time}</span>
@@ -229,7 +216,7 @@ export function DashboardPage() {
                           <p className="text-base font-semibold tracking-tight">{campaign.metricValue}</p>
                           <p className="text-xs text-muted-foreground">{campaign.metricLabel}</p>
                         </div>
-                        <span className={`text-xs font-medium ${campaign.trend === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                        <span className={`text-xs font-medium ${campaign.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
                           {campaign.trendValue}
                         </span>
                         <ArrowRightIcon className="w-4 h-4 text-muted-foreground" />
@@ -260,7 +247,7 @@ export function DashboardPage() {
                     <p className="text-3xl font-semibold text-muted-foreground/20 mb-4 tracking-tight">{step}</p>
                     <h3 className="font-medium mb-1.5">{title}</h3>
                     <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{desc}</p>
-                    <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:gap-2 transition-all">
+                    <span className="inline-flex items-center gap-1 text-sm text-blue-500 font-medium group-hover:gap-2 transition-all">
                       {label} <ArrowRightIcon className="w-3.5 h-3.5" />
                     </span>
                   </div>

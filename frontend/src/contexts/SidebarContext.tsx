@@ -8,9 +8,7 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsedState] = useState(
-    () => localStorage.getItem('sidebar-collapsed') === 'true',
-  );
+  const [collapsed, setCollapsedState] = useState(false);
 
   const setCollapsed = (value: boolean) => {
     setCollapsedState(value);

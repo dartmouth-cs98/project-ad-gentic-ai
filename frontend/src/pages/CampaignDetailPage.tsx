@@ -91,16 +91,16 @@ function AttachedProducts({ products }: { products: Product[] }) {
                 className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                <PackageIcon className="w-5 h-5 text-slate-400" />
+              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                <PackageIcon className="w-5 h-5 text-muted-foreground" />
               </div>
             )}
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-slate-900 truncate">
+              <h3 className="text-sm font-semibold text-foreground truncate">
                 {product.name}
               </h3>
               {product.description && (
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                   {product.description}
                 </p>
               )}
@@ -185,10 +185,10 @@ export function CampaignDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen bg-background">
         <Sidebar />
         <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 flex items-center justify-center`}>
-          <div className="flex flex-col items-center text-slate-400">
+          <div className="flex flex-col items-center text-muted-foreground">
             <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
             <p className="text-sm">Loading campaign...</p>
           </div>
@@ -201,17 +201,17 @@ export function CampaignDetailPage() {
 
   if (isError || !campaign) {
     return (
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen bg-background">
         <Sidebar />
         <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 flex items-center justify-center`}>
           <div className="flex flex-col items-center text-center">
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
               <AlertCircleIcon className="w-7 h-7 text-red-500" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">
+            <h2 className="text-lg font-semibold text-foreground mb-1">
               Campaign not found
             </h2>
-            <p className="text-sm text-slate-500 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               {(error as Error)?.message}
             </p>
             <Link to="/campaigns" className="text-blue-600 text-sm hover:underline">
@@ -253,7 +253,7 @@ export function CampaignDetailPage() {
   // ---------- Render ----------
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
 
       <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
@@ -261,7 +261,7 @@ export function CampaignDetailPage() {
         <div className="mb-8">
           <Link
             to="/campaigns"
-            className="inline-flex items-center text-sm text-slate-500 hover:text-slate-900 mb-4"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-1" />
             Back to Campaigns
@@ -270,14 +270,14 @@ export function CampaignDetailPage() {
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-slate-900">
+                <h1 className="text-2xl font-bold text-foreground">
                   {campaign.name}
                 </h1>
                 <Badge variant={statusVariant}>
                   {campaign.status}
                 </Badge>
               </div>
-              <p className="text-slate-500">
+              <p className="text-muted-foreground">
                 Created on{' '}
                 {new Date(campaign.created_at).toLocaleDateString('en-US', {
                   month: 'long',
@@ -316,8 +316,8 @@ export function CampaignDetailPage() {
                 +12%
               </span>
             </div>
-            <p className="text-2xl font-bold text-slate-900">124.5K</p>
-            <p className="text-sm text-slate-500">Total Reach</p>
+            <p className="text-2xl font-bold text-foreground">124.5K</p>
+            <p className="text-sm text-muted-foreground">Total Reach</p>
           </Card>
 
           <Card variant="elevated" padding="md">
@@ -329,8 +329,8 @@ export function CampaignDetailPage() {
                 +5.2%
               </span>
             </div>
-            <p className="text-2xl font-bold text-slate-900">4.2%</p>
-            <p className="text-sm text-slate-500">Click Rate (CTR)</p>
+            <p className="text-2xl font-bold text-foreground">4.2%</p>
+            <p className="text-sm text-muted-foreground">Click Rate (CTR)</p>
           </Card>
 
           <Card variant="elevated" padding="md">
@@ -342,8 +342,8 @@ export function CampaignDetailPage() {
                 +8.4%
               </span>
             </div>
-            <p className="text-2xl font-bold text-slate-900">$1.24</p>
-            <p className="text-sm text-slate-500">Cost Per Click</p>
+            <p className="text-2xl font-bold text-foreground">$1.24</p>
+            <p className="text-sm text-muted-foreground">Cost Per Click</p>
           </Card>
 
           <Card variant="elevated" padding="md">
@@ -351,17 +351,17 @@ export function CampaignDetailPage() {
               <div className="p-2 bg-amber-100 rounded-lg">
                 <GlobeIcon className="w-5 h-5 text-amber-600" />
               </div>
-              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
                 Global
               </span>
             </div>
-            <p className="text-2xl font-bold text-slate-900">4</p>
-            <p className="text-sm text-slate-500">Active Regions</p>
+            <p className="text-2xl font-bold text-foreground">4</p>
+            <p className="text-sm text-muted-foreground">Active Regions</p>
           </Card>
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-slate-200">
+        <div className="mb-6 border-b border-border">
           <div className="flex gap-8">
             {tabs.map((tab) => (
               <button
@@ -370,7 +370,7 @@ export function CampaignDetailPage() {
                 className={`pb-4 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.key
                     ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {tab.label}
@@ -383,7 +383,7 @@ export function CampaignDetailPage() {
         {activeTab === 'variants' && (
           <>
             {isVariantsLoading && (
-              <div className="flex items-center justify-center py-14 text-slate-400">
+              <div className="flex items-center justify-center py-14 text-muted-foreground">
                 <Loader2Icon className="w-6 h-6 animate-spin mr-2" />
                 <span className="text-sm">Loading ad variants...</span>
               </div>
@@ -398,14 +398,14 @@ export function CampaignDetailPage() {
             {!isVariantsLoading && !isVariantsError && approvedVariants.length === 0 && (
               <Card variant="elevated" padding="lg">
                 <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <PackageIcon className="w-6 h-6 text-slate-500" />
+                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                    <PackageIcon className="w-6 h-6 text-muted-foreground" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">
+                    <h2 className="text-lg font-semibold text-foreground">
                       No approved ad variants yet
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       Approve a plan in the Generate flow to create variants for this campaign.
                       Once created and approved, they will appear here.
                     </p>
@@ -413,18 +413,18 @@ export function CampaignDetailPage() {
                 </div>
 
                 <div className="mb-3">
-                  <h3 className="text-sm font-semibold text-slate-900">Attached products</h3>
+                  <h3 className="text-sm font-semibold text-foreground">Attached products</h3>
                 </div>
 
                 {isProductsLoading ? (
-                  <div className="flex items-center text-sm text-slate-500">
+                  <div className="flex items-center text-sm text-muted-foreground">
                     <Loader2Icon className="w-4 h-4 animate-spin mr-2" />
                     Loading products...
                   </div>
                 ) : attachedProducts.length > 0 ? (
                   <AttachedProducts products={attachedProducts} />
                 ) : (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <div className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
                     {productContextText
                       ? `Attached product context: ${productContextText}`
                       : 'No attached products were found for this campaign.'}

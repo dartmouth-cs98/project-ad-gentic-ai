@@ -1,7 +1,8 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import { useConsumerContext } from '../contexts/ConsumerContext';
 import { usePersonasContext } from '../contexts/PersonasContext';
@@ -10,12 +11,12 @@ import { CLIENT_ID_KEY } from '../api/config';
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 const PERSONA_COLORS = [
-  { stroke: '#0ea5e9', dot: 'bg-sky-500',     bg: 'bg-sky-500/10',     text: 'text-sky-600 dark:text-sky-400'     },
-  { stroke: '#f97316', dot: 'bg-orange-500',  bg: 'bg-orange-500/10',  text: 'text-orange-600 dark:text-orange-400'  },
-  { stroke: '#8b5cf6', dot: 'bg-violet-500',  bg: 'bg-violet-500/10',  text: 'text-violet-600 dark:text-violet-400'  },
+  { stroke: '#0ea5e9', dot: 'bg-sky-500',     bg: 'bg-sky-500/10',     text: 'text-sky-500'     },
+  { stroke: '#f97316', dot: 'bg-orange-500',  bg: 'bg-orange-500/10',  text: 'text-orange-500'  },
+  { stroke: '#8b5cf6', dot: 'bg-violet-500',  bg: 'bg-violet-500/10',  text: 'text-violet-500'  },
   { stroke: '#94a3b8', dot: 'bg-muted-foreground', bg: 'bg-muted',     text: 'text-muted-foreground'   },
-  { stroke: '#10b981', dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400' },
-  { stroke: '#ec4899', dot: 'bg-pink-500',    bg: 'bg-pink-500/10',    text: 'text-pink-600 dark:text-pink-400'    },
+  { stroke: '#10b981', dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500' },
+  { stroke: '#ec4899', dot: 'bg-pink-500',    bg: 'bg-pink-500/10',    text: 'text-pink-500'    },
 ];
 function getColor(index: number) {
   return PERSONA_COLORS[index % PERSONA_COLORS.length];
@@ -72,7 +73,7 @@ function renderTraits(traits: Record<string, unknown> | null) {
           </span>
         ))}
         {remainingCount > 0 && (
-          <span className="text-[9px] text-blue-600 dark:text-blue-400 font-medium self-center ml-0.5 whitespace-nowrap bg-blue-600/10 px-1 rounded border border-blue-600/20">
+          <span className="text-[9px] text-blue-500 font-medium self-center ml-0.5 whitespace-nowrap bg-blue-600/10 px-1 rounded border border-blue-600/20">
             +{remainingCount}
           </span>
         )}
@@ -94,23 +95,12 @@ function renderTraits(traits: Record<string, unknown> | null) {
 
 export function CustomerDataPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const { consumers, loading: consumersLoading, error: consumersError, uploadCsv, refetch } = useConsumerContext();
   const { personas, personasLoading } = usePersonasContext();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  useEffect(() => {
-    const saved = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(saved);
-    document.documentElement.classList.toggle('dark', saved === 'dark');
-  }, []);
-  const toggleTheme = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
-    localStorage.setItem('theme', next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-  };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadResult, setUploadResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
@@ -262,7 +252,7 @@ export function CustomerDataPage() {
               >
                 Upload New Data
               </button>
-              <button onClick={toggleTheme} className="p-2 border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground" aria-label="Toggle theme">
+              <button onClick={toggleTheme} className="p-2 bg-muted rounded-lg hover:bg-border transition-colors text-muted-foreground" aria-label="Toggle theme">
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
             </div>
@@ -439,7 +429,7 @@ export function CustomerDataPage() {
                 {/* Recent Consumers */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Recent Consumers</h3>
-                  <Link to="/all-consumers" className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                  <Link to="/all-consumers" className="text-sm text-blue-500 hover:underline font-medium">
                     View All →
                   </Link>
                 </div>
@@ -475,7 +465,7 @@ export function CustomerDataPage() {
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <span className="text-xs text-muted-foreground">{formatRelativeDate(consumer.created_at)}</span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium">Active</span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">Active</span>
                         </div>
                       </div>
                     ))

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { Logo } from '../ui/Logo';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   LayoutDashboardIcon,
   FolderIcon,
@@ -12,6 +13,8 @@ import {
   LogOutIcon,
   DatabaseIcon,
   SettingsIcon,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 const navItems = [
@@ -32,6 +35,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
   const sidebar = useSidebar();
   const { profile } = useCompany();
 
+  const { theme, toggleTheme } = useTheme();
   const collapsed = controlledCollapsed ?? sidebar.collapsed;
   const setCollapsed = (value: boolean) => {
     if (controlledCollapsed !== undefined) {
@@ -96,8 +100,8 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
         })}
       </nav>
 
-      {/* Settings */}
-      <div className="px-2 pb-2">
+      {/* Settings + Theme */}
+      <div className="px-2 pb-2 space-y-0.5">
         <Link
           to="/settings"
           title={collapsed ? 'Settings' : undefined}
@@ -110,6 +114,14 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
           <SettingsIcon className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span className="text-sm font-medium">Settings</span>}
         </Link>
+        <button
+          onClick={toggleTheme}
+          title={collapsed ? (theme === 'dark' ? 'Light mode' : 'Dark mode') : undefined}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full text-muted-foreground hover:text-foreground hover:bg-muted ${collapsed ? 'justify-center' : ''}`}
+        >
+          {theme === 'dark' ? <Sun className="w-4 h-4 flex-shrink-0" /> : <Moon className="w-4 h-4 flex-shrink-0" />}
+          {!collapsed && <span className="text-sm font-medium">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+        </button>
       </div>
 
       {/* Upgrade CTA */}

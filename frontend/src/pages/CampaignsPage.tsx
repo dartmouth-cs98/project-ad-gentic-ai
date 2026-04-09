@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import {
   LayoutGridIcon,
@@ -21,6 +21,7 @@ import type { CampaignItem } from '../components/campaigns/CampaignGridCard';
 
 import { useUser } from '../contexts/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
 import type { Campaign } from '../types';
 
@@ -69,6 +70,7 @@ function campaignToItem(c: Campaign): CampaignItem {
 
 export function CampaignsPage() {
   const { collapsed } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
   const { user } = useUser();
   const businessClientId = user?.client_id;
 
@@ -78,7 +80,6 @@ export function CampaignsPage() {
 
   const campaigns = rawCampaigns.map(campaignToItem);
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -89,21 +90,7 @@ export function CampaignsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<{ id: number; name: string } | null>(null);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  // ---------- Filter helpers ----------
+// ---------- Filter helpers ----------
 
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms((prev) =>
@@ -222,7 +209,7 @@ export function CampaignsPage() {
             </button>
             <button
               onClick={toggleTheme}
-              className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -233,7 +220,7 @@ export function CampaignsPage() {
         {/* Bulk Actions Bar */}
         {selectedCampaigns.length > 0 && (
           <div className="mb-4 flex items-center gap-3 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3">
-            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+            <span className="text-sm font-medium text-blue-500">
               {selectedCampaigns.length} campaign{selectedCampaigns.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex-1" />

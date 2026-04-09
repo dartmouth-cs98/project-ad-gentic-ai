@@ -38,17 +38,17 @@ export function ProfilePage() {
     setTimeout(() => setShowInviteSuccess(false), 3000);
   };
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
 
       <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-2xl font-bold text-foreground">
                 Company Profile
               </h1>
-              <p className="text-slate-500">
+              <p className="text-muted-foreground">
                 Manage your company identity and team members.
               </p>
             </div>
@@ -84,7 +84,7 @@ export function ProfilePage() {
             {/* Main Company Info */}
             <div className="col-span-2 space-y-8">
               <Card variant="elevated" padding="lg">
-                <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
                   <BuildingIcon className="w-5 h-5 text-blue-500" />
                   Company Identity
                 </h2>
@@ -92,7 +92,7 @@ export function ProfilePage() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      <label className="block text-sm font-medium text-foreground mb-1.5">
                         Company Name
                       </label>
                       {isEditing ?
@@ -106,13 +106,13 @@ export function ProfilePage() {
                           } /> :
 
 
-                        <div className="text-lg font-medium text-slate-900 py-2">
+                        <div className="text-lg font-medium text-foreground py-2">
                           {profile.companyName}
                         </div>
                       }
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      <label className="block text-sm font-medium text-foreground mb-1.5">
                         Industry
                       </label>
                       {isEditing ?
@@ -126,7 +126,7 @@ export function ProfilePage() {
                           } /> :
 
 
-                        <div className="text-lg font-medium text-slate-900 py-2">
+                        <div className="text-lg font-medium text-foreground py-2">
                           {profile.industry}
                         </div>
                       }
@@ -134,7 +134,7 @@ export function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
                       Primary Product
                     </label>
                     {isEditing ?
@@ -148,7 +148,7 @@ export function ProfilePage() {
                         } /> :
 
 
-                      <div className="text-lg font-medium text-slate-900 py-2">
+                      <div className="text-lg font-medium text-foreground py-2">
                         {profile.primaryProduct}
                       </div>
                     }
@@ -159,7 +159,7 @@ export function ProfilePage() {
               {/* Team Members */}
               <Card variant="elevated" padding="lg">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                     <UsersIcon className="w-5 h-5 text-blue-500" />
                     Team Members
                   </h2>
@@ -169,9 +169,9 @@ export function ProfilePage() {
                 {/* Invite Form */}
                 <form
                   onSubmit={handleInvite}
-                  className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-8">
+                  className="bg-background p-4 rounded-xl border border-border mb-8">
 
-                  <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">
                     Invite New Member
                   </h3>
                   <div className="flex gap-3">
@@ -215,9 +215,9 @@ export function ProfilePage() {
                 </form>
 
                 {/* Team Table */}
-                <div className="overflow-hidden rounded-xl border border-slate-200">
+                <div className="overflow-hidden rounded-xl border border-border">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-500">
+                    <thead className="bg-background text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3 font-medium">Name</th>
                         <th className="px-4 py-3 font-medium">Role</th>
@@ -226,7 +226,7 @@ export function ProfilePage() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border">
                       {[
                         {
                           name: profile.userName,
@@ -247,12 +247,12 @@ export function ProfilePage() {
                           isMe: false
                         }].
                         map((member, i) =>
-                          <tr key={i} className="hover:bg-slate-50">
+                          <tr key={i} className="hover:bg-background">
                             <td className="px-4 py-3">
-                              <div className="font-medium text-slate-900">
+                              <div className="font-medium text-foreground">
                                 {member.name} {member.isMe && '(You)'}
                               </div>
-                              <div className="text-xs text-slate-500">
+                              <div className="text-xs text-muted-foreground">
                                 {member.email}
                               </div>
                             </td>
@@ -267,7 +267,7 @@ export function ProfilePage() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               {!member.isMe &&
-                                <button className="text-slate-400 hover:text-red-600 transition-colors">
+                                <button className="text-muted-foreground hover:text-red-600 transition-colors">
                                   <TrashIcon className="w-4 h-4" />
                                 </button>
                               }
@@ -310,7 +310,7 @@ export function ProfilePage() {
               </Card>
 
               <Card variant="elevated" padding="md">
-                <h3 className="font-semibold text-slate-900 mb-4">
+                <h3 className="font-semibold text-foreground mb-4">
                   Quick Actions
                 </h3>
                 <div className="space-y-2">

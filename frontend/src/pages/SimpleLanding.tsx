@@ -78,12 +78,12 @@ export function SimpleLanding() {
               Get Started
             </Link>
             <button onClick={toggleTheme}
-              className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
               aria-label="Toggle theme">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 border border-border rounded-lg hover:bg-muted transition-colors">
+              className="lg:hidden p-2 bg-muted rounded-lg hover:bg-border transition-colors">
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
           </div>

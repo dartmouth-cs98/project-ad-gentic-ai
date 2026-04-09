@@ -286,7 +286,7 @@ export function ProductsPage() {
               <PlusIcon className="w-4 h-4" />
               Add Product
             </button>
-            <button onClick={toggleTheme} className="p-2 border border-border rounded-lg hover:bg-muted transition-colors" aria-label="Toggle theme">
+            <button onClick={toggleTheme} className="p-2 bg-muted rounded-lg hover:bg-border transition-colors" aria-label="Toggle theme">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>

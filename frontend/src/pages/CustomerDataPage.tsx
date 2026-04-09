@@ -254,7 +254,7 @@ export function CustomerDataPage() {
               >
                 Upload New Data
               </button>
-              <button onClick={toggleTheme} className="p-2 border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground" aria-label="Toggle theme">
+              <button onClick={toggleTheme} className="p-2 bg-muted rounded-lg hover:bg-border transition-colors text-muted-foreground" aria-label="Toggle theme">
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
             </div>

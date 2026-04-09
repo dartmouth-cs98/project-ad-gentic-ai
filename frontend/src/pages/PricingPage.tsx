@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/ui/Logo';
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  Sun,
-  Moon,
-} from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, Sun, Moon, Menu, X } from 'lucide-react';
 
 export function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
@@ -24,103 +19,119 @@ export function PricingPage() {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.add('theme-transitioning');
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300);
   };
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
 
+  const navLinks = [
+    { label: 'Features', to: '/features' },
+    { label: 'How It Works', to: '/how-it-works' },
+    { label: 'Pricing', to: '/pricing' },
+    { label: 'Team', to: '/team' },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/">
-              <Logo size="md" />
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
+          <Link to="/"><Logo size="md" /></Link>
+
+          <nav className="hidden lg:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link key={link.label} to={link.to}
+                className={`text-sm transition-colors ${link.label === 'Pricing' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <Link to="/sign-in"
+              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">
+              Sign In
             </Link>
-
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Features
-              </Link>
-              <Link to="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                How It Works
-              </Link>
-              <Link to="/pricing" className="text-sm text-foreground font-medium">
-                Pricing
-              </Link>
-              <Link to="/team" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Team
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Link to="/sign-in">
-                <button className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">
-                  Sign In
-                </button>
-              </Link>
-              <Link to="/sign-up">
-                <button className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  Get Started
-                </button>
-              </Link>
-              <button
-                onClick={toggleTheme}
-                className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-            </div>
+            <Link to="/sign-up"
+              className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Get Started
+            </Link>
+            <button onClick={toggleTheme}
+              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
+              aria-label="Toggle theme">
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 bg-muted rounded-lg hover:bg-border transition-colors">
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
           </div>
         </div>
-      </nav>
 
-      {/* Hero Section */}
-      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 text-center bg-muted">
-        <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">
-          Simple, Transparent Pricing
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-          Start free, upgrade when you are ready to scale.
-        </p>
-
-        {/* Toggle */}
-        <div className="inline-flex items-center bg-muted border border-border rounded-lg p-1 mb-16">
-          <button
-            onClick={() => setIsAnnual(false)}
-            className={`px-5 py-2 text-sm font-medium rounded-md transition-colors ${!isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setIsAnnual(true)}
-            className={`px-5 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            Annual
-            <span className={`text-xs font-semibold ${isAnnual ? 'text-blue-400' : 'text-blue-600'}`}>Save 20%</span>
-          </button>
-        </div>
-
-        {/* Pricing Cards */}
-        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8 text-left">
-          {/* Basic */}
-          <div className="bg-card border border-border rounded-xl p-6 hover:border-foreground/20 transition-colors flex flex-col">
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Basic
-              </h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">Free</span>
-              </div>
-              <p className="text-muted-foreground text-sm mt-2">
-                Perfect for trying out Ad-gentic AI
-              </p>
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-border px-4 sm:px-6 py-4 flex flex-col gap-3 bg-background">
+            {navLinks.map((link) => (
+              <Link key={link.label} to={link.to}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                onClick={() => setMobileMenuOpen(false)}>
+                {link.label}
+              </Link>
+            ))}
+            <div className="flex flex-col gap-2 pt-3 border-t border-border">
+              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded-lg hover:bg-muted transition-colors">Sign In</Link>
+              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</Link>
             </div>
-            <ul className="space-y-4 mb-8 flex-1">
+          </div>
+        )}
+      </header>
+
+      {/* Hero */}
+      <section className="py-20 px-6 border-b border-border relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-3xl mx-auto text-center relative z-10">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight leading-[1.05]">
+            Simple, <span className="text-blue-600">transparent</span> pricing
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10">
+            Start free, upgrade when you're ready to scale.
+          </p>
+
+          {/* Toggle */}
+          <div className="inline-flex items-center bg-card border border-border rounded-xl p-1">
+            <button
+              onClick={() => setIsAnnual(false)}
+              className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors ${!isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+              Monthly
+            </button>
+            <button
+              onClick={() => setIsAnnual(true)}
+              className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+              Annual
+              <span className={`text-xs font-semibold ${isAnnual ? 'text-blue-400' : 'text-blue-600'}`}>Save 20%</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Cards */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 border-b border-border">
+        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
+
+          {/* Basic */}
+          <div className="bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-colors flex flex-col">
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-2">Basic</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold">Free</span>
+              </div>
+              <p className="text-muted-foreground text-sm mt-2">Perfect for trying out Ad-gentic AI</p>
+            </div>
+            <ul className="space-y-3 mb-8 flex-1">
               {[
                 '3 version histories per chat',
                 '20 chats per month',
@@ -136,33 +147,26 @@ export function PricingPage() {
                 </li>
               ))}
             </ul>
-            <Link to="/sign-up" className="block">
-              <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 border border-border rounded-lg text-sm hover:bg-muted transition-colors">
-                Get Started
-              </button>
+            <Link to="/sign-up"
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
+              Get Started
             </Link>
           </div>
 
           {/* Premium */}
-          <div className="bg-card border border-border rounded-xl p-6 hover:border-foreground/20 transition-colors flex flex-col ring-2 ring-blue-600 relative">
+          <div className="bg-card border border-border rounded-xl p-7 flex flex-col ring-2 ring-blue-600 relative">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
               Most Popular
             </div>
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Premium
-              </h3>
+              <h3 className="text-lg font-semibold mb-2">Premium</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
-                  ${isAnnual ? '79' : '99'}
-                </span>
+                <span className="text-4xl font-bold">${isAnnual ? '79' : '99'}</span>
                 <span className="text-muted-foreground">/mo</span>
               </div>
-              <p className="text-muted-foreground text-sm mt-2">
-                For growing businesses ready to scale
-              </p>
+              <p className="text-muted-foreground text-sm mt-2">For growing businesses ready to scale</p>
             </div>
-            <ul className="space-y-4 mb-8 flex-1">
+            <ul className="space-y-3 mb-8 flex-1">
               {[
                 'Everything in Basic',
                 'Unlimited version history',
@@ -181,29 +185,22 @@ export function PricingPage() {
                 </li>
               ))}
             </ul>
-            <Link to="/sign-up" className="block">
-              <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                Start Free Trial
-              </button>
+            <Link to="/sign-up"
+              className="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+              Start Free Trial
             </Link>
           </div>
 
           {/* Enterprise */}
-          <div className="bg-card border border-border rounded-xl p-6 hover:border-foreground/20 transition-colors flex flex-col">
+          <div className="bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-colors flex flex-col">
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Enterprise
-              </h3>
+              <h3 className="text-lg font-semibold mb-2">Enterprise</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
-                  Custom
-                </span>
+                <span className="text-4xl font-bold">Custom</span>
               </div>
-              <p className="text-muted-foreground text-sm mt-2">
-                For large teams with specific needs
-              </p>
+              <p className="text-muted-foreground text-sm mt-2">For large teams with specific needs</p>
             </div>
-            <ul className="space-y-4 mb-8 flex-1">
+            <ul className="space-y-3 mb-8 flex-1">
               {[
                 'Everything in Premium',
                 'Dedicated account manager',
@@ -219,22 +216,22 @@ export function PricingPage() {
                 </li>
               ))}
             </ul>
-            <Link to="/team#contact" className="block">
-              <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 border border-border rounded-lg text-sm hover:bg-muted transition-colors">
-                Contact Sales
-              </button>
+            <Link to="/team#contact"
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
+              Contact Sales
             </Link>
           </div>
+
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-background">
+      {/* FAQ */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 border-b border-border">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-foreground text-center mb-12">
-            Frequently Asked Questions
+          <h2 className="text-3xl font-semibold text-center mb-12">
+            Frequently asked questions
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {[
               {
                 q: 'Can I switch plans anytime?',
@@ -257,19 +254,17 @@ export function PricingPage() {
                 a: 'We offer a 30-day money-back guarantee if you are not satisfied with our service.',
               },
             ].map((faq, i) => (
-              <div key={i} className="border border-border rounded-lg overflow-hidden">
+              <div key={i} className="border border-border rounded-xl overflow-hidden">
                 <button
                   onClick={() => toggleFaq(i)}
-                  className="w-full flex items-center justify-between p-4 text-left bg-card hover:bg-muted transition-colors">
+                  className="w-full flex items-center justify-between p-5 text-left bg-card hover:bg-muted transition-colors">
                   <span className="font-medium text-foreground">{faq.q}</span>
-                  {openFaq === i ? (
-                    <ChevronUpIcon className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
-                  )}
+                  {openFaq === i
+                    ? <ChevronUpIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    : <ChevronDownIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
                 </button>
                 {openFaq === i && (
-                  <div className="p-4 bg-background text-muted-foreground text-sm border-t border-border">
+                  <div className="px-5 py-4 bg-background text-muted-foreground text-sm border-t border-border leading-relaxed">
                     {faq.a}
                   </div>
                 )}
@@ -280,7 +275,7 @@ export function PricingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-10 px-6 border-t border-border">
+      <footer className="py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo size="sm" />
           <div className="flex items-center gap-6 text-sm text-muted-foreground">

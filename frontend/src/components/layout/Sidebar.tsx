@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { Logo } from '../ui/Logo';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboardIcon,
   FolderIcon,
@@ -12,6 +13,8 @@ import {
   LogOutIcon,
   DatabaseIcon,
   SettingsIcon,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 const navItems = [
@@ -31,6 +34,21 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
   const location = useLocation();
   const sidebar = useSidebar();
   const { profile } = useCompany();
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    setTheme(savedTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.add('theme-transitioning');
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300);
+  };
 
   const collapsed = controlledCollapsed ?? sidebar.collapsed;
   const setCollapsed = (value: boolean) => {
@@ -96,8 +114,8 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
         })}
       </nav>
 
-      {/* Settings */}
-      <div className="px-2 pb-2">
+      {/* Settings + Theme */}
+      <div className="px-2 pb-2 space-y-0.5">
         <Link
           to="/settings"
           title={collapsed ? 'Settings' : undefined}
@@ -110,6 +128,14 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
           <SettingsIcon className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span className="text-sm font-medium">Settings</span>}
         </Link>
+        <button
+          onClick={toggleTheme}
+          title={collapsed ? (theme === 'dark' ? 'Light mode' : 'Dark mode') : undefined}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full text-muted-foreground hover:text-foreground hover:bg-muted ${collapsed ? 'justify-center' : ''}`}
+        >
+          {theme === 'dark' ? <Sun className="w-4 h-4 flex-shrink-0" /> : <Moon className="w-4 h-4 flex-shrink-0" />}
+          {!collapsed && <span className="text-sm font-medium">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+        </button>
       </div>
 
       {/* Upgrade CTA */}

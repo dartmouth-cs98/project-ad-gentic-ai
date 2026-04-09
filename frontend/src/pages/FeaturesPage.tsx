@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/ui/Logo';
-import { Sun, Moon, CheckIcon } from 'lucide-react';
+import { Sun, Moon, CheckIcon, Menu, X, ArrowRight } from 'lucide-react';
 
 export function FeaturesPage() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
@@ -16,48 +17,79 @@ export function FeaturesPage() {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.add('theme-transitioning');
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300);
   };
+
+  const navLinks = [
+    { label: 'Features', to: '/features' },
+    { label: 'How It Works', to: '/how-it-works' },
+    { label: 'Pricing', to: '/pricing' },
+    { label: 'Team', to: '/team' },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/"><Logo size="md" /></Link>
 
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/features" className="text-sm text-foreground font-medium">Features</Link>
-              <Link to="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
-              <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-              <Link to="/team" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Team</Link>
-            </div>
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
+          <Link to="/"><Logo size="md" /></Link>
 
-            <div className="flex items-center gap-3">
-              <Link to="/sign-in">
-                <button className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">Sign In</button>
+          <nav className="hidden lg:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link key={link.label} to={link.to}
+                className={`text-sm transition-colors ${link.label === 'Features' ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+                {link.label}
               </Link>
-              <Link to="/sign-up">
-                <button className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</button>
-              </Link>
-              <button
-                onClick={toggleTheme}
-                className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-            </div>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <Link to="/sign-in"
+              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">
+              Sign In
+            </Link>
+            <Link to="/sign-up"
+              className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Get Started
+            </Link>
+            <button onClick={toggleTheme}
+              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
+              aria-label="Toggle theme">
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 bg-muted rounded-lg hover:bg-border transition-colors">
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
           </div>
         </div>
-      </nav>
+
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-border px-4 sm:px-6 py-4 flex flex-col gap-3 bg-background">
+            {navLinks.map((link) => (
+              <Link key={link.label} to={link.to}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                onClick={() => setMobileMenuOpen(false)}>
+                {link.label}
+              </Link>
+            ))}
+            <div className="flex flex-col gap-2 pt-3 border-t border-border">
+              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded-lg hover:bg-muted transition-colors">Sign In</Link>
+              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</Link>
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* Hero */}
-      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 bg-muted border-b border-border">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl font-semibold mb-4 tracking-tight">
-            What Ad-gentic does
+      <section className="py-20 px-6 border-b border-border relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-3xl mx-auto text-center relative z-10">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight leading-[1.05]">
+            What Ad-gentic <span className="text-blue-600">does</span>
           </h1>
           <p className="text-lg text-muted-foreground">
             From customer data to live campaigns — here's how the platform works.
@@ -100,7 +132,7 @@ export function FeaturesPage() {
                   { label: 'Brand Loyalists', sub: 'Value trust & reputation', match: '85%' },
                   { label: 'Researchers', sub: 'Need details & comparisons', match: '92%' },
                 ].map(({ label, sub, match }, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-muted rounded-lg border border-border">
+                  <div key={i} className="flex items-center justify-between p-4 bg-muted rounded-xl border border-border">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center text-foreground font-semibold text-sm">
                         {label[0]}
@@ -120,11 +152,11 @@ export function FeaturesPage() {
       </section>
 
       {/* Feature 2: Publish Everywhere */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted border-b border-border">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30 border-b border-border">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
-              <div className="bg-muted border border-border rounded-xl p-6">
+              <div className="bg-card border border-border rounded-xl p-6">
                 <p className="text-xs text-muted-foreground mb-4 font-medium uppercase tracking-wide">Your ad, formatted for every platform</p>
                 <div className="space-y-2">
                   {[
@@ -133,7 +165,7 @@ export function FeaturesPage() {
                     { name: 'Google', formats: '16:9 · banner · responsive' },
                     { name: 'YouTube', formats: '16:9 · bumper · skippable' },
                   ].map(({ name, formats }, i) => (
-                    <div key={i} className="flex items-center justify-between px-4 py-3 bg-background rounded-lg border border-border">
+                    <div key={i} className="flex items-center justify-between px-4 py-3 bg-background rounded-xl border border-border">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-blue-600" />
                         <span className="text-sm font-medium text-foreground">{name}</span>
@@ -189,7 +221,7 @@ export function FeaturesPage() {
               <ul className="space-y-4">
                 {[
                   'Review every ad before it publishes',
-                  'Flag anything that doesn\'t fit your brand voice',
+                  "Flag anything that doesn't fit your brand voice",
                   'Built-in quality scoring to surface the best variations first',
                   'Full edit access before and after approval',
                 ].map((item, i) => (
@@ -212,7 +244,7 @@ export function FeaturesPage() {
                   </span>
                 </div>
                 {/* Social ad mockup */}
-                <div className="rounded-lg mb-5 overflow-hidden border border-border bg-card text-xs">
+                <div className="rounded-xl mb-5 overflow-hidden border border-border bg-card text-xs">
                   {/* Brand bar */}
                   <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
                     <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-[9px]">A</div>
@@ -238,10 +270,10 @@ export function FeaturesPage() {
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <button className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                  <button className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
                     Approve
                   </button>
-                  <button className="flex-1 py-2.5 border border-border rounded-lg text-sm hover:bg-background transition-colors">
+                  <button className="flex-1 py-2.5 border border-border rounded-xl text-sm hover:bg-background transition-colors">
                     Request changes
                   </button>
                 </div>
@@ -252,20 +284,38 @@ export function FeaturesPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-6 text-center bg-muted">
-        <div className="max-w-xl mx-auto">
-          <h2 className="text-3xl font-semibold mb-4">Ready to see it in action?</h2>
-          <p className="text-muted-foreground mb-8">Join 500+ brands using Ad-gentic to run smarter campaigns.</p>
-          <Link to="/sign-up">
-            <button className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-              Get started free
-            </button>
-          </Link>
+      <section className="py-24 px-6 border-b border-border">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7">
+              <h2 className="text-3xl font-semibold mb-4">Ready to see it in action?</h2>
+              <p className="text-muted-foreground mb-8 max-w-md leading-relaxed">
+                Join 500+ brands using Ad-gentic to run smarter campaigns.
+              </p>
+              <Link to="/sign-up"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                Get started free
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="lg:col-span-5 flex flex-col gap-3">
+              {[
+                'No credit card required',
+                'Free 14-day trial — full access',
+                'Cancel anytime, no lock-in',
+              ].map((text, i) => (
+                <div key={i} className="flex items-center gap-3 p-4 bg-card border border-border rounded-xl hover:border-foreground/20 transition-colors">
+                  <CheckIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm text-muted-foreground">{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-10 px-6 border-t border-border">
+      <footer className="py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo size="sm" />
           <div className="flex items-center gap-6 text-sm text-muted-foreground">

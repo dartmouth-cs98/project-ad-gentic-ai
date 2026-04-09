@@ -196,7 +196,7 @@ export function DashboardPage() {
                         <p className="text-sm font-medium leading-snug">{activity.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{activity.text}</p>
                         <div className="flex items-center justify-between mt-2">
-                          <Link to={activity.linkTo} className="inline-flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                          <Link to={activity.linkTo} className="inline-flex items-center gap-0.5 text-xs text-blue-500 hover:underline font-medium">
                             View <ArrowUpRightIcon className="w-3 h-3" />
                           </Link>
                           <span className="text-xs text-muted-foreground">{activity.time}</span>
@@ -229,7 +229,7 @@ export function DashboardPage() {
                           <p className="text-base font-semibold tracking-tight">{campaign.metricValue}</p>
                           <p className="text-xs text-muted-foreground">{campaign.metricLabel}</p>
                         </div>
-                        <span className={`text-xs font-medium ${campaign.trend === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                        <span className={`text-xs font-medium ${campaign.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
                           {campaign.trendValue}
                         </span>
                         <ArrowRightIcon className="w-4 h-4 text-muted-foreground" />
@@ -260,7 +260,7 @@ export function DashboardPage() {
                     <p className="text-3xl font-semibold text-muted-foreground/20 mb-4 tracking-tight">{step}</p>
                     <h3 className="font-medium mb-1.5">{title}</h3>
                     <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{desc}</p>
-                    <span className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 font-medium group-hover:gap-2 transition-all">
+                    <span className="inline-flex items-center gap-1 text-sm text-blue-500 font-medium group-hover:gap-2 transition-all">
                       {label} <ArrowRightIcon className="w-3.5 h-3.5" />
                     </span>
                   </div>

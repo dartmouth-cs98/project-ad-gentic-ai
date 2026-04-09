@@ -233,7 +233,7 @@ export function CampaignsPage() {
         {/* Bulk Actions Bar */}
         {selectedCampaigns.length > 0 && (
           <div className="mb-4 flex items-center gap-3 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3">
-            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+            <span className="text-sm font-medium text-blue-500">
               {selectedCampaigns.length} campaign{selectedCampaigns.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex-1" />

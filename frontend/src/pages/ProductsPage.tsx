@@ -66,7 +66,7 @@ function ProductCard({ product, onDelete, onUploadImage }: {
             )}
           </div>
           {product.image_url && (
-            <span className="flex-shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium rounded">
+            <span className="flex-shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-medium rounded">
               Image
             </span>
           )}
@@ -77,7 +77,7 @@ function ProductCard({ product, onDelete, onUploadImage }: {
             href={product.product_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+            className="inline-flex items-center gap-1 text-xs text-blue-500 hover:underline mt-2"
           >
             <ExternalLinkIcon className="w-3 h-3" />
             Product link
@@ -306,7 +306,7 @@ export function ProductsPage() {
 
         {/* Upload status banner */}
         {uploadMutation.isPending && (
-          <div className="mb-4 flex items-center gap-2 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3 text-sm text-blue-600 dark:text-blue-400">
+          <div className="mb-4 flex items-center gap-2 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3 text-sm text-blue-500">
             <Loader2Icon className="w-4 h-4 animate-spin" />
             Uploading image for {uploadTargetProduct?.name}...
           </div>

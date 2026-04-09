@@ -28,6 +28,7 @@ from schemas.ad_job import AdJobCreate
 from schemas.ad_job_batch import AdJobBatchCreate
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video
+from workers.script_moderation_worker.worker import evaluate_script
 from azure.storage.blob import BlobClient, ContentSettings
 
 load_dotenv()
@@ -135,6 +136,16 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         script = await generate_ad_script(
             product_name, product_description, product_image_data_url, consumer_traits_string, campaign_brief
         )
+        verdict = await evaluate_script(script)
+        if not verdict.passed:
+            script = await generate_ad_script(
+                product_name,
+                product_description,
+                product_image_data_url,
+                consumer_traits_string,
+                campaign_brief,
+                moderation_feedback=verdict.feedback,
+            )
         update_ad_variant(db, ad_variant_id, AdVariantUpdate(meta=json.dumps({"script": script})))
         logger.info("Finished generating ad script")
 

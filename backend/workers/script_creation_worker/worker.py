@@ -45,12 +45,22 @@ def _build_script_prompt(
     Remember: Every second matters. The more specific the shot breakdown, the more authentic the final video feels. No text overlays ever. All dialogue must finish by the 8-second mark (can trail off naturally)."""
 
 
+def _moderation_revision_suffix(moderation_feedback: str) -> str:
+    return f"""
+
+IMPORTANT — a previous draft failed content review. Write a complete replacement script that fixes ALL of the following while keeping the same 8-second, frame-by-frame structure and creative spirit:
+{moderation_feedback}
+
+Output only the new script; do not include meta-commentary about the review."""
+
+
 async def generate_ad_script(
     product_name: str,
     product_description: str,
     product_image_data_url: str,
     consumer_traits_string: str,
     campaign_brief: str = "",
+    moderation_feedback: str = "",
 ) -> str:
     api_key = os.getenv("SCRIPT_API_KEY", "").strip()
     model = os.getenv("SCRIPT_MODEL", "").strip()
@@ -58,7 +68,8 @@ async def generate_ad_script(
     script_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
     prompt = _build_script_prompt(product_name, product_description, consumer_traits_string, campaign_brief)
-
+    if moderation_feedback:
+        prompt += _moderation_revision_suffix(moderation_feedback)
 
     response = await script_client.responses.create(
         model=model,

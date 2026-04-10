@@ -10,6 +10,7 @@ import json
 import random
 import sys
 import os
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -48,18 +49,19 @@ def build_new_traits() -> dict:
     Build a realistic, partially-complete set of new traits.
     Intentional gaps simulate real-world incomplete data.
     """
+    current_year = datetime.now().year
     age = random.choice([None, None] + list(range(18, 75)))  # ~25% missing
     birthday = None
     if age:
         # Approximate — good enough for testing
-        birth_year = 2025 - age
+        birth_year = current_year - age
         birthday = f"{birth_year}-{random.randint(1,12):02d}-{random.randint(1,28):02d}"
 
     has_anniversary = random.random() > 0.5
     anniversary = None
     if has_anniversary:
         years_ago = random.randint(1, 20)
-        anniversary = f"{2025 - years_ago}-{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+        anniversary = f"{current_year - years_ago}-{random.randint(1,12):02d}-{random.randint(1,28):02d}"
 
     return {
         # Demographics

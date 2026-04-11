@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import numpy as np
 from openai import AsyncOpenAI
@@ -40,7 +41,7 @@ class PersonaProcessingResult(BaseModel):
     failed: int
     skipped: int # already assigned
     low_confidence: int # LLM assignments below 0.5 confidence
-    gmm_assigned: int # consumers assigned by GMM (confidence >= threshold)
+    gmm_assigned: int = 0 # consumers assigned by GMM (confidence >= threshold)
     errors: list[str]
 
 
@@ -71,7 +72,7 @@ async def _process_one(
             }
 
         consumer.primary_persona_id = primary.id
-        consumer.persona_confidence = assignment.primary_confidence
+        consumer.persona_confidence = Decimal(str(assignment.primary_confidence))
         consumer.persona_assigned_at = datetime.now(timezone.utc)
 
         if assignment.secondary_persona_name:
@@ -148,7 +149,7 @@ async def process_consumer_personas(
 
     if len(vectorizable) >= MIN_SAMPLES:
         try:
-            X = np.stack([encode_traits(json.loads(c.traits)) for c in vectorizable])
+            X = np.stack([encode_traits(json.loads(c.traits or "{}")) for c in vectorizable])
             proba, _ = fit_and_predict(X)
             now = datetime.now(timezone.utc)
 
@@ -169,7 +170,7 @@ async def process_consumer_personas(
                     continue
 
                 consumer.primary_persona_id = primary.id
-                consumer.persona_confidence = confidence
+                consumer.persona_confidence = Decimal(str(confidence))
                 consumer.persona_assigned_at = now
 
                 sorted_idx = np.argsort(proba[i])[::-1]

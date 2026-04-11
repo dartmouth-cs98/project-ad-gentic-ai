@@ -111,6 +111,31 @@ class TestBuildScriptPrompt:
         assert "Campaign context (strategic" not in out
         assert "Only brief" in out
 
+    def test_includes_time_bucketed_beats(self):
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="",
+        )
+        assert "## Beat 1 — 0–1s (hook)" in out
+        assert "## Beat 2 — 1–3s (setup)" in out
+        assert "## Beat 3 — 3–6s (payoff)" in out
+        assert "## Beat 4 — 6–8s (product moment)" in out
+
+    def test_includes_per_beat_fields_for_video_model(self):
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="",
+        )
+        assert "- What we see:" in out
+        assert "- Camera move:" in out
+        assert "- Lighting:" in out
+        assert "- Action:" in out
+        assert "- Line (approx. word count):" in out
+
 
 class TestFormatCampaignContextBlock:
     def test_empty_inputs_return_empty_string(self):

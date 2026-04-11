@@ -36,6 +36,42 @@ def _format_campaign_context_block(
     )
 
 
+_SCRIPT_OUTPUT_FORMAT_BLOCK = """MANDATORY OUTPUT FORMAT — your entire reply MUST follow this template. The video generator reads this literally; vague prose will fail. Time ranges must partition 0–8s with no gaps and no overlap (total 8.0 seconds).
+
+## Overview (2–4 sentences max)
+Premise, tone, and single clear comedic or emotional idea. State the chosen creator-native format (e.g. POV, reaction, day-in-the-life). Do not read campaign bullets aloud.
+
+## Beat 1 — 0–1s (hook)
+- What we see: (subjects, environment, product visibility — be specific)
+- Camera move: (e.g. handheld close-up, slow push-in, whip pan)
+- Lighting: (time of day, key mood, practicals)
+- Action: (what moves, gestures, reactions)
+- Line (approx. word count): (spoken line or "none — ambient only" with ~0 words)
+
+## Beat 2 — 1–3s (setup)
+- What we see:
+- Camera move:
+- Lighting:
+- Action:
+- Line (approx. word count):
+
+## Beat 3 — 3–6s (payoff)
+- What we see:
+- Camera move:
+- Lighting:
+- Action:
+- Line (approx. word count):
+
+## Beat 4 — 6–8s (product moment)
+- What we see:
+- Camera move:
+- Lighting:
+- Action:
+- Line (approx. word count):
+
+Rules for beats: Each beat's action and visuals must be producible in that time window. Sum of dialogue across all beats must fit comfortably within 8 seconds (aim for ~20 spoken words max total unless pacing is very fast). The first frame may emphasize the product; after Beat 1, move into story per the brief. No readable on-screen words, stickers, burned-in captions, lower-thirds, or typography gags — only picture and sound; "caption-style" humor must be spoken or acted, not written in-frame."""
+
+
 def _build_script_prompt(
     product_name: str,
     product_description: str,
@@ -67,25 +103,29 @@ def _build_script_prompt(
     Campaign Brief: {campaign_brief}
 
     Create a short video script designed to entertain first, not sell. Think about:
-    1. What format would this audience actually engage with? (POV, reaction video, "day in the life", unexpected hook, text-on-screen with trending audio, etc.)
+    1. What format would this audience actually engage with? (POV, reaction, "day in the life", comedic voiceover with quick cuts, storytime-to-camera, unexpected visual hook, duet/stitch energy without a literal second clip, etc.) — deliver "text-post" or trending-caption humor through dialogue, timing, and performance only; the video must not show readable words on screen (no on-screen captions, stickers, titles, or callouts).
     2. What emotional hook or relatable moment makes someone stop scrolling?
     3. How can you showcase the product naturally within a story, joke, or insight rather than selling it directly?
     4. What would make this person laugh, say "same", or immediately send it to a friend?
 
-    Requirements:
-    1. 8 seconds exactly
-    2. Specify frame-by-frame detail (what the viewer should see/feel) using the reference image of the product as visual guidance
-    3. Make it feel creator-made, not brand-made
-    4. No obvious call-to-action or sales language
+    Visual/audio constraints (hard rules): No readable text in-frame at any time (including logos-as-typography tricks). Voice, ambient sound, and music are fine; do not script or require open captions, subtitles, or any overlay viewers must read. If the platform would add captions later, that is out of scope — script for a clean image with spoken words only.
 
-    Be bold with the creative direction. Surprise me with the format you choose.
-    Remember: Every second matters. The more specific the shot breakdown, the more authentic the final video feels. No text overlays ever. All dialogue must finish by the 8-second mark (can trail off naturally)."""
+    {_SCRIPT_OUTPUT_FORMAT_BLOCK}
+
+    Requirements:
+    1. 8 seconds exactly — output ONLY the Overview plus the four beats (0–1s, 1–3s, 3–6s, 6–8s) in that order; do not add extra beats, scenes, or alternate timelines.
+    2. Fill every bullet field in every beat; use the reference image for accurate product color, shape, label, and packaging.
+    3. Make it feel creator-made, not brand-made.
+    4. No obvious call-to-action or sales language.
+
+    Be bold with the creative direction. Surprise me with the format you choose in the Overview.
+    All spoken lines must be complete or naturally trailing off by the end of Beat 4 (8s)."""
 
 
 def _moderation_revision_suffix(moderation_feedback: str) -> str:
     return f"""
 
-IMPORTANT — a previous draft failed content review. Write a complete replacement script that fixes ALL of the following while keeping the same 8-second, frame-by-frame structure and creative spirit:
+IMPORTANT — a previous draft failed content review. Write a complete replacement script that fixes ALL of the following while keeping the same 8-second structured format (Overview plus Beats 1–4 with all fields) and creative spirit:
 {moderation_feedback}
 
 Output only the new script; do not include meta-commentary about the review."""

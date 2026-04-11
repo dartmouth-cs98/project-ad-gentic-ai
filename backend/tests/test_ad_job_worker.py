@@ -82,6 +82,10 @@ def mock_campaign():
     """Fake campaign with brief as JSON: keys = version_number, value = brief text."""
     c = MagicMock()
     c.brief = '{"1": "Test campaign brief"}'
+    c.name = "Spring Launch"
+    c.goal = "Drive awareness"
+    c.target_audience = "Urban commuters 18-35"
+    c.product_context = "Feature the travel-size SKU"
     return c
 
 
@@ -188,11 +192,16 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
     call_kw = mock_gen_script.await_args
     assert call_kw is not None
     args = call_kw[0]
+    kwargs = call_kw[1]
     assert args[0] == "Test Product"
     assert args[1] == "A great product"
     assert "data:image/png;base64," in args[2]
     assert "age" in args[3] and "fitness" in args[3]
     assert args[4] == "Test campaign brief"
+    assert kwargs.get("campaign_name") == "Spring Launch"
+    assert kwargs.get("campaign_goal") == "Drive awareness"
+    assert kwargs.get("campaign_target_audience") == "Urban commuters 18-35"
+    assert kwargs.get("campaign_product_context") == "Feature the travel-size SKU"
 
 
 @pytest.mark.asyncio

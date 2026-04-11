@@ -134,7 +134,15 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
 
         logger.info("Generating ad script")
         script = await generate_ad_script(
-            product_name, product_description, product_image_data_url, consumer_traits_string, campaign_brief
+            product_name,
+            product_description,
+            product_image_data_url,
+            consumer_traits_string,
+            campaign_brief,
+            campaign_name=campaign.name or "",
+            campaign_goal=campaign.goal or "",
+            campaign_target_audience=campaign.target_audience or "",
+            campaign_product_context=campaign.product_context or "",
         )
         verdict = await evaluate_script(script)
         if not verdict.passed:
@@ -144,6 +152,10 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
                 product_image_data_url,
                 consumer_traits_string,
                 campaign_brief,
+                campaign_name=campaign.name or "",
+                campaign_goal=campaign.goal or "",
+                campaign_target_audience=campaign.target_audience or "",
+                campaign_product_context=campaign.product_context or "",
                 moderation_feedback=verdict.feedback,
             )
         update_ad_variant(db, ad_variant_id, AdVariantUpdate(meta=json.dumps({"script": script})))

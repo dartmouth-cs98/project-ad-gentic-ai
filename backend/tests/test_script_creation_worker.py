@@ -17,6 +17,7 @@ import pytest
 
 from workers.script_creation_worker.worker import (
     _build_script_prompt,
+    _format_campaign_context_block,
     generate_ad_script,
     batch_generate_ad_scripts,
 )
@@ -75,6 +76,48 @@ class TestBuildScriptPrompt:
             campaign_brief="",
         )
         assert "Not provided" in out
+
+    def test_includes_structured_campaign_context_when_fields_set(self):
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="Hero the new colorway.",
+            campaign_name="Drop Week",
+            campaign_goal="Conversions",
+            campaign_target_audience="Sneakerheads",
+            campaign_product_context="Limited run; urgency without hype-beast clichés",
+        )
+        assert "Campaign context" in out
+        assert "Campaign name: Drop Week" in out
+        assert "Campaign goal: Conversions" in out
+        assert "Target audience (campaign): Sneakerheads" in out
+        assert "Product in campaign context:" in out
+        assert "urgency without hype-beast" in out
+        assert "Creative direction" in out
+        assert "Hero the new colorway." in out
+
+    def test_omits_campaign_context_block_when_all_empty(self):
+        out = _build_script_prompt(
+            product_name="A",
+            product_description="B",
+            consumer_profile_text="C",
+            campaign_brief="Only brief",
+            campaign_name="",
+            campaign_goal="",
+            campaign_target_audience="",
+            campaign_product_context="   ",
+        )
+        assert "Campaign context (strategic" not in out
+        assert "Only brief" in out
+
+
+class TestFormatCampaignContextBlock:
+    def test_empty_inputs_return_empty_string(self):
+        assert _format_campaign_context_block() == ""
+
+    def test_whitespace_only_returns_empty_string(self):
+        assert _format_campaign_context_block(campaign_name="  \n  ") == ""
 
 
 # ---------------------------------------------------------------------------

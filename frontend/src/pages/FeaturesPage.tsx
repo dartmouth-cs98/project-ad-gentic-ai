@@ -21,7 +21,7 @@ export function FeaturesPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
-          <Link to="/"><Logo size="md" /></Link>
+          <Link to="/" className="hover:opacity-75 transition-opacity"><Logo size="md" /></Link>
 
           <nav className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (

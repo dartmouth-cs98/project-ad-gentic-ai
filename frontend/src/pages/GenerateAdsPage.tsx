@@ -3,6 +3,7 @@ import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sidebar } from '../components/layout/Sidebar';
+import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal';
 import { ChatPanel, ResultsPanel } from '../components/generate';
 import type { Phase, Version } from '../components/generate';
 import type { Campaign, ChatMessage, AdVariant } from '../types';
@@ -86,7 +87,8 @@ export function GenerateAdsPage() {
 
   // ─── Core state ──────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('idle');
-  const [sidebarManualExpand, setSidebarManualExpand] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
   const [input, setInput] = useState('');
   const [progressIdx, setProgressIdx] = useState(0);
 
@@ -183,7 +185,14 @@ export function GenerateAdsPage() {
 // ─── Layout state ─────────────────────────────────────────────
   // Show split layout when generating, viewing results, OR when variants exist
   const showSplit = phase !== 'idle' || hasVariants;
-  const sidebarCollapsed = showSplit && !sidebarManualExpand;
+
+  // Auto-collapse sidebar when split view first activates
+  const prevShowSplit = useRef(false);
+  useEffect(() => {
+    if (showSplit && !prevShowSplit.current) setSidebarCollapsed(true);
+    if (!showSplit && prevShowSplit.current) setSidebarCollapsed(false);
+    prevShowSplit.current = showSplit;
+  }, [showSplit]);
 
   // ─── Set first campaign as active when campaigns load ───────
   useEffect(() => {
@@ -356,7 +365,7 @@ export function GenerateAdsPage() {
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar
         collapsed={sidebarCollapsed}
-        onCollapsedChange={(val) => setSidebarManualExpand(!val)}
+        onCollapsedChange={setSidebarCollapsed}
       />
 
       <div
@@ -369,6 +378,7 @@ export function GenerateAdsPage() {
           campaigns={campaigns}
           activeCampaignId={activeCampaignId}
           onCampaignSelect={handleCampaignSelect}
+          onCreateCampaign={() => setShowCreateCampaignModal(true)}
           isCampaignsLoading={isCampaignsLoading}
           activeVersion={activeVersion}
           versions={versions}
@@ -433,6 +443,13 @@ export function GenerateAdsPage() {
           />
         )}
       </div>
+
+      {showCreateCampaignModal && (
+        <CreateCampaignModal
+          businessClientId={user?.client_id ?? 0}
+          onClose={() => setShowCreateCampaignModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '../components/ui/Logo';
-import { CheckIcon, Loader2Icon, CheckCircleIcon } from 'lucide-react';
+import { CheckIcon, Loader2Icon, CheckCircleIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import { signUp } from '../api/auth';
 
 function getPasswordStrength(password: string): { level: number; label: string; color: string } {
@@ -27,6 +27,8 @@ export function SignUpPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [authError, setAuthError] = useState('');
   const [authState, setAuthState] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const passwordStrength = getPasswordStrength(form.password);
 
@@ -147,14 +149,23 @@ export function SignUpPage() {
 
                   <div>
                     <label className="block text-sm font-medium mb-1.5">Password</label>
-                    <input
-                      type="password"
-                      placeholder="Create a password"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      disabled={authState === 'loading'}
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Create a password"
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        disabled={authState === 'loading'}
+                        className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                      </button>
+                    </div>
                     {form.password ? (
                       <div className="mt-2">
                         <div className="flex gap-1 mb-1">
@@ -174,14 +185,23 @@ export function SignUpPage() {
 
                   <div>
                     <label className="block text-sm font-medium mb-1.5">Confirm Password</label>
-                    <input
-                      type="password"
-                      placeholder="Confirm your password"
-                      value={form.confirmPassword}
-                      onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                      disabled={authState === 'loading'}
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirm your password"
+                        value={form.confirmPassword}
+                        onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                        disabled={authState === 'loading'}
+                        className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                      </button>
+                    </div>
                     {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
                   </div>
 

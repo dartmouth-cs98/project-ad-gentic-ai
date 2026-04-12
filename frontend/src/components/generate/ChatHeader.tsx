@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   campaigns: Campaign[];
   activeCampaignId: number | undefined;
   onCampaignSelect: (campaign: Campaign) => void;
+  onCreateCampaign?: () => void;
   isCampaignsLoading?: boolean;
   activeVersion: Version;
   versions: Version[];
@@ -28,6 +29,7 @@ export function ChatHeader({
   campaigns,
   activeCampaignId,
   onCampaignSelect,
+  onCreateCampaign,
   isCampaignsLoading,
   activeVersion,
   versions,
@@ -123,6 +125,7 @@ export function ChatHeader({
           campaigns={campaigns}
           activeCampaignId={activeCampaignId}
           onSelect={onCampaignSelect}
+          onCreateCampaign={onCreateCampaign}
           isLoading={isCampaignsLoading}
         />
       </div>

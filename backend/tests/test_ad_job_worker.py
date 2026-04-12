@@ -21,6 +21,9 @@ from workers.ad_job_worker.worker import (
     generate_campaign_preview,
     generate_campaign_ad_variants,
 )
+from workers.script_moderation_worker.worker import ModerationVerdict
+
+_PASS_MODERATION = ModerationVerdict(passed=True, feedback="")
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +82,10 @@ def mock_campaign():
     """Fake campaign with brief as JSON: keys = version_number, value = brief text."""
     c = MagicMock()
     c.brief = '{"1": "Test campaign brief"}'
+    c.name = "Spring Launch"
+    c.goal = "Drive awareness"
+    c.target_audience = "Urban commuters 18-35"
+    c.product_context = "Feature the travel-size SKU"
     return c
 
 
@@ -134,6 +141,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Mock script text"),
         patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"mock video bytes"),
     ):
@@ -173,6 +181,7 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", mock_gen_script),
         patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"video"),
     ):
@@ -183,11 +192,16 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
     call_kw = mock_gen_script.await_args
     assert call_kw is not None
     args = call_kw[0]
+    kwargs = call_kw[1]
     assert args[0] == "Test Product"
     assert args[1] == "A great product"
     assert "data:image/png;base64," in args[2]
     assert "age" in args[3] and "fitness" in args[3]
     assert args[4] == "Test campaign brief"
+    assert kwargs.get("campaign_name") == "Spring Launch"
+    assert kwargs.get("campaign_goal") == "Drive awareness"
+    assert kwargs.get("campaign_target_audience") == "Urban commuters 18-35"
+    assert kwargs.get("campaign_product_context") == "Feature the travel-size SKU"
 
 
 @pytest.mark.asyncio
@@ -210,6 +224,7 @@ async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Script"),
         patch("workers.ad_job_worker.worker.generate_ad_video", mock_generate_video),
     ):
@@ -241,6 +256,7 @@ async def test_execute_ad_job_uses_image_name_fallback(mock_db, mock_session_fac
         patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
         patch("workers.ad_job_worker.worker.get_product", return_value=product),
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="S"),
         patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"v"),
     ):

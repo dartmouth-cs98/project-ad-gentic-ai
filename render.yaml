@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: adgentic-api
+    runtime: docker
+    region: oregon
+    plan: standard
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    branch: main

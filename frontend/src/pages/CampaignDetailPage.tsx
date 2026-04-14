@@ -84,9 +84,9 @@ function AttachedProducts({ products }: { products: Product[] }) {
       {products.map((product) => (
         <Card key={product.id} padding="md">
           <div className="flex items-start gap-3">
-            {product.image_url ? (
+            {product.image_urls[0] ? (
               <img
-                src={product.image_url}
+                src={product.image_urls[0]}
                 alt={product.name}
                 className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
               />

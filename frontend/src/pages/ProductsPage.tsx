@@ -11,6 +11,8 @@ import {
   TrashIcon,
   UploadIcon,
   ExternalLinkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -22,39 +24,89 @@ import {
   useProducts,
   useCreateProduct,
   useDeleteProduct,
-  useUploadProductImage,
+  useUploadProductImages,
+  useDeleteProductImage,
 } from '../hooks/useProducts';
 import type { Product } from '../types';
 
+const MAX_IMAGES = 5;
 const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
 const labelClass = 'block text-sm font-medium mb-1.5';
 
 // ---------- Product Card ----------
 
-function ProductCard({ product, onDelete, onUploadImage }: {
+function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
   product: Product;
+  onUploadImages: (p: Product) => void;
+  onDeleteImage: (p: Product, blobName: string) => void;
   onDelete: (p: Product) => void;
-  onUploadImage: (p: Product) => void;
 }) {
+  const [imgIdx, setImgIdx] = useState(0);
+  const hasImages = product.image_urls.length > 0;
+  const currentUrl = hasImages ? product.image_urls[Math.min(imgIdx, product.image_urls.length - 1)] : null;
+  const currentBlob = hasImages ? product.image_names[Math.min(imgIdx, product.image_names.length - 1)] : null;
+  const canAddMore = product.image_urls.length < MAX_IMAGES;
+
+  const prev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIdx((i) => (i - 1 + product.image_urls.length) % product.image_urls.length);
+  };
+  const next = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIdx((i) => (i + 1) % product.image_urls.length);
+  };
+
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden group hover:border-foreground/20 transition-colors">
       {/* Image area */}
       <div className="h-40 bg-muted flex items-center justify-center relative">
-        {product.image_url ? (
-          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+        {currentUrl ? (
+          <img src={currentUrl} alt={product.name} className="w-full h-full object-cover" />
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <ImageIcon className="w-7 h-7" />
             <span className="text-xs">No image</span>
           </div>
         )}
-        <button
-          onClick={() => onUploadImage(product)}
-          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-sm font-medium"
-        >
-          <UploadIcon className="w-4 h-4" />
-          {product.image_url ? 'Replace Image' : 'Upload Image'}
-        </button>
+
+        {/* Delete current image — top-right, z-20 */}
+        {currentBlob && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDeleteImage(product, currentBlob); }}
+            className="absolute top-2 right-2 z-20 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+            title="Remove this image"
+          >
+            <XIcon className="w-3 h-3" />
+          </button>
+        )}
+
+        {/* Upload button — small corner button, never blocks carousel */}
+        {canAddMore && (
+          <button
+            onClick={() => onUploadImages(product)}
+            className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-1 rounded-md bg-black/60 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+          >
+            <UploadIcon className="w-3 h-3" />
+            {hasImages ? 'Add' : 'Upload'}
+          </button>
+        )}
+
+        {/* Carousel controls — only when >1 image, z-20 to sit above upload button */}
+        {product.image_urls.length > 1 && (
+          <>
+            <button onClick={prev} className="absolute left-1 top-1/2 -translate-y-1/2 z-20 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80">
+              <ChevronLeftIcon className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={next} className="absolute right-1 top-1/2 -translate-y-1/2 z-20 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80">
+              <ChevronRightIcon className="w-3.5 h-3.5" />
+            </button>
+            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-10 flex gap-1 pointer-events-none">
+              {product.image_urls.map((_, i) => (
+                <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === imgIdx ? 'bg-white' : 'bg-white/40'}`} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Info */}
@@ -66,9 +118,9 @@ function ProductCard({ product, onDelete, onUploadImage }: {
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
             )}
           </div>
-          {product.image_url && (
+          {hasImages && (
             <span className="flex-shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-medium rounded">
-              Image
+              {product.image_urls.length} image{product.image_urls.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -86,13 +138,18 @@ function ProductCard({ product, onDelete, onUploadImage }: {
         )}
 
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-          <button
-            onClick={() => onUploadImage(product)}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-          >
-            <ImageIcon className="w-3 h-3" />
-            {product.image_url ? 'Replace' : 'Add'} Image
-          </button>
+          {canAddMore && (
+            <button
+              onClick={() => onUploadImages(product)}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            >
+              <ImageIcon className="w-3 h-3" />
+              {hasImages ? 'Add' : 'Upload'} Image
+            </button>
+          )}
+          {!canAddMore && (
+            <span className="text-xs text-muted-foreground px-2 py-1">Max images reached</span>
+          )}
           <div className="flex-1" />
           <button
             onClick={() => onDelete(product)}
@@ -152,7 +209,7 @@ function CreateProductModal({ onClose }: { onClose: () => void }) {
             <input className={inputClass} placeholder="https://example.com/product" value={form.product_link} onChange={(e) => setForm({ ...form, product_link: e.target.value })} disabled={isCreating} />
           </div>
 
-          <p className="text-xs text-muted-foreground">You can upload a product image after creating the product.</p>
+          <p className="text-xs text-muted-foreground">You can upload up to {MAX_IMAGES} product images after creating the product.</p>
         </div>
 
         {createMutation.isError && (
@@ -162,9 +219,7 @@ function CreateProductModal({ onClose }: { onClose: () => void }) {
         )}
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} disabled={isCreating} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
-            Cancel
-          </button>
+          <button onClick={onClose} disabled={isCreating} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">Cancel</button>
           <button
             onClick={handleCreate}
             disabled={isCreating}
@@ -195,9 +250,7 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
           Are you sure you want to delete <span className="font-medium text-foreground">{product.name}</span>? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} disabled={isLoading} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
-            Cancel
-          </button>
+          <button onClick={onClose} disabled={isLoading} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">Cancel</button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
@@ -222,7 +275,8 @@ export function ProductsPage() {
 
   const { data: products = [], isLoading, isError, error } = useProducts(businessClientId);
   const deleteMutation = useDeleteProduct();
-  const uploadMutation = useUploadProductImage();
+  const uploadMutation = useUploadProductImages();
+  const deleteImageMutation = useDeleteProductImage();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -230,23 +284,28 @@ export function ProductsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetProduct, setUploadTargetProduct] = useState<Product | null>(null);
-const filteredProducts = products.filter((p) =>
+
+  const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleUploadImage = (product: Product) => {
+  const handleUploadImages = (product: Product) => {
     setUploadTargetProduct(product);
     fileInputRef.current?.click();
   };
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadTargetProduct) return;
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length || !uploadTargetProduct) return;
     uploadMutation.mutate(
-      { productId: uploadTargetProduct.id, file },
+      { productId: uploadTargetProduct.id, files },
       { onSettled: () => { setUploadTargetProduct(null); if (fileInputRef.current) fileInputRef.current.value = ''; } },
     );
+  };
+
+  const handleDeleteImage = (product: Product, blobName: string) => {
+    deleteImageMutation.mutate({ productId: product.id, blobName });
   };
 
   const handleConfirmDelete = () => {
@@ -295,19 +354,17 @@ const filteredProducts = products.filter((p) =>
         {uploadMutation.isPending && (
           <div className="mb-4 flex items-center gap-2 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3 text-sm text-blue-500">
             <Loader2Icon className="w-4 h-4 animate-spin" />
-            Uploading image for {uploadTargetProduct?.name}...
+            Uploading image(s) for {uploadTargetProduct?.name}...
           </div>
         )}
 
-        {/* Loading */}
+        {/* Loading / Error / Empty states */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
             <Loader2Icon className="w-6 h-6 animate-spin mb-3" />
             <p className="text-sm">Loading products...</p>
           </div>
         )}
-
-        {/* Error */}
         {isError && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <AlertCircleIcon className="w-8 h-8 text-red-500 mb-3" />
@@ -315,15 +372,11 @@ const filteredProducts = products.filter((p) =>
             <p className="text-sm text-muted-foreground">{(error as Error).message}</p>
           </div>
         )}
-
-        {/* Empty state */}
         {!isLoading && !isError && products.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <PackageIcon className="w-8 h-8 text-muted-foreground mb-4" />
             <h2 className="text-base font-semibold mb-1">No products yet</h2>
-            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Add your first product to start creating campaigns and generating ads.
-            </p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">Add your first product to start creating campaigns and generating ads.</p>
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -333,8 +386,6 @@ const filteredProducts = products.filter((p) =>
             </button>
           </div>
         )}
-
-        {/* No search results */}
         {!isLoading && !isError && products.length > 0 && filteredProducts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <SearchIcon className="w-8 h-8 text-muted-foreground mb-3" />
@@ -347,13 +398,26 @@ const filteredProducts = products.filter((p) =>
         {!isLoading && !isError && filteredProducts.length > 0 && (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onDelete={setProductToDelete} onUploadImage={handleUploadImage} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onUploadImages={handleUploadImages}
+                onDeleteImage={handleDeleteImage}
+                onDelete={setProductToDelete}
+              />
             ))}
           </div>
         )}
 
-        {/* Hidden file input */}
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFileSelected} />
+        {/* Hidden file input — multiple allowed, capped by remaining slots on backend */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple
+          className="hidden"
+          onChange={handleFilesSelected}
+        />
 
         {/* Modals */}
         {showCreateModal && <CreateProductModal onClose={() => setShowCreateModal(false)} />}

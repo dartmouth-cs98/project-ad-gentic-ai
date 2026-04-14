@@ -144,8 +144,6 @@ class TestProductCreateSchema:
         data = ProductCreate(
             name="Full Product",
             description="A description",
-            image_url="https://example.com/img.png",
-            image_name="img.png",
             product_link="https://example.com",
             product_metadata='{"key": "value"}',
             is_active=True,
@@ -206,7 +204,7 @@ class TestProductResponseSchema:
         assert resp.description == "Desc"
         assert resp.product_link == "https://link.com"
         assert resp.product_metadata == '{"key": "value"}'
-        assert resp.image_name == "pic.png"
+        assert resp.image_names == ["pic.png"]
         assert resp.is_active is True
         assert resp.created_at == now
         assert resp.updated_at == now
@@ -393,8 +391,6 @@ class TestProductRoutesCreate:
         payload = {
             "name": "Full",
             "description": "Desc",
-            "image_url": "https://example.com/img.png",
-            "image_name": "img.png",
             "product_link": "https://example.com",
             "product_metadata": "{}",
             "is_active": True,
@@ -404,7 +400,7 @@ class TestProductRoutesCreate:
         body = resp.json()
         assert body["name"] == "Full"
         assert body["description"] == "Desc"
-        assert body["image_url"] == "https://example.com/img.png"
+        assert body["image_urls"] == []
         assert body["product_metadata"] == "{}"
         assert body["is_active"] is True
 

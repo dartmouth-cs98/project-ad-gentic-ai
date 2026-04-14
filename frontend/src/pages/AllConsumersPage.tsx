@@ -162,10 +162,10 @@ export function AllConsumersPage() {
                 </div>
 
                 {/* Hover Popover */}
-                <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-white rounded-xl shadow-2xl border border-border z-50 opacity-0 invisible group-hover/traits:opacity-100 group-hover/traits:visible transition-all duration-200 pointer-events-none">
+                <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-card rounded-xl shadow-2xl border border-border z-50 opacity-0 invisible group-hover/traits:opacity-100 group-hover/traits:visible transition-all duration-200 pointer-events-none">
                     <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
                         <TagIcon className="w-4 h-4 text-blue-500" />
-                        <h4 className="text-sm font-bold text-slate-800">All Traits</h4>
+                        <h4 className="text-sm font-bold text-foreground">All Traits</h4>
                     </div>
                     <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-2">
                         {Object.entries(traits).map(([key, val]) => (
@@ -183,7 +183,7 @@ export function AllConsumersPage() {
                             </div>
                         ))}
                     </div>
-                    <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-white border-r border-b border-border rotate-45" />
+                    <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-card border-r border-b border-border rotate-45" />
                 </div>
             </div>
         );
@@ -202,7 +202,7 @@ export function AllConsumersPage() {
                             <p className="text-muted-foreground">
                                 {filteredConsumers.length} of {consumers.length} consumers
                                 {consumers.length === 0 && (
-                                    <span className="block text-xs text-slate-400 mt-1">
+                                    <span className="block text-xs text-muted-foreground mt-1">
                                         Upload your customer CSV to populate consumer cards and power persona-based charts.
                                     </span>
                                 )}
@@ -285,7 +285,7 @@ export function AllConsumersPage() {
                                     placeholder="Search by name, email, or phone..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                             </div>
 
@@ -296,7 +296,7 @@ export function AllConsumersPage() {
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                                         filterPersonaId
                                             ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                            : 'border-border bg-white text-foreground hover:border-slate-300'
+                                            : 'border-border bg-card text-foreground hover:border-foreground/30'
                                     }`}
                                 >
                                     <FilterIcon className="w-4 h-4" />
@@ -307,7 +307,7 @@ export function AllConsumersPage() {
                                 </button>
 
                                 {showFilterDropdown && (
-                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl border border-border shadow-lg z-20 py-2">
+                                    <div className="absolute right-0 top-full mt-2 w-56 bg-card rounded-xl border border-border shadow-lg z-20 py-2">
                                         <p className="px-3 pb-1.5 pt-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                                             Filter by Persona
                                         </p>
@@ -403,11 +403,11 @@ export function AllConsumersPage() {
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-slate-200">
+                                    <tbody className="bg-card divide-y divide-border">
                                         {filteredConsumers.length === 0 ? (
                                             <tr>
                                                 <td colSpan={5} className="px-6 py-12 text-center">
-                                                    <UsersIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                                                    <UsersIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                                                     <p className="text-muted-foreground font-medium">
                                                         {searchQuery ? 'No consumers found' : 'No consumers yet'}
                                                     </p>

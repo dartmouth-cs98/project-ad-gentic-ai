@@ -450,13 +450,13 @@ const fileInputRef = useRef<HTMLInputElement>(null);
                     </div>
                   ) : (
                     recentConsumers.map((consumer: Consumer) => (
-                      <div key={consumer.id} className="flex items-center justify-between p-3 bg-muted rounded-xl border border-border">
+                      <div key={consumer.id} className="flex items-center justify-between p-3 bg-card rounded-xl border border-border">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-muted rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium text-muted-foreground border border-border">
+                          <div className="w-9 h-9 bg-muted rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium text-foreground border border-border">
                             {consumer.first_name?.charAt(0) ?? '?'}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">
+                            <p className="font-medium text-sm text-foreground truncate">
                               {consumer.first_name} {consumer.last_name}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">{consumer.email}</p>

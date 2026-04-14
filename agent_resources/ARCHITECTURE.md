@@ -48,7 +48,7 @@ flowchart LR
 - **`frontend/`** — SPA (Vite + React). Calls the FastAPI backend for auth, resources, and chat-style features.
 - **`backend/`** — One **FastAPI** application (`main.py`) that exposes:
   - **Resource APIs** under paths like `/auth`, `/campaigns`, `/ad-jobs`, `/consumers`, `/personas`, `/products`, `/chat/...`, etc.
-  - **Lightweight worker HTTP stubs** (e.g. `/ad-job-worker`, `/ad-post-worker`) used as service boundaries / health-style endpoints; heavy work is not necessarily isolated in separate processes here.
+  - **Worker HTTP routes** under `/ad-job-worker` and `/ad-post-worker`: includes **hello-style** endpoints and **generation triggers** (e.g. **`POST /ad-job-worker/run-ad-job`** runs the full pipeline **in-process**, not a separate worker service). Heavy work is still **not** isolated in another deployable here.
 - **In-process orchestration** — On startup, the app starts an **asyncio background poller** (`services/ad_job_poller`) that watches the database for **pending ad jobs**, claims them, and runs **`execute_ad_job`** in `workers/ad_job_worker` (script → moderation → video → blob upload).
 
 There is **no separate message broker** (e.g. Redis/RabbitMQ) in the current dependency set: **the SQL `ad_jobs` table is the queue**, with **row-level locking** (`locked_at` / `locked_by`) so multiple API instances can poll safely.
@@ -59,7 +59,7 @@ There is **no separate message broker** (e.g. Redis/RabbitMQ) in the current dep
 
 ### 1. Interactive dashboard and CRUD
 
-Browser → **FastAPI routes** (`routes/*`) → **SQLAlchemy** sessions (`get_db`) → **CRUD** + **Pydantic schemas** → JSON responses. Authenticated routes use **`JWT_SECRET`**-signed bearer tokens (`dependencies.py`).
+Browser → **FastAPI routes** (`routes/*`) → **SQLAlchemy** sessions (`get_db`) → **CRUD** + **Pydantic schemas** → JSON responses. Routes that use **`get_current_client_id`** validate **`JWT_SECRET`**-signed bearer tokens (`dependencies.py`). **Not every resource route is JWT-scoped today** (e.g. parts of **`/campaigns`**); see [BACKEND.md](./BACKEND.md).
 
 ### 2. Product images
 

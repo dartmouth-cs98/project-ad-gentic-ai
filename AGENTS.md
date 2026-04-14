@@ -2,7 +2,7 @@
 
 Operational index for **Adgentic AI**: an AI-assisted system for business owners to **generate, deploy, and track** social ads (see [README.md](README.md) for architecture diagram and service list).
 
-**Agent resources** (prompts, checklists, domain notes, and other material for AI/human agents) live in [`agent_resources/`](agent_resources/). **Lookup tables** (API paths, env vars, routes, DB tables) are in [`agent_resources/references/`](agent_resources/references/). **Design docs for major changes** go in [`agent_resources/design-docs/`](agent_resources/design-docs/) *before* implementation—see [Major changes (design doc first)](#major-changes-design-doc-first). **Task-specific execution plans** (steps, acceptance criteria, file pointers) live in [`exec-plans/`](exec-plans/)—see [Execution plans (task details)](#execution-plans-task-details).
+**Agent resources** (prompts, checklists, domain notes, and other material for AI/human agents) live in [`agent_resources/`](agent_resources/). **Lookup tables** (API paths, env vars, routes, DB tables) are in [`agent_resources/references/`](agent_resources/references/). **Design docs for major changes** go in [`agent_resources/design-docs/`](agent_resources/design-docs/) *before* implementation—see [Major changes (design doc first)](#major-changes-design-doc-first). **Task-specific execution plans** (steps, acceptance criteria, file pointers) live in [`exec-plans/`](exec-plans/)—see [Execution plans (task details)](#execution-plans-task-details). For broader **review-first** expectations with AI tooling, see [CLAUDE.md](CLAUDE.md) (complements this file).
 
 ---
 
@@ -73,6 +73,8 @@ Root `package.json` has no real test script; **CI** is the source of truth: `.gi
 
 **Agents and contributors:** for **major** work (new features, cross-cutting refactors, auth/schema/job pipeline changes, new integrations), **do not start implementation** until a design doc exists in [`agent_resources/design-docs/`](agent_resources/design-docs/).
 
+**Exceptions:** A maintainer may **explicitly waive** the design-doc requirement in an issue, PR, or chat (e.g. time-bound hotfix); note the waiver and risk in the PR. If an **exec-plan is silent** but the change is **clearly major**, **stop and confirm** with the human before coding.
+
 1. **Read** any matching file in [`exec-plans/`](exec-plans/) for this work, plus [agent_resources/ARCHITECTURE.md](agent_resources/ARCHITECTURE.md), [PRODUCT.md](agent_resources/PRODUCT.md), and the relevant [BACKEND.md](agent_resources/BACKEND.md) / [FRONTEND.md](agent_resources/FRONTEND.md) sections so the design matches house patterns.
 2. **Add** a new Markdown file under `agent_resources/design-docs/` (naming and outline: [design-docs/README.md](agent_resources/design-docs/README.md)).
 3. **Cover** problem, goals/non-goals, proposed behavior, API/DB impacts, alternatives, rollout, and test plan.
@@ -80,6 +82,8 @@ Root `package.json` has no real test script; **CI** is the source of truth: `.gi
 5. **Implement** in code, then update the design doc or PR with what actually shipped.
 
 Small, low-risk edits can skip this folder.
+
+This section is the repo-specific **design-doc gate**; [CLAUDE.md](CLAUDE.md) covers broader review workflow for large or risky work.
 
 ---
 

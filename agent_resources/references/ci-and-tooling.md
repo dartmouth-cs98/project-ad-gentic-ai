@@ -15,7 +15,7 @@ Backend jobs set: `JWT_SECRET`, `DB_CONNECTION_STRING=sqlite:///test.db`, `ALLOW
 
 | Goal | Command |
 |------|---------|
-| Backend dev | `cd backend && source venv/bin/activate && python3 main.py` |
+| Backend dev | `cd backend && source venv/bin/activate && python3 main.py` (needs an existing venv; full setup in [AGENTS.md](../../AGENTS.md)) |
 | Backend tests | See [TESTING.md](../TESTING.md) |
 | Frontend dev | `cd frontend && npm run dev` |
 | Frontend lint | `cd frontend && npm run lint` |

@@ -58,7 +58,7 @@ Backend workflows set at least:
 
 | Variable | Role |
 |----------|------|
-| `VITE_ENV` | When `local` (or unset per `api/config.ts` logic), **`API_BASE_URL`** is `/api` |
+| `VITE_ENV` | Unset defaults to **`local`** in `api/config.ts`; when `ENV === 'local'`, **`API_BASE_URL`** is `/api` |
 | `VITE_API_URL` | Backend origin for non-local builds and Vite proxy default (`vite.config.ts` uses it as proxy target, default `http://localhost:8000`) |
 
 ## Local storage (browser)

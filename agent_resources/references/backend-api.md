@@ -5,7 +5,9 @@ Vite dev proxy: browser calls **`/api/...`** → backend **`/...`** (see `fronte
 
 OpenAPI: **`/docs`**, **`/redoc`**.
 
-## Root| Method | Path | Notes |
+## Root and health
+
+| Method | Path | Notes |
 |--------|------|--------|
 | GET, HEAD | `/` | Service metadata JSON |
 | GET | `/health` | `{"status":"healthy"}` |

@@ -30,10 +30,14 @@ Source: `frontend/src/App.tsx`.
 
 ## API base URL (`src/api/config.ts`)
 
+`ENV` is `import.meta.env.VITE_ENV` or **`local`** if unset. **`isLocal`** is true when `ENV === 'local'`.
+
 | Condition | `API_BASE_URL` |
 |-------------|----------------|
-| `VITE_ENV === 'local'` (or logic treats as local) | `/api` |
+| **`isLocal`** (`VITE_ENV` unset or `local`) | `/api` |
 | Else | `import.meta.env.VITE_API_URL` or `/api` fallback |
+
+Same rules as [FRONTEND.md](../FRONTEND.md) (data-fetching section).
 
 ## Vite dev proxy
 

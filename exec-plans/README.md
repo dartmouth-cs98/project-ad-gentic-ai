@@ -23,4 +23,4 @@ Add a Markdown file per task or epic slice, for example:
 - **Acceptance criteria** or test commands to run
 - Links to issues, design docs in `agent_resources/design-docs/`, or PRs
 
-**Relationship to design docs:** large or risky changes may need a design doc in `agent_resources/design-docs/` *before* implementation; the exec plan can link to it and focus on execution.
+**Relationship to design docs:** large or risky changes may need a design doc in `agent_resources/design-docs/` *before* implementation; the exec plan should **link to it** or **state a waiver** (e.g. hotfix). If the plan is silent but the task is **clearly major** (auth, schema, jobs, new integrations), confirm with the human whether a design doc is required before coding—see [AGENTS.md: Major changes (design doc first)](../AGENTS.md#major-changes-design-doc-first).

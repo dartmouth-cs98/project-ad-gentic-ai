@@ -8,8 +8,9 @@ import {
   getToken,
 } from '../api/auth';
 import type { OnboardingPayload } from '../api/auth';
+import { queryKeys } from '../api/queryKeys';
 
-export const PROFILE_KEY = ['auth', 'profile'] as const;
+export const PROFILE_KEY = queryKeys.auth.profile;
 
 /** Fetch the current user's profile. Only enabled when a token exists. */
 export function useProfile() {

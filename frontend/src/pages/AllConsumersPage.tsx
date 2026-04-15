@@ -16,14 +16,16 @@ import {
     TagIcon,
     XIcon,
 } from 'lucide-react';
-import { useConsumerContext } from '../contexts/ConsumerContext';
-import { usePersonasContext } from '../contexts/PersonasContext';
+import { useAssignPersonas, useConsumers } from '../hooks/useConsumers';
+import { usePersonas } from '../hooks/usePersonas';
 import type { Consumer } from '../types';
 
 export function AllConsumersPage() {
     const { collapsed } = useSidebar();
-    const { consumers, loading, error, refetch, assignPersonas } = useConsumerContext();
-    const { personas } = usePersonasContext();
+    const { data: consumers = [], isLoading: loading, error: consumersError, refetch } = useConsumers(0, 1000, true);
+    const { data: personas = [] } = usePersonas(true);
+    const assignPersonas = useAssignPersonas();
+    const error = consumersError ? (consumersError as Error).message : null;
     const [searchQuery, setSearchQuery] = useState('');
     const [filterPersonaId, setFilterPersonaId] = useState<string | null>(null);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);

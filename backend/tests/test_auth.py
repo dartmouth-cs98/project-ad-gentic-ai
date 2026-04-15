@@ -137,3 +137,28 @@ def test_resend_verification_is_generic_for_unknown_email(client: TestClient):
     resp = client.post("/auth/resend-verification", json={"email": "missing@gmail.com"})
     assert resp.status_code == 200
     assert "if an account exists" in resp.json()["message"].lower()
+
+
+def test_deliverability_checks_only_applied_on_signup(client: TestClient):
+    with patch("routes.auth.validate_email") as mock_validate_email, patch(
+        "routes.auth.send_verification_email"
+    ):
+        mock_validate_email.return_value.normalized = "deliverability@example.com"
+
+        signup_resp = client.post(
+            "/auth/signup",
+            json={
+                "email": "deliverability@example.com",
+                "password": "Password123!",
+                "plan": "basic",
+            },
+        )
+        assert signup_resp.status_code == 202
+        assert mock_validate_email.call_args.kwargs["check_deliverability"] is True
+
+        signin_resp = client.post(
+            "/auth/signin",
+            json={"email": "deliverability@example.com", "password": "Password123!"},
+        )
+        assert signin_resp.status_code == 403
+        assert mock_validate_email.call_args.kwargs["check_deliverability"] is False

@@ -66,9 +66,9 @@ def _verify_password(plain: str, hashed: str) -> bool:
     return _pwd_context.verify(plain, hashed)
 
 
-def _normalize_and_validate_email(raw_email: str) -> str:
+def _normalize_and_validate_email(raw_email: str, *, check_deliverability: bool = False) -> str:
     try:
-        result = validate_email(raw_email, check_deliverability=True)
+        result = validate_email(raw_email, check_deliverability=check_deliverability)
         return result.normalized
     except EmailNotValidError as exc:
         raise HTTPException(status_code=400, detail=f"Invalid email address: {str(exc)}") from exc
@@ -103,7 +103,7 @@ def _send_password_reset_code(client_email: str, code: str) -> None:
 @router.post("/signup", response_model=SignUpResponse, status_code=202)
 def signup(data: SignUpRequest, db: Session = Depends(get_db)):
     """Register a new business client and send a verification email."""
-    normalized_email = _normalize_and_validate_email(data.email)
+    normalized_email = _normalize_and_validate_email(data.email, check_deliverability=True)
     logger.info("Signup attempt for email=%s", normalized_email)
     if get_by_email(db, normalized_email):
         logger.info("Signup blocked: duplicate email=%s", normalized_email)

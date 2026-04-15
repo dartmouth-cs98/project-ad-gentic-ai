@@ -12,6 +12,7 @@ export function VerifyEmailPage() {
   const [code, setCode] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const normalizedCode = code.replace(/\D/g, '');
 
   useEffect(() => {
     const queryEmail = searchParams.get('email');
@@ -19,8 +20,8 @@ export function VerifyEmailPage() {
   }, [searchParams]);
 
   const handleVerifyCode = async () => {
-    if (!email.trim() || code.length !== 6 || state === 'loading') {
-      if (code.length !== 6) {
+    if (!email.trim() || normalizedCode.length !== 6 || state === 'loading') {
+      if (normalizedCode.length !== 6) {
         setState('error');
         setMessage('Enter the 6-digit code sent to your email.');
       }
@@ -29,7 +30,7 @@ export function VerifyEmailPage() {
     setState('loading');
     setMessage('');
     try {
-      const res = await verifyEmail(email.trim(), code.trim());
+      const res = await verifyEmail(email.trim(), normalizedCode);
       setState('success');
       setMessage(res.message);
       navigate('/onboarding');
@@ -40,11 +41,11 @@ export function VerifyEmailPage() {
   };
 
   useEffect(() => {
-    if (code.length === 6 && state !== 'loading') {
+    if (normalizedCode.length === 6 && state !== 'loading') {
       void handleVerifyCode();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+  }, [normalizedCode]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">

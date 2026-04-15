@@ -35,10 +35,11 @@ export function SignUpPage() {
   const [resendState, setResendState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [resendError, setResendError] = useState('');
   const passwordStrength = getPasswordStrength(form.password);
+  const normalizedVerificationCode = verificationCode.replace(/\D/g, '');
 
   const handleVerifyCode = async () => {
-    if (!verificationEmail || verificationCode.length !== 6 || verifyState === 'loading') {
-      if (verificationCode.length !== 6) {
+    if (!verificationEmail || normalizedVerificationCode.length !== 6 || verifyState === 'loading') {
+      if (normalizedVerificationCode.length !== 6) {
         setVerifyError('Enter the 6-digit code sent to your email.');
       }
       return;
@@ -46,7 +47,7 @@ export function SignUpPage() {
     setVerifyError('');
     setVerifyState('loading');
     try {
-      await verifyEmail(verificationEmail, verificationCode);
+      await verifyEmail(verificationEmail, normalizedVerificationCode);
       setVerifyState('success');
       navigate('/onboarding');
     } catch (err) {
@@ -56,11 +57,11 @@ export function SignUpPage() {
   };
 
   useEffect(() => {
-    if (step === 'verify' && verificationCode.length === 6 && verifyState !== 'loading') {
+    if (step === 'verify' && normalizedVerificationCode.length === 6 && verifyState !== 'loading') {
       void handleVerifyCode();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [verificationCode, step]);
+  }, [normalizedVerificationCode, step]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

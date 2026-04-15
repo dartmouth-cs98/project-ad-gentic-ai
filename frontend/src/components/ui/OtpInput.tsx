@@ -8,7 +8,8 @@ interface OtpInputProps {
 
 export function OtpInput({ value, length = 6, onChange }: OtpInputProps) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
-  const digits = Array.from({ length }, (_, i) => value[i] ?? '');
+  const slots = value.padEnd(length, ' ').slice(0, length).split('');
+  const digits = slots.map((slot) => (/\d/.test(slot) ? slot : ''));
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -24,16 +25,14 @@ export function OtpInput({ value, length = 6, onChange }: OtpInputProps) {
           value={digit}
           onChange={(e) => {
             const raw = e.target.value.replace(/\D/g, '');
+            const next = [...slots];
             if (!raw) {
-              const next = value.split('');
-              next[index] = '';
-              onChange(next.join('').slice(0, length));
+              next[index] = ' ';
+              onChange(next.join(''));
               return;
             }
-            const next = value.split('');
             next[index] = raw[0];
-            const normalized = next.join('').slice(0, length);
-            onChange(normalized);
+            onChange(next.join(''));
             if (index < length - 1) refs.current[index + 1]?.focus();
           }}
           onKeyDown={(e) => {
@@ -45,7 +44,8 @@ export function OtpInput({ value, length = 6, onChange }: OtpInputProps) {
             e.preventDefault();
             const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length);
             if (!pasted) return;
-            onChange(pasted);
+            const next = Array.from({ length }, (_, i) => pasted[i] ?? ' ');
+            onChange(next.join(''));
             const focusIndex = Math.min(pasted.length - 1, length - 1);
             refs.current[focusIndex]?.focus();
           }}

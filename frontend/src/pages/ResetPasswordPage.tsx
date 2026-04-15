@@ -14,6 +14,7 @@ export function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const normalizedCode = code.replace(/\D/g, '');
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
@@ -88,7 +89,7 @@ export function ResetPasswordPage() {
               />
               <button
                 onClick={async () => {
-                  if (!email.trim() || code.length !== 6 || newPassword.length < 8) {
+                  if (!email.trim() || normalizedCode.length !== 6 || newPassword.length < 8) {
                     setError('Provide email, 6-digit code, and a password with at least 8 characters.');
                     return;
                   }
@@ -96,7 +97,7 @@ export function ResetPasswordPage() {
                   setMessage('');
                   setLoading(true);
                   try {
-                    const res = await resetPassword(email.trim(), code, newPassword);
+                    const res = await resetPassword(email.trim(), normalizedCode, newPassword);
                     setMessage(res.message);
                     setTimeout(() => navigate('/sign-in'), 800);
                   } catch (err) {

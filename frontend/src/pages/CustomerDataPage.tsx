@@ -4,8 +4,8 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
-import { useConsumerContext } from '../contexts/ConsumerContext';
-import { usePersonasContext } from '../contexts/PersonasContext';
+import { useConsumers, useUploadConsumersCsv } from '../hooks/useConsumers';
+import { usePersonas } from '../hooks/usePersonas';
 import type { Consumer, Persona } from '../types';
 import { CLIENT_ID_KEY } from '../api/config';
 
@@ -96,8 +96,15 @@ function renderTraits(traits: Record<string, unknown> | null) {
 export function CustomerDataPage() {
   const { collapsed } = useSidebar();
   const { theme, toggleTheme } = useTheme();
-  const { consumers, loading: consumersLoading, error: consumersError, uploadCsv, refetch } = useConsumerContext();
-  const { personas, personasLoading } = usePersonasContext();
+  const {
+    data: consumers = [],
+    isLoading: consumersLoading,
+    error: consumersQueryError,
+    refetch,
+  } = useConsumers(0, 1000, true);
+  const { data: personas = [], isLoading: personasLoading } = usePersonas(true);
+  const uploadCsv = useUploadConsumersCsv();
+  const consumersError = consumersQueryError ? (consumersQueryError as Error).message : null;
 
 
 const fileInputRef = useRef<HTMLInputElement>(null);

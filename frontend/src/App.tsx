@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
 function ScrollToTop() {
@@ -25,55 +25,84 @@ import { CustomerDataPage } from './pages/CustomerDataPage';
 import { AllConsumersPage } from './pages/AllConsumersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ProductsPage } from './pages/ProductsPage';
-import { UserProvider } from './contexts/UserContext';
+import { UserProvider, useUser } from './contexts/UserContext';
 import { CompanyProvider } from './contexts/CompanyContext';
-import { ConsumerProvider } from './contexts/ConsumerContext';
-import { PersonasProvider } from './contexts/PersonasContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 const queryClient = new QueryClient();
 
+function AuthenticatedAppProviders() {
+  return (
+    <UserProvider>
+      <CompanyProvider>
+        <SidebarProvider>
+          <Outlet />
+        </SidebarProvider>
+      </CompanyProvider>
+    </UserProvider>
+  );
+}
+
+function ProtectedLayout() {
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading your workspace...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/sign-in" replace />;
+  }
+
+  return <Outlet />;
+}
+
+function DataPagesLayout() {
+  return (
+    <Outlet />
+  );
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-      <UserProvider>
-        <CompanyProvider>
-          <ConsumerProvider>
-            <PersonasProvider>
-              <SidebarProvider>
-              <HashRouter>
-              <ScrollToTop />
-              <Routes>
-                <Route path="/" element={<SimpleLanding />} />
-                <Route path="/old-landing" element={<LandingPage />} />
-                <Route path="/sign-up" element={<SignUpPage />} />
-                <Route path="/sign-in" element={<SignInPage />} />
-                <Route path="/onboarding" element={<OnboardingPage />} />
+        <HashRouter>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<SimpleLanding />} />
+            <Route path="/old-landing" element={<LandingPage />} />
+            <Route path="/sign-up" element={<SignUpPage />} />
+            <Route path="/sign-in" element={<SignInPage />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/team" element={<TeamPage />} />
+
+            <Route element={<AuthenticatedAppProviders />}>
+              <Route element={<ProtectedLayout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/campaigns" element={<CampaignsPage />} />
                 <Route path="/products" element={<ProductsPage />} />
-                <Route path="/customer-data" element={<CustomerDataPage />} />
                 <Route path="/campaign/:id" element={<CampaignDetailPage />} />
                 <Route path="/generate" element={<GenerateAdsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/workspace" element={<DashboardPage />} />
-
-                {/* New Pages */}
-                <Route path="/features" element={<FeaturesPage />} />
-                <Route path="/how-it-works" element={<HowItWorksPage />} />
-                <Route path="/pricing" element={<PricingPage />} />
-                <Route path="/team" element={<TeamPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/all-consumers" element={<AllConsumersPage />} />
-              </Routes>
-              </HashRouter>
-              </SidebarProvider>
-            </PersonasProvider>
-          </ConsumerProvider>
-        </CompanyProvider>
-      </UserProvider>
+                <Route element={<DataPagesLayout />}>
+                  <Route path="/customer-data" element={<CustomerDataPage />} />
+                  <Route path="/all-consumers" element={<AllConsumersPage />} />
+                </Route>
+              </Route>
+            </Route>
+          </Routes>
+        </HashRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );

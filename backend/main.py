@@ -3,6 +3,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 # Configure logging so logger.info(), etc. show in the terminal
 logging.basicConfig(
@@ -32,12 +33,69 @@ from routes.product import router as product_router
 from routes.chat_completions import router as chat_completions_router
 
 from services.ad_job_poller.service import run_poller
+from database import get_engine
+
+
+logger = logging.getLogger(__name__)
+
+
+def _ensure_auth_columns_exist() -> None:
+    """Best-effort startup migration for auth-related business_client columns."""
+    engine = get_engine()
+    # Only run this auto-migration path for SQL Server.
+    if engine.dialect.name != "mssql":
+        return
+
+    statements = [
+        """
+        IF COL_LENGTH('dbo.business_clients', 'email_verified') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD email_verified BIT NOT NULL
+            CONSTRAINT DF_business_clients_email_verified DEFAULT 0;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'email_verification_token_hash') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD email_verification_token_hash NVARCHAR(255) NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'email_verification_expires_at') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD email_verification_expires_at DATETIME2 NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'password_reset_token_hash') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD password_reset_token_hash NVARCHAR(255) NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'password_reset_expires_at') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD password_reset_expires_at DATETIME2 NULL;
+        END
+        """,
+    ]
+
+    with engine.begin() as conn:
+        for stmt in statements:
+            conn.execute(text(stmt))
+    logger.info("Ensured auth schema columns exist on dbo.business_clients.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the ad_job poller task when the app starts; cancel it on shutdown."""
     import asyncio
+    _ensure_auth_columns_exist()
     poller_task = asyncio.create_task(run_poller())
     yield
     poller_task.cancel()

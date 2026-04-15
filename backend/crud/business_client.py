@@ -1,6 +1,7 @@
 """CRUD helpers for the BusinessClient model."""
 
 import json
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from models.business_client import BusinessClient
@@ -18,6 +19,8 @@ def get_by_id(db: Session, client_id: int) -> BusinessClient | None:
 def create_business_client(
     db: Session, email: str, password_hash: str, plan: str,
     business_name: str = "",
+    email_verification_token_hash: str | None = None,
+    email_verification_expires_at: datetime | None = None,
 ) -> BusinessClient:
     # Ensure business_name is populated with a non-empty value.
     # If no name is provided, default to using the email as an identifier.
@@ -31,11 +34,79 @@ def create_business_client(
         business_name=normalized_business_name,
         subscription_tier=plan,
         credits_balance=0,
+        email_verified=False,
+        email_verification_token_hash=email_verification_token_hash,
+        email_verification_expires_at=email_verification_expires_at,
     )
     db.add(client)
     db.commit()
     db.refresh(client)
     return client
+
+
+def get_by_verification_token_hash(db: Session, token_hash: str) -> BusinessClient | None:
+    return db.query(BusinessClient).filter(BusinessClient.email_verification_token_hash == token_hash).first()
+
+
+def mark_email_verified(db: Session, client: BusinessClient) -> BusinessClient:
+    client.email_verified = True
+    client.email_verification_token_hash = None
+    client.email_verification_expires_at = None
+    db.commit()
+    db.refresh(client)
+    return client
+
+
+def set_verification_token(
+    db: Session,
+    client: BusinessClient,
+    token_hash: str,
+    expires_at: datetime,
+) -> BusinessClient:
+    client.email_verification_token_hash = token_hash
+    client.email_verification_expires_at = expires_at
+    db.commit()
+    db.refresh(client)
+    return client
+
+
+def is_verification_token_expired(client: BusinessClient) -> bool:
+    if not client.email_verification_expires_at:
+        return True
+    expires_at = client.email_verification_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at < datetime.now(timezone.utc)
+
+
+def set_password_reset_token(
+    db: Session,
+    client: BusinessClient,
+    token_hash: str,
+    expires_at: datetime,
+) -> BusinessClient:
+    client.password_reset_token_hash = token_hash
+    client.password_reset_expires_at = expires_at
+    db.commit()
+    db.refresh(client)
+    return client
+
+
+def clear_password_reset_token(db: Session, client: BusinessClient) -> BusinessClient:
+    client.password_reset_token_hash = None
+    client.password_reset_expires_at = None
+    db.commit()
+    db.refresh(client)
+    return client
+
+
+def is_password_reset_token_expired(client: BusinessClient) -> bool:
+    if not client.password_reset_expires_at:
+        return True
+    expires_at = client.password_reset_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at < datetime.now(timezone.utc)
 
 
 def update_onboarding(

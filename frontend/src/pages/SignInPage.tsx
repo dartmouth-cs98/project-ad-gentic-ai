@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '../components/ui/Logo';
 import { Loader2Icon, CheckCircleIcon } from 'lucide-react';
 import { useSignIn } from '../hooks/useAuth';
+import { resendVerification } from '../api/auth';
 
 export function SignInPage() {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ export function SignInPage() {
   const [authError, setAuthError] = useState('');
   const [authState, setAuthState] = useState<'idle' | 'loading' | 'success'>('idle');
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [resendState, setResendState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [resendMessage, setResendMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +37,7 @@ export function SignInPage() {
         setLoadingMessage('Redirecting to dashboard...');
         setTimeout(() => { navigate('/dashboard'); }, 1000);
       },
-      onError: (err: any) => {
+      onError: (err: unknown) => {
         setAuthState('idle');
         setAuthError(err instanceof Error ? err.message : 'Sign in failed');
       }
@@ -66,6 +69,44 @@ export function SignInPage() {
             {authError && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
                 {authError}
+                {authError.toLowerCase().includes('not verified') && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const email = form.email.trim();
+                        const query = email ? `?email=${encodeURIComponent(email)}` : '';
+                        navigate(`/verify-email${query}`);
+                      }}
+                      className="mt-3 w-full py-2 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/10 transition-colors"
+                    >
+                      Enter verification code
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!form.email) return;
+                        setResendState('loading');
+                        setResendMessage('');
+                        try {
+                          const res = await resendVerification(form.email.trim());
+                          setResendState('success');
+                          setResendMessage(res.message);
+                        } catch (err) {
+                          setResendState('error');
+                          setResendMessage(err instanceof Error ? err.message : 'Failed to resend verification email.');
+                        }
+                      }}
+                      disabled={resendState === 'loading'}
+                      className="mt-2 w-full py-2 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                    >
+                      {resendState === 'loading' ? 'Sending...' : 'Resend verification code'}
+                    </button>
+                  </>
+                )}
+                {resendMessage && (
+                  <p className="mt-2 text-xs text-red-500">{resendMessage}</p>
+                )}
               </div>
             )}
 
@@ -86,9 +127,9 @@ export function SignInPage() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-sm font-medium">Password</label>
-                  <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  <Link to="/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
                 <input
                   type="password"

@@ -51,8 +51,18 @@ def _ensure_auth_columns_exist() -> None:
         IF COL_LENGTH('dbo.business_clients', 'email_verified') IS NULL
         BEGIN
             ALTER TABLE dbo.business_clients
-            ADD email_verified BIT NOT NULL
-            CONSTRAINT DF_business_clients_email_verified DEFAULT 0;
+            ADD email_verified BIT NULL;
+
+            UPDATE dbo.business_clients
+            SET email_verified = 1
+            WHERE email_verified IS NULL;
+
+            ALTER TABLE dbo.business_clients
+            ADD CONSTRAINT DF_business_clients_email_verified
+            DEFAULT 0 FOR email_verified;
+
+            ALTER TABLE dbo.business_clients
+            ALTER COLUMN email_verified BIT NOT NULL;
         END
         """,
         """

@@ -59,7 +59,7 @@ def test_signup_requires_email_verification_before_signin(client: TestClient):
     with patch("routes.auth.send_verification_email"):
         signup_resp = client.post(
             "/auth/signup",
-            json={"email": "verifyme@example.com", "password": "Password123!", "plan": "basic"},
+            json={"email": "verifyme@gmail.com", "password": "Password123!", "plan": "basic"},
         )
 
     assert signup_resp.status_code == 202
@@ -69,7 +69,7 @@ def test_signup_requires_email_verification_before_signin(client: TestClient):
 
     signin_resp = client.post(
         "/auth/signin",
-        json={"email": "verifyme@example.com", "password": "Password123!"},
+        json={"email": "verifyme@gmail.com", "password": "Password123!"},
     )
     assert signin_resp.status_code == 403
     assert "not verified" in signin_resp.json()["detail"].lower()
@@ -85,22 +85,22 @@ def test_verify_email_enables_signin(client: TestClient):
     with patch("routes.auth.send_verification_email", side_effect=_capture_verification_email):
         signup_resp = client.post(
             "/auth/signup",
-            json={"email": "verified@example.com", "password": "Password123!", "plan": "basic"},
+            json={"email": "verified@gmail.com", "password": "Password123!", "plan": "basic"},
         )
 
     assert signup_resp.status_code == 202
-    assert captured["email"] == "verified@example.com"
+    assert captured["email"] == "verified@gmail.com"
 
     verify_resp = client.post(
         "/auth/verify-email",
-        json={"email": "verified@example.com", "code": captured["code"]},
+        json={"email": "verified@gmail.com", "code": captured["code"]},
     )
     assert verify_resp.status_code == 200
     assert verify_resp.json()["success"] is True
 
     signin_resp = client.post(
         "/auth/signin",
-        json={"email": "verified@example.com", "password": "Password123!"},
+        json={"email": "verified@gmail.com", "password": "Password123!"},
     )
     assert signin_resp.status_code == 200
     assert "access_token" in signin_resp.json()
@@ -111,7 +111,7 @@ def test_me_and_onboarding_forbid_unverified_accounts(client: TestClient):
     db.add(
         BusinessClient(
             id=_TEST_CLIENT_ID,
-            email="pending@example.com",
+            email="pending@gmail.com",
             password_hash="hashed",
             business_name="Pending Inc",
             subscription_tier="basic",
@@ -134,6 +134,6 @@ def test_me_and_onboarding_forbid_unverified_accounts(client: TestClient):
 
 
 def test_resend_verification_is_generic_for_unknown_email(client: TestClient):
-    resp = client.post("/auth/resend-verification", json={"email": "missing@example.com"})
+    resp = client.post("/auth/resend-verification", json={"email": "missing@gmail.com"})
     assert resp.status_code == 200
     assert "if an account exists" in resp.json()["message"].lower()

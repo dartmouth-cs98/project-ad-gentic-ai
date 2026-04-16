@@ -13,6 +13,7 @@ interface ChatPanelProps {
   campaigns: Campaign[];
   activeCampaignId: number | undefined;
   onCampaignSelect: (campaign: Campaign) => void;
+  onCreateCampaign?: () => void;
   isCampaignsLoading?: boolean;
   // Version
   activeVersion: Version;
@@ -49,6 +50,7 @@ export function ChatPanel({
   campaigns,
   activeCampaignId,
   onCampaignSelect,
+  onCreateCampaign,
   isCampaignsLoading,
   activeVersion,
   versions,
@@ -83,6 +85,7 @@ export function ChatPanel({
         campaigns={campaigns}
         activeCampaignId={activeCampaignId}
         onCampaignSelect={onCampaignSelect}
+        onCreateCampaign={onCreateCampaign}
         isCampaignsLoading={isCampaignsLoading}
         activeVersion={activeVersion}
         versions={versions}

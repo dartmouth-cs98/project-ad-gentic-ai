@@ -12,6 +12,7 @@ interface CampaignSelectorProps {
   campaigns: Campaign[];
   activeCampaignId: number | undefined;
   onSelect: (campaign: Campaign) => void;
+  onCreateCampaign?: () => void;
   isLoading?: boolean;
 }
 
@@ -19,6 +20,7 @@ export function CampaignSelector({
   campaigns,
   activeCampaignId,
   onSelect,
+  onCreateCampaign,
   isLoading,
 }: CampaignSelectorProps) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -137,7 +139,10 @@ export function CampaignSelector({
               )}
             </div>
             <div className="border-t border-border mt-0.5 pt-0.5">
-              <button className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowDropdown(false); onCreateCampaign?.(); }}
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 text-blue-500"
+              >
                 <PlusIcon className="w-3.5 h-3.5" />
                 <span className="text-sm font-medium">New Campaign</span>
               </button>

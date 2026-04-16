@@ -29,7 +29,7 @@ const regions = [
   { id: 'global', label: 'Global' },
 ];
 
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
+const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
 const labelClass = 'block text-sm font-medium mb-1.5';
 
 // ---------- Product Selector ----------
@@ -224,7 +224,7 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => !isCreating && onClose()} />
 
-      <div className="relative w-full max-w-lg bg-card border border-border rounded-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-card border border-border rounded-xl max-h-[90vh] overflow-y-auto text-foreground">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-lg font-semibold">Create New Campaign</h2>
           <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">

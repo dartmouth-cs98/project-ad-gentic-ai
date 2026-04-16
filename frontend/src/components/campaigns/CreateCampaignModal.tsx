@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   XIcon,
   CheckIcon,
@@ -161,6 +161,7 @@ interface CreateCampaignModalProps {
 
 export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaignModalProps) {
   const createMutation = useCreateCampaign();
+  const autofillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isAutofilling, setIsAutofilling] = useState(false);
   const [customGoal, setCustomGoal] = useState('');
@@ -176,6 +177,15 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
 
   const isCreating = createMutation.isPending;
 
+  useEffect(() => {
+    return () => {
+      if (autofillTimeoutRef.current !== null) {
+        clearTimeout(autofillTimeoutRef.current);
+        autofillTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const togglePlatform = (platformId: string) => {
     setNewCampaign({
       ...newCampaign,
@@ -185,19 +195,24 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
     });
   };
 
-  const handleAutofill = () => {
+  const handleAutofill = useCallback(() => {
+    if (autofillTimeoutRef.current !== null) {
+      clearTimeout(autofillTimeoutRef.current);
+      autofillTimeoutRef.current = null;
+    }
     setIsAutofilling(true);
-    setTimeout(() => {
-      setNewCampaign({
-        ...newCampaign,
+    autofillTimeoutRef.current = setTimeout(() => {
+      autofillTimeoutRef.current = null;
+      setNewCampaign((prev) => ({
+        ...prev,
         platforms: ['instagram', 'tiktok'],
         region: 'na',
         goal: 'sales',
         targetAudience: 'Tech-savvy millennials interested in productivity tools (sample text for local testing).',
-      });
+      }));
       setIsAutofilling(false);
     }, 1500);
-  };
+  }, []);
 
   const handleCreateCampaign = () => {
     const newErrors: Record<string, string> = {};

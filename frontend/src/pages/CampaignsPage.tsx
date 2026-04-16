@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import {
   LayoutGridIcon,
@@ -28,6 +29,10 @@ import {
   filterCampaignsByDatePreset,
   type DateRangePreset,
 } from '../lib/campaignsList';
+import type { Campaign } from '../types';
+
+/** Stable fallback while campaigns query has no data (avoids a new `[]` each render). */
+const EMPTY_CAMPAIGNS: Campaign[] = [];
 
 // ---------- Component ----------
 
@@ -38,7 +43,8 @@ export function CampaignsPage() {
   const businessClientId = user?.client_id;
   const canManageCampaigns = typeof businessClientId === 'number' && businessClientId > 0;
 
-  const { data: rawCampaigns = [], isLoading, isError, error } = useCampaigns(businessClientId);
+  const { data: rawCampaignsData, isLoading, isError, error } = useCampaigns(businessClientId);
+  const rawCampaigns = rawCampaignsData ?? EMPTY_CAMPAIGNS;
   const deleteMutation = useDeleteCampaign();
   const updateMutation = useUpdateCampaign();
 
@@ -50,6 +56,15 @@ export function CampaignsPage() {
   );
 
   const goalOptions = useMemo(() => distinctGoalsFromCampaigns(campaignsByDate), [campaignsByDate]);
+
+  useEffect(() => {
+    const allowed = new Set(distinctGoalsFromCampaigns(campaignsByDate));
+    setSelectedObjectives((prev) => {
+      const next = prev.filter((g) => allowed.has(g));
+      if (next.length === prev.length && next.every((g, i) => g === prev[i])) return prev;
+      return next;
+    });
+  }, [campaignsByDate]);
 
   const campaigns = useMemo(
     () => campaignsByDate.map((c) => campaignToItem(c)),
@@ -222,6 +237,21 @@ export function CampaignsPage() {
           </div>
         )}
 
+        {!userLoading && !user ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center px-4">
+            <MegaphoneIcon className="w-8 h-8 text-muted-foreground mb-4" />
+            <h2 className="text-base font-semibold mb-1">Sign in to view campaigns</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+              You need an account to load your campaigns and create new ones.
+            </p>
+            <Link
+              to="/sign-in"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Sign in
+            </Link>
+          </div>
+        ) : (
         <div className="flex gap-8">
           <div className="w-56 flex-shrink-0 space-y-6">
             <div className="relative">
@@ -290,7 +320,9 @@ export function CampaignsPage() {
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <AlertCircleIcon className="w-8 h-8 text-red-500 mb-3" />
                 <h2 className="text-base font-semibold mb-1">Failed to load campaigns</h2>
-                <p className="text-sm text-muted-foreground">{(error as Error).message}</p>
+                <p className="text-sm text-muted-foreground">
+                  {error instanceof Error ? error.message : String(error ?? 'Unknown error')}
+                </p>
               </div>
             )}
 
@@ -361,6 +393,7 @@ export function CampaignsPage() {
             )}
           </div>
         </div>
+        )}
 
         {showCreateModal && typeof businessClientId === 'number' && businessClientId > 0 && (
           <CreateCampaignModal

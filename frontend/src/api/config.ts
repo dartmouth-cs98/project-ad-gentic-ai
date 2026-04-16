@@ -1,3 +1,5 @@
+export const GOOGLE_CLIENT_ID = '151487466664-orlcom4ebktb65ag4ljni7p780h1hdmi.apps.googleusercontent.com';
+
 export const ENV = (import.meta.env.VITE_ENV as string) || 'local';
 export const isLocal = ENV === 'local';
 export const isProduction = ENV === 'production';

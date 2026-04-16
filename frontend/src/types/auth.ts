@@ -6,6 +6,7 @@ export interface TokenResponse {
     token_type: string;
     client_id: number;
     email: string;
+    is_new_user?: boolean;
 }
 
 export interface SignUpResponse {

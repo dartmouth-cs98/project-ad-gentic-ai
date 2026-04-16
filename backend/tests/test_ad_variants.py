@@ -31,6 +31,7 @@ def _variant(media_url: str | None) -> SimpleNamespace:
         meta='{"script":"test"}',
         version_number=1,
         is_preview=True,
+        is_approved=False,
         created_at=now,
         updated_at=now,
         published_at=None,

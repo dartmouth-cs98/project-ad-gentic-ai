@@ -1,19 +1,7 @@
 import { Link } from 'react-router-dom';
+import type { CampaignListItem } from '../../lib/campaignsList';
 
-// ---------- Types ----------
-
-export interface CampaignItem {
-  id: string;
-  name: string;
-  product: string;
-  status: 'active' | 'completed' | 'draft' | 'paused';
-  reach: string;
-  engagement: string;
-  platform: string;
-  objective: string;
-  dateCreated: string;
-  thumbnail?: string;
-}
+export type CampaignItem = CampaignListItem;
 
 const statusStyles = {
   active: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -75,15 +63,13 @@ export function CampaignGridCard({ campaign, isSelected, onToggleSelection }: Ca
                 </span>
               </div>
               <div className="mt-auto flex items-center gap-4 pt-3 border-t border-border">
-                <div>
-                  <p className="text-sm font-medium">{campaign.reach}</p>
-                  <p className="text-xs text-muted-foreground">Reach</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate" title={campaign.objective}>
+                    {campaign.objective}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Goal</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">{campaign.engagement}</p>
-                  <p className="text-xs text-muted-foreground">Eng.</p>
-                </div>
-                <div className="ml-auto text-xs text-muted-foreground">{campaign.dateCreated}</div>
+                <div className="flex-shrink-0 text-xs text-muted-foreground">{campaign.dateCreated}</div>
               </div>
             </div>
           </div>

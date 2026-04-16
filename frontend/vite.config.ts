@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      environment: 'node',
+      include: ['src/**/*.test.ts'],
+    },
     server: {
       proxy: {
         '/api': {

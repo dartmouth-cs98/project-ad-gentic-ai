@@ -36,8 +36,7 @@ export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection,
             <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
             <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
             <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Product</th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reach</th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Engagement</th>
+            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Goal</th>
             <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Created</th>
             <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-right">Actions</th>
           </tr>
@@ -67,8 +66,9 @@ export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection,
                 </span>
               </td>
               <td className="px-4 py-3 text-muted-foreground">{campaign.product}</td>
-              <td className="px-4 py-3 font-medium">{campaign.reach}</td>
-              <td className="px-4 py-3 font-medium">{campaign.engagement}</td>
+              <td className="px-4 py-3 text-muted-foreground max-w-[12rem] truncate" title={campaign.objective}>
+                {campaign.objective}
+              </td>
               <td className="px-4 py-3 text-muted-foreground">{campaign.dateCreated}</td>
               <td className="px-4 py-3 text-right">
                 <div className="flex items-center justify-end gap-2">

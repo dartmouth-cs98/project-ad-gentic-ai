@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   XIcon,
   CheckIcon,
@@ -12,15 +12,7 @@ import {
 import { useCreateCampaign } from '../../hooks/useCampaigns';
 import { useProducts } from '../../hooks/useProducts';
 import type { Product } from '../../types';
-
-const platforms = [
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'facebook', label: 'Facebook' },
-  { id: 'tiktok', label: 'TikTok' },
-  { id: 'youtube', label: 'YouTube' },
-  { id: 'linkedin', label: 'LinkedIn' },
-  { id: 'X', label: 'Twitter' },
-];
+import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
 
 const regions = [
   { id: 'na', label: 'North America' },
@@ -162,12 +154,14 @@ function ProductSelector({
 // ---------- Main Modal ----------
 
 interface CreateCampaignModalProps {
+  /** Positive business client id; parent must not render the modal until this is set. */
   businessClientId: number;
   onClose: () => void;
 }
 
 export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaignModalProps) {
   const createMutation = useCreateCampaign();
+  const autofillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isAutofilling, setIsAutofilling] = useState(false);
   const [customGoal, setCustomGoal] = useState('');
@@ -183,6 +177,15 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
 
   const isCreating = createMutation.isPending;
 
+  useEffect(() => {
+    return () => {
+      if (autofillTimeoutRef.current !== null) {
+        clearTimeout(autofillTimeoutRef.current);
+        autofillTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const togglePlatform = (platformId: string) => {
     setNewCampaign({
       ...newCampaign,
@@ -192,13 +195,24 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
     });
   };
 
-  const handleAutofill = () => {
+  const handleAutofill = useCallback(() => {
+    if (autofillTimeoutRef.current !== null) {
+      clearTimeout(autofillTimeoutRef.current);
+      autofillTimeoutRef.current = null;
+    }
     setIsAutofilling(true);
-    setTimeout(() => {
-      setNewCampaign({ ...newCampaign, platforms: ['instagram', 'tiktok'], region: 'na', goal: 'sales', targetAudience: 'Tech-savvy millennials interested in productivity tools.' });
+    autofillTimeoutRef.current = setTimeout(() => {
+      autofillTimeoutRef.current = null;
+      setNewCampaign((prev) => ({
+        ...prev,
+        platforms: ['instagram', 'tiktok'],
+        region: 'na',
+        goal: 'sales',
+        targetAudience: 'Tech-savvy millennials interested in productivity tools (sample text for local testing).',
+      }));
       setIsAutofilling(false);
     }, 1500);
-  };
+  }, []);
 
   const handleCreateCampaign = () => {
     const newErrors: Record<string, string> = {};
@@ -233,17 +247,24 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
         </div>
 
         <div className="p-6 space-y-4">
-          <button
-            onClick={handleAutofill}
-            disabled={isAutofilling || isCreating}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors disabled:opacity-50"
-          >
-            {isAutofilling ? (
-              <><Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" /> Auto-filling...</>
-            ) : (
-              <><SparklesIcon className="w-4 h-4 text-blue-600" /> Auto-fill from profile</>
-            )}
-          </button>
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={handleAutofill}
+              disabled={isAutofilling || isCreating}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-dashed border-border rounded-lg text-sm hover:bg-muted transition-colors disabled:opacity-50 text-muted-foreground"
+            >
+              {isAutofilling ? (
+                <>
+                  <Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" /> Filling sample data...
+                </>
+              ) : (
+                <>
+                  <SparklesIcon className="w-4 h-4 text-blue-600" /> Fill with sample data (dev only)
+                </>
+              )}
+            </button>
+          )}
 
           <div>
             <label className={labelClass}>Campaign Name <span className="text-red-500">*</span></label>
@@ -307,7 +328,7 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
           <div>
             <label className={labelClass}>Target Platforms</label>
             <div className="flex flex-wrap gap-2">
-              {platforms.map((platform) => (
+              {CAMPAIGN_PLATFORM_OPTIONS.map((platform) => (
                 <button
                   key={platform.id}
                   type="button"

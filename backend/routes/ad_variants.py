@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from azure.storage.blob import BlobSasPermissions, generate_blob_sas
 
 from database import get_db
+from dependencies import get_current_client_id
+from models.campaign import Campaign
 from schemas.ad_variant import AdVariantCreate, AdVariantUpdate, AdVariantResponse
 from crud.ad_variant import (
     get_ad_variants,
@@ -135,3 +137,41 @@ def remove_ad_variant(ad_variant_id: int, db: Session = Depends(get_db)):
     """Delete an ad variant by ID."""
     if not delete_ad_variant(db, ad_variant_id):
         raise HTTPException(status_code=404, detail="Ad variant not found")
+
+
+@router.patch("/{ad_variant_id}/approve", response_model=AdVariantResponse)
+def approve_ad_variant(
+    ad_variant_id: int,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
+    """Mark an ad variant as approved. Only the owning client may approve."""
+    ad_variant = get_ad_variant(db, ad_variant_id)
+    if ad_variant is None:
+        raise HTTPException(status_code=404, detail="Ad variant not found")
+
+    campaign = db.get(Campaign, ad_variant.campaign_id)
+    if campaign is None or campaign.business_client_id != client_id:
+        raise HTTPException(status_code=403, detail="Not authorised to approve this variant")
+
+    updated = update_ad_variant(db, ad_variant_id, AdVariantUpdate(is_approved=True))
+    return _sign_ad_variant(updated)
+
+
+@router.patch("/{ad_variant_id}/unapprove", response_model=AdVariantResponse)
+def unapprove_ad_variant(
+    ad_variant_id: int,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
+    """Revoke approval on an ad variant."""
+    ad_variant = get_ad_variant(db, ad_variant_id)
+    if ad_variant is None:
+        raise HTTPException(status_code=404, detail="Ad variant not found")
+
+    campaign = db.get(Campaign, ad_variant.campaign_id)
+    if campaign is None or campaign.business_client_id != client_id:
+        raise HTTPException(status_code=403, detail="Not authorised to modify this variant")
+
+    updated = update_ad_variant(db, ad_variant_id, AdVariantUpdate(is_approved=False))
+    return _sign_ad_variant(updated)

@@ -15,6 +15,8 @@ import {
   TrashIcon,
   Loader2Icon,
   AlertCircleIcon,
+  CheckCircle2Icon,
+  PlayIcon,
 } from 'lucide-react';
 
 import { AdVariantsGrid } from '../components/campaigns/AdVariantsGrid';
@@ -29,7 +31,7 @@ import type { EditFormData } from '../components/campaigns/EditCampaignModal';
 import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
 
 import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns';
-import { useCampaignAdVariants } from '../hooks/useAdGeneration';
+import { useCampaignAdVariants, useApproveVariant, useUnapproveVariant, useRunCampaign } from '../hooks/useAdGeneration';
 import { useUser } from '../contexts/UserContext';
 import { useProducts } from '../hooks/useProducts';
 import type { CampaignStatus, Product, CampaignAnalyticsSummary } from '../types';
@@ -230,6 +232,9 @@ export function CampaignDetailPage() {
   const editMutation = useUpdateCampaign();
   const settingsMutation = useUpdateCampaign();
   const deleteMutation = useDeleteCampaign();
+  const approveVariantMutation = useApproveVariant();
+  const unapproveVariantMutation = useUnapproveVariant();
+  const runCampaignMutation = useRunCampaign();
 
   const [activeTab, setActiveTab] = useState<'variants' | 'analytics' | 'settings'>('variants');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -343,7 +348,17 @@ export function CampaignDetailPage() {
     .map((productId) => products.find((p) => p.id === productId))
     .filter((p): p is Product => !!p);
   const productContextText = parseProductContext(campaign.product_context);
-  const approvedVariants = campaignVariants.filter((variant) => variant.status === 'completed');
+  const completedVariants = campaignVariants.filter((v) => v.status === 'completed');
+  const approvedVariants = completedVariants.filter((v) => v.is_approved);
+  const approvableVariants = completedVariants.filter((v) => !v.is_approved);
+
+  const handleApproveAll = () => {
+    approvableVariants.forEach((v) => approveVariantMutation.mutate(v.id));
+  };
+
+  const handleRunCampaign = () => {
+    runCampaignMutation.mutate(campaignId);
+  };
   const analyticsSummary = resolveAnalyticsSummary(campaign);
 
   // ---------- Render ----------
@@ -383,6 +398,28 @@ export function CampaignDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {campaign.status === 'draft' && (
+                <>
+                  {approvableVariants.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      leftIcon={<CheckCircle2Icon className="w-4 h-4" />}
+                      onClick={handleApproveAll}
+                      disabled={approveVariantMutation.isPending}
+                    >
+                      Approve All
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    leftIcon={<PlayIcon className="w-4 h-4" />}
+                    onClick={handleRunCampaign}
+                    disabled={runCampaignMutation.isPending || approvedVariants.length === 0}
+                  >
+                    {runCampaignMutation.isPending ? 'Starting…' : 'Run Campaign'}
+                  </Button>
+                </>
+              )}
               <Button
                 variant="secondary"
                 leftIcon={<EditIcon className="w-4 h-4" />}
@@ -451,7 +488,7 @@ export function CampaignDetailPage() {
               </div>
             )}
 
-            {!isVariantsLoading && !isVariantsError && approvedVariants.length === 0 && (
+            {!isVariantsLoading && !isVariantsError && completedVariants.length === 0 && (
               <Card variant="elevated" padding="lg">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
@@ -489,8 +526,12 @@ export function CampaignDetailPage() {
               </Card>
             )}
 
-            {!isVariantsLoading && !isVariantsError && approvedVariants.length > 0 && (
-              <AdVariantsGrid variants={approvedVariants} />
+            {!isVariantsLoading && !isVariantsError && completedVariants.length > 0 && (
+              <AdVariantsGrid
+                variants={completedVariants}
+                onApprove={(id) => approveVariantMutation.mutate(id)}
+                onUnapprove={(id) => unapproveVariantMutation.mutate(id)}
+              />
             )}
           </>
         )}

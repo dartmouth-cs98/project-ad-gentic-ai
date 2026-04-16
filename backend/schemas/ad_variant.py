@@ -17,6 +17,7 @@ class AdVariantCreate(BaseModel):
     meta: Optional[str] = None
     version_number: int = 1
     is_preview: bool = False
+    is_approved: bool = False
 
 
 class AdVariantUpdate(BaseModel):
@@ -30,6 +31,7 @@ class AdVariantUpdate(BaseModel):
     version_number: Optional[int] = None
     published_at: Optional[datetime] = None
     is_preview: Optional[bool] = None
+    is_approved: Optional[bool] = None
 
 
 # ---------- Response schema ----------
@@ -45,6 +47,7 @@ class AdVariantResponse(BaseModel):
     meta: Optional[str] = None
     version_number: int
     is_preview: bool
+    is_approved: bool
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime] = None

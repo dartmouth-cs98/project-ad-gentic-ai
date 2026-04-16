@@ -3,8 +3,10 @@ import {
   generateCampaignPreview,
   generateCampaignAdVariants,
   fetchAdVariants,
+  approveAdVariant,
+  unapproveAdVariant,
 } from '../api/adGeneration';
-import { updateCampaign } from '../api/campaigns';
+import { updateCampaign, runCampaign } from '../api/campaigns';
 import type { UpdateCampaignPayload } from '../types';
 
 export const AD_VARIANTS_KEY = ['ad-variants'] as const;
@@ -57,6 +59,33 @@ export function useGenerateFullAds() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: AD_VARIANTS_KEY });
     },
+  });
+}
+
+/** Approve a single ad variant. */
+export function useApproveVariant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (variantId: number) => approveAdVariant(variantId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: AD_VARIANTS_KEY }),
+  });
+}
+
+/** Revoke approval on a single ad variant. */
+export function useUnapproveVariant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (variantId: number) => unapproveAdVariant(variantId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: AD_VARIANTS_KEY }),
+  });
+}
+
+/** Mark a campaign as active (triggers agent publishing in a future milestone). */
+export function useRunCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (campaignId: number) => runCampaign(campaignId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
   });
 }
 

@@ -11,7 +11,7 @@ import { useFilterState } from '../hooks/useFilterState';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
-import { useCampaignAdVariants, useGeneratePreview, useUpdateCampaign } from '../hooks/useAdGeneration';
+import { useCampaignAdVariants, useGeneratePreview, useUpdateCampaign, useApproveVariant } from '../hooks/useAdGeneration';
 
 // ─── Constants ──────────────────────────────────────────────────
 
@@ -84,6 +84,7 @@ export function GenerateAdsPage() {
   const [filterState, filterDispatch] = useFilterState();
   const generatePreview = useGeneratePreview();
   const updateCampaign = useUpdateCampaign();
+  const approveVariant = useApproveVariant();
 
   // ─── Core state ──────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('idle');
@@ -347,6 +348,12 @@ export function GenerateAdsPage() {
     setSelectedVariants(new Set());
   };
 
+  const handleApproveSelected = () => {
+    const ids = Array.from(selectedVariants).map(Number);
+    ids.forEach((id) => approveVariant.mutate(id));
+    setSelectedVariants(new Set());
+  };
+
   const toggleVariant = (variantId: string) => {
     setSelectedVariants((prev) => {
       const n = new Set(prev);
@@ -434,6 +441,7 @@ export function GenerateAdsPage() {
             selectedVariants={selectedVariants}
             onVariantToggle={toggleVariant}
             onClearSelection={() => setSelectedVariants(new Set())}
+            onApproveSelected={handleApproveSelected}
             onReviseSelected={handleReviseSelected}
             onDeleteSelected={handleDeleteSelected}
             onApplyFilters={() => {

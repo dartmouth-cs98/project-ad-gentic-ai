@@ -53,6 +53,34 @@ export async function generateCampaignAdVariants(
   return res.json();
 }
 
+// ---------- Ad Variant approval ----------
+
+/** Approve a single ad variant. */
+export async function approveAdVariant(variantId: number): Promise<AdVariant> {
+  const res = await fetch(apiUrl(`/ad-variants/${variantId}/approve`), {
+    method: 'PATCH',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to approve variant.');
+  }
+  return (await res.json()) as AdVariant;
+}
+
+/** Revoke approval on a single ad variant. */
+export async function unapproveAdVariant(variantId: number): Promise<AdVariant> {
+  const res = await fetch(apiUrl(`/ad-variants/${variantId}/unapprove`), {
+    method: 'PATCH',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to unapprove variant.');
+  }
+  return (await res.json()) as AdVariant;
+}
+
 // ---------- Ad Variants ----------
 
 /** Fetch ad variants for a campaign, with optional filters. */

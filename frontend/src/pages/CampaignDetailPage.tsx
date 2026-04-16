@@ -32,18 +32,10 @@ import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '../hooks/useC
 import { useCampaignAdVariants } from '../hooks/useAdGeneration';
 import { useUser } from '../contexts/UserContext';
 import { useProducts } from '../hooks/useProducts';
-import type { CampaignStatus, Product, CampaignAnalyticsSummary, CampaignHeroIcon } from '../types';
+import type { CampaignStatus, Product, CampaignAnalyticsSummary } from '../types';
+import { HERO_ICON_STYLES, normalizeCampaignHeroIcon, getHeroIconStyles } from '../lib/campaignHeroIcon';
 
 // ---------- Analytics helpers (live data only; empty state when API omits summary) ----------
-
-function resolveAnalyticsSummary(campaign: { analytics_summary?: CampaignAnalyticsSummary | null }): CampaignAnalyticsSummary | null {
-  const s = campaign.analytics_summary;
-  if (!s) return null;
-  if (!Array.isArray(s.hero) || s.hero.length !== 4) return null;
-  if (!Array.isArray(s.metrics) || s.metrics.length === 0) return null;
-  if (!Array.isArray(s.personas) || s.personas.length === 0) return null;
-  return s;
-}
 
 function heroBadgeClass(style: 'positive' | 'neutral' | 'muted'): string {
   if (style === 'positive') {
@@ -55,12 +47,20 @@ function heroBadgeClass(style: 'positive' | 'neutral' | 'muted'): string {
   return 'text-xs font-medium text-muted-foreground bg-muted/80 px-2 py-1 rounded-full';
 }
 
-const HERO_ICON_STYLES: Record<CampaignHeroIcon, { wrap: string; iconClass: string }> = {
-  users: { wrap: 'bg-blue-100', iconClass: 'w-5 h-5 text-blue-600' },
-  pointer: { wrap: 'bg-purple-100', iconClass: 'w-5 h-5 text-purple-600' },
-  chart: { wrap: 'bg-emerald-100', iconClass: 'w-5 h-5 text-emerald-600' },
-  globe: { wrap: 'bg-amber-100', iconClass: 'w-5 h-5 text-amber-600' },
-};
+function resolveAnalyticsSummary(campaign: { analytics_summary?: CampaignAnalyticsSummary | null }): CampaignAnalyticsSummary | null {
+  const s = campaign.analytics_summary;
+  if (!s) return null;
+  if (!Array.isArray(s.hero) || s.hero.length === 0) return null;
+  if (!Array.isArray(s.metrics) || s.metrics.length === 0) return null;
+  if (!Array.isArray(s.personas) || s.personas.length === 0) return null;
+  return {
+    ...s,
+    hero: s.hero.map((kpi) => ({
+      ...kpi,
+      icon: normalizeCampaignHeroIcon(kpi?.icon),
+    })),
+  };
+}
 
 function MousePointerClickIcon({ className }: { className?: string }) {
   return (
@@ -85,9 +85,10 @@ function MousePointerClickIcon({ className }: { className?: string }) {
   );
 }
 
-function renderHeroIcon(icon: CampaignHeroIcon) {
-  const { iconClass } = HERO_ICON_STYLES[icon];
-  switch (icon) {
+function renderHeroIcon(icon: unknown) {
+  const resolved = normalizeCampaignHeroIcon(icon);
+  const { iconClass } = HERO_ICON_STYLES[resolved];
+  switch (resolved) {
     case 'users':
       return <UsersIcon className={iconClass} />;
     case 'pointer':
@@ -101,9 +102,9 @@ function renderHeroIcon(icon: CampaignHeroIcon) {
 
 function HeroKpiGrid({ hero }: { hero: CampaignAnalyticsSummary['hero'] }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
       {hero.map((kpi, index) => {
-        const wrap = HERO_ICON_STYLES[kpi.icon].wrap;
+        const wrap = getHeroIconStyles(kpi.icon).wrap;
         return (
           <Card key={`${kpi.label}-${index}`} variant="elevated" padding="md">
             <div className="flex items-center justify-between mb-4">

@@ -1,9 +1,12 @@
 import { HealthBadge } from '../ui/HealthBadge';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { Logo } from '../ui/Logo';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useUser } from '../../contexts/UserContext';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   LayoutDashboardIcon,
   FolderIcon,
@@ -32,8 +35,18 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: SidebarProps = {}) {
   const location = useLocation();
+  const navigate = useNavigate();
   const sidebar = useSidebar();
   const { profile } = useCompany();
+  const { logout } = useUser();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = () => {
+    setSigningOut(true);
+    setConfirmOpen(false);
+    setTimeout(() => { logout(); navigate('/sign-in'); }, 1000);
+  };
 
   const { theme, toggleTheme } = useTheme();
   const collapsed = controlledCollapsed ?? sidebar.collapsed;
@@ -154,18 +167,32 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
             <>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{profile.userName}</p>
-                <p className="text-xs text-muted-foreground truncate capitalize">{profile.plan} Plan</p>
+                <p className="text-xs text-muted-foreground truncate capitalize">
+                  {signingOut ? 'Signing out...' : `${profile.plan} Plan`}
+                </p>
               </div>
-              <Link
-                to="/"
-                className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      <button
+                onClick={() => setConfirmOpen(true)}
+                disabled={signingOut}
+                title="Sign out"
+                className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
-                <LogOutIcon className="w-4 h-4" />
-              </Link>
+                <LogOutIcon className={`w-4 h-4 ${signingOut ? 'animate-spin' : ''}`} />
+              </button>
             </>
           )}
         </div>
       </div>
+      {confirmOpen && (
+        <ConfirmDialog
+          title="Sign out?"
+          description="You'll be returned to the sign-in page."
+          confirmLabel="Sign out"
+          onConfirm={handleSignOut}
+          onCancel={() => setConfirmOpen(false)}
+          isLoading={signingOut}
+        />
+      )}
     </aside>
   );
 }

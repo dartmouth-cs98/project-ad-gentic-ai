@@ -25,6 +25,7 @@ class AdVariant(Base):
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     product_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_preview: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_approved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     def __repr__(self) -> str:
         return f"<AdVariant(id={self.id}, campaign_id={self.campaign_id}, status='{self.status}')>"

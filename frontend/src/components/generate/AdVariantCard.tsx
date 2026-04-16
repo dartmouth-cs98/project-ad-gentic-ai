@@ -38,7 +38,7 @@ export function AdVariantCard({ variant, isSelected, onToggle }: AdVariantCardPr
       onClick={() => onToggle(id)}
     >
       {/* Media area */}
-      <div className="relative aspect-[9/16] max-h-[280px] bg-[#0a0a0a]">
+      <div className="relative aspect-video bg-black">
         {variant.status === 'completed' && variant.media_url ? (
           <video
             src={variant.media_url}
@@ -63,11 +63,22 @@ export function AdVariantCard({ variant, isSelected, onToggle }: AdVariantCardPr
           </div>
         )}
 
-        {/* Status badge */}
-        <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${config.bg} ${config.text}`}>
-          <StatusIcon className={`w-2.5 h-2.5 ${config.animate ? 'animate-spin' : ''}`} />
-          {config.label}
-        </div>
+        {/* Status / approval badge */}
+        {variant.status === 'completed' ? (
+          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
+            variant.is_approved
+              ? 'bg-emerald-500/15 text-emerald-500'
+              : 'bg-amber-500/15 text-amber-500'
+          }`}>
+            <CheckIcon className="w-2.5 h-2.5" />
+            {variant.is_approved ? 'Approved' : 'Pending Approval'}
+          </div>
+        ) : (
+          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${config.bg} ${config.text}`}>
+            <StatusIcon className={`w-2.5 h-2.5 ${config.animate ? 'animate-spin' : ''}`} />
+            {config.label}
+          </div>
+        )}
 
         {/* Selection checkbox */}
         <div className="absolute top-2 left-2">

@@ -173,6 +173,28 @@ class TestUploadCsv:
         assert resp.status_code == 200
         assert resp.json()["created"] == 2
 
+    def test_upload_with_traits_degrades_when_script_config_unavailable(self, client: TestClient):
+        """If Grok/SCRIPT_* cannot be built, still create rows with empty consumer_traits_description."""
+        with patch(
+            "routes.consumers.get_script_llm_client_and_model",
+            side_effect=ValueError("SCRIPT_API_KEY and SCRIPT_BASE_URL must be set"),
+        ):
+            csv_bytes = _make_csv([
+                VALID_CSV_HEADER,
+                'traita@example.com,555-0001,A,B,{"age": 1}',
+                'traitb@example.com,555-0002,C,D,{"age": 2}',
+            ])
+            resp = client.post(
+                "/consumers/upload-csv",
+                files={"file": ("traits-no-script.csv", io.BytesIO(csv_bytes), "text/csv")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["created"] == 2
+        rows = client.get("/consumers/").json()
+        by_email = {r["email"]: r.get("consumer_traits_description") for r in rows}
+        assert by_email["traita@example.com"] == ""
+        assert by_email["traitb@example.com"] == ""
+
     def test_upload_skips_existing_db_emails(self, client: TestClient):
         # First upload
         csv1 = _make_csv([

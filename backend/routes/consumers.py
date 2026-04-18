@@ -151,16 +151,27 @@ async def upload_consumers_csv(
         # environments without SCRIPT_API_KEY / SCRIPT_BASE_URL / SCRIPT_MODEL).
         descriptions: list[str] = []
         client_and_model: tuple | None = None
+        script_llm_unavailable = False
         for item in to_create:
             traits = item.traits or {}
             if not traits:
                 descriptions.append("")
                 continue
+            if script_llm_unavailable:
+                descriptions.append("")
+                continue
             if client_and_model is None:
                 try:
                     client_and_model = get_script_llm_client_and_model()
-                except ValueError as exc:
-                    raise HTTPException(status_code=500, detail=str(exc)) from exc
+                except Exception as exc:
+                    logger.warning(
+                        "SCRIPT_* unavailable or invalid for CSV consumer_traits_description (%s); "
+                        "using empty descriptions for this row and any remaining rows with traits.",
+                        exc,
+                    )
+                    script_llm_unavailable = True
+                    descriptions.append("")
+                    continue
             try:
                 descriptions.append(
                     await generate_consumer_traits_description(

@@ -153,6 +153,26 @@ class TestUploadCsv:
         assert body["skipped"] == 1
         assert "dup@example.com" in body["skipped_emails"]
 
+    def test_upload_all_empty_traits_does_not_require_script_llm_config(self, client: TestClient):
+        """Regression: CSV with only `{}` traits must not call Grok/SCRIPT_* (CI has no SCRIPT_*)."""
+        with patch(
+            "routes.consumers.get_script_llm_client_and_model",
+            side_effect=AssertionError(
+                "must not request SCRIPT_* when every row has empty traits"
+            ),
+        ):
+            csv_bytes = _make_csv([
+                VALID_CSV_HEADER,
+                "onlyempty1@example.com,555-0001,O,E,{}",
+                "onlyempty2@example.com,555-0002,T,W,{}",
+            ])
+            resp = client.post(
+                "/consumers/upload-csv",
+                files={"file": ("empty-traits.csv", io.BytesIO(csv_bytes), "text/csv")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["created"] == 2
+
     def test_upload_skips_existing_db_emails(self, client: TestClient):
         # First upload
         csv1 = _make_csv([
@@ -251,8 +271,9 @@ class TestListConsumers:
         assert len(data) == 2
         emails = {c["email"] for c in data}
         assert emails == {"one@example.com", "two@example.com"}
-        for row in data:
-            assert row.get("consumer_traits_description") == "Stub audience description for tests."
+        by_email = {c["email"]: c.get("consumer_traits_description") for c in data}
+        assert by_email["one@example.com"] == "Stub audience description for tests."
+        assert by_email["two@example.com"] == ""
 
     def test_list_pagination(self, client: TestClient):
         rows = [VALID_CSV_HEADER] + [

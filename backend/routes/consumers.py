@@ -146,14 +146,21 @@ async def upload_consumers_csv(
 
     created = 0
     if to_create:
-        try:
-            client_and_model = get_script_llm_client_and_model()
-        except ValueError as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
-
+        # Only touch SCRIPT_* / Grok when at least one row has non-empty traits; `{}` short-circuits
+        # without any LLM client (matches generate_consumer_traits_description and avoids 500 in
+        # environments without SCRIPT_API_KEY / SCRIPT_BASE_URL / SCRIPT_MODEL).
         descriptions: list[str] = []
+        client_and_model: tuple | None = None
         for item in to_create:
             traits = item.traits or {}
+            if not traits:
+                descriptions.append("")
+                continue
+            if client_and_model is None:
+                try:
+                    client_and_model = get_script_llm_client_and_model()
+                except ValueError as exc:
+                    raise HTTPException(status_code=500, detail=str(exc)) from exc
             try:
                 descriptions.append(
                     await generate_consumer_traits_description(
@@ -238,9 +245,9 @@ async def create_new_consumer(
     traits = data.traits or {}
     try:
         traits_description = await generate_consumer_traits_description(traits)
-    except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
     except Exception:
+        # Same resilience as CSV: missing SCRIPT_*, odd API responses (e.g. ValueError for no
+        # choices), and other LLM failures should not block consumer creation.
         logger.exception(
             "traits_description LLM failed for new consumer email=%s; saving empty description",
             data.email,

@@ -8,7 +8,7 @@ import io
 import json
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 # Ensure backend/ is on the Python path
@@ -64,11 +64,22 @@ def setup_db():
 
 @pytest.fixture(autouse=True)
 def _mock_traits_description_llm():
-    """POST /consumers and CSV paths call Grok (SCRIPT_*) for narrative traits; stub in tests."""
-    with patch(
-        "routes.consumers.generate_consumer_traits_description",
-        new_callable=AsyncMock,
-        return_value="Stub audience description for tests.",
+    """Stub Grok client + description so tests pass without SCRIPT_* (e.g. GitHub Actions).
+
+    CSV upload calls ``get_script_llm_client_and_model()`` before ``generate_*``; CI has no
+    SCRIPT_API_KEY / SCRIPT_BASE_URL / SCRIPT_MODEL, so that call must be mocked too.
+    """
+    mock_http = MagicMock()
+    with (
+        patch(
+            "routes.consumers.get_script_llm_client_and_model",
+            return_value=(mock_http, "stub-model"),
+        ),
+        patch(
+            "routes.consumers.generate_consumer_traits_description",
+            new_callable=AsyncMock,
+            return_value="Stub audience description for tests.",
+        ),
     ):
         yield
 

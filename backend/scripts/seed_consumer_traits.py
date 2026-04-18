@@ -9,12 +9,16 @@ Run from backend/ directory:
 
 import asyncio
 import json
+import logging
 import random
 import sys
 import os
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 from database import _get_session_factory
 from models.consumer import Consumer
@@ -109,7 +113,7 @@ async def _refresh_trait_descriptions(consumers: list) -> None:
                 traits_dict
             )
         except Exception as exc:
-            print(f"  WARNING: consumer {consumer.id} traits_description LLM failed: {exc}")
+            logger.warning("consumer %s traits_description LLM failed: %s", consumer.id, exc)
             consumer.consumer_traits_description = ""
 
 
@@ -119,7 +123,7 @@ def main():
 
     try:
         consumers = db.query(Consumer).all()
-        print(f"Found {len(consumers)} consumers to update.")
+        logger.info("Found %s consumers to update.", len(consumers))
 
         for consumer in consumers:
             existing = {}
@@ -127,7 +131,7 @@ def main():
                 try:
                     existing = json.loads(consumer.traits)
                 except json.JSONDecodeError:
-                    print(f"  WARNING: consumer {consumer.id} has malformed traits JSON — overwriting.")
+                    logger.warning("consumer %s has malformed traits JSON — overwriting.", consumer.id)
 
             new_fields = build_new_traits()
 
@@ -137,11 +141,11 @@ def main():
 
         asyncio.run(_refresh_trait_descriptions(consumers))
         db.commit()
-        print(f"Done. Updated {len(consumers)} consumers.")
+        logger.info("Done. Updated %s consumers.", len(consumers))
 
     except Exception as e:
         db.rollback()
-        print(f"ERROR: {e}")
+        logger.error("ERROR: %s", e)
         raise
     finally:
         db.close()

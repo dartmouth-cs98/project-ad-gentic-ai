@@ -30,7 +30,10 @@ from schemas.consumer import (
     PersonaProcessingSummary,
 )
 from services.consumer_persona_processor.service import process_consumer_personas
-from services.consumer_traits_description import generate_consumer_traits_description
+from services.consumer_traits_description import (
+    generate_consumer_traits_description,
+    get_script_llm_client_and_model,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -143,13 +146,21 @@ async def upload_consumers_csv(
 
     created = 0
     if to_create:
+        try:
+            client_and_model = get_script_llm_client_and_model()
+        except ValueError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
         descriptions: list[str] = []
         for item in to_create:
             traits = item.traits or {}
             try:
-                descriptions.append(await generate_consumer_traits_description(traits))
-            except ValueError as exc:
-                raise HTTPException(status_code=500, detail=str(exc)) from exc
+                descriptions.append(
+                    await generate_consumer_traits_description(
+                        traits,
+                        _client_and_model=client_and_model,
+                    )
+                )
             except Exception:
                 logger.exception(
                     "traits_description LLM failed for email=%s; saving empty description",

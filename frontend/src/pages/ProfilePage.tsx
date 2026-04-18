@@ -7,6 +7,9 @@ import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { Select } from '../components/ui/Select';
 import { useCompany } from '../contexts/CompanyContext';
+import { useUser } from '../contexts/UserContext';
+import { useNavigate } from 'react-router-dom';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import {
   BuildingIcon,
   BriefcaseIcon,
@@ -15,12 +18,23 @@ import {
   CheckIcon,
   TrashIcon,
   ShieldIcon,
-  UsersIcon
+  UsersIcon,
+  LogOutIcon,
 } from
   'lucide-react';
 export function ProfilePage() {
   const { collapsed } = useSidebar();
   const { profile, updateProfile } = useCompany();
+  const { logout } = useUser();
+  const navigate = useNavigate();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = () => {
+    setSigningOut(true);
+    setConfirmOpen(false);
+    setTimeout(() => { logout(); navigate('/sign-in'); }, 1000);
+  };
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(profile);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -328,12 +342,32 @@ export function ProfilePage() {
 
                     View Invoices
                   </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                    leftIcon={<LogOutIcon className={`w-4 h-4 ${signingOut ? 'animate-spin' : ''}`} />}
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={signingOut}>
+
+                    {signingOut ? 'Signing out...' : 'Sign Out'}
+                  </Button>
                 </div>
               </Card>
             </div>
           </div>
         </div>
       </main>
+
+      {confirmOpen && (
+        <ConfirmDialog
+          title="Sign out?"
+          description="You'll be returned to the sign-in page."
+          confirmLabel="Sign out"
+          onConfirm={handleSignOut}
+          onCancel={() => setConfirmOpen(false)}
+          isLoading={signingOut}
+        />
+      )}
     </div>);
 
 }

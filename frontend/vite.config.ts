@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
       include: ['src/**/*.test.ts'],
     },
     server: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      },
       proxy: {
         '/api': {
           target: apiTarget,

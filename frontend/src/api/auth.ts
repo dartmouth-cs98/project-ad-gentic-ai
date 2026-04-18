@@ -71,6 +71,25 @@ export async function signUp(
   return (await res.json()) as SignUpResponse;
 }
 
+export async function googleAuth(
+  accessToken: string,
+): Promise<TokenResponse> {
+  const res = await fetch(apiUrl('/auth/google'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ access_token: accessToken }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || 'Google sign-in failed.');
+  }
+
+  const data: TokenResponse = await res.json();
+  storeSession(data.access_token, data.email, data.client_id);
+  return data;
+}
+
 export async function signIn(
   email: string,
   password: string,

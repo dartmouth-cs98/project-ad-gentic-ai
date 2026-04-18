@@ -15,11 +15,16 @@ class SignInRequest(BaseModel):
     password: str
 
 
+class GoogleAuthRequest(BaseModel):
+    access_token: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     client_id: int
     email: str
+    is_new_user: bool = False
 
 
 class SignUpResponse(BaseModel):

@@ -1,3 +1,4 @@
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { HashRouter, Routes, Route, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
@@ -7,6 +8,7 @@ function ScrollToTop() {
   return null;
 }
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GOOGLE_CLIENT_ID } from './api/config';
 import { LandingPage } from './pages/LandingPage';
 import { SimpleLanding } from './pages/SimpleLanding';
 import { SignUpPage } from './pages/SignUpPage';
@@ -72,6 +74,7 @@ function DataPagesLayout() {
 
 export function App() {
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <HashRouter>
@@ -109,5 +112,6 @@ export function App() {
         </HashRouter>
       </ThemeProvider>
     </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }

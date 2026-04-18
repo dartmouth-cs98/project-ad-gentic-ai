@@ -7,6 +7,7 @@ import hashlib
 import secrets
 from datetime import datetime, timezone, timedelta
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
@@ -16,6 +17,7 @@ from database import get_db
 from schemas.auth import (
     SignUpRequest,
     SignInRequest,
+    GoogleAuthRequest,
     TokenResponse,
     SignUpResponse,
     ProfileResponse,
@@ -54,6 +56,8 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
     raise RuntimeError("JWT_SECRET environment variable must be set for JWT signing.")
 EMAIL_VERIFICATION_TOKEN_TTL_MINUTES = int(os.getenv("EMAIL_VERIFICATION_TOKEN_TTL_MINUTES", "15"))
+
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 
 # --- Helpers ---
@@ -276,6 +280,57 @@ def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
     return ResetPasswordResponse(
         success=True,
         message="Password reset successful. You can now sign in.",
+    )
+
+
+@router.post("/google", response_model=TokenResponse)
+def google_auth(data: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """Authenticate or register a user via a Google OAuth access token.
+
+    Verifies the token with Google's userinfo endpoint, then finds or creates
+    a BusinessClient for the returned email address. Google-authenticated users
+    are considered email-verified by Google, so no OTP step is required.
+    """
+    try:
+        with httpx.Client(timeout=10) as http_client:
+            resp = http_client.get(
+                GOOGLE_USERINFO_URL,
+                headers={"Authorization": f"Bearer {data.access_token}"},
+            )
+            resp.raise_for_status()
+            user_info = resp.json()
+    except httpx.HTTPStatusError:
+        raise HTTPException(status_code=401, detail="Invalid or expired Google token.")
+    except httpx.RequestError:
+        raise HTTPException(status_code=502, detail="Could not reach Google auth servers.")
+
+    email = user_info.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account has no email address.")
+
+    existing = get_by_email(db, email)
+    if existing:
+        # Ensure Google-linked accounts are always marked verified.
+        if not existing.email_verified:
+            mark_email_verified(db, existing)
+        token = create_access_token(existing.id, existing.email)
+        return TokenResponse(
+            access_token=token,
+            client_id=existing.id,
+            email=existing.email,
+            is_new_user=False,
+        )
+
+    name = user_info.get("name", "")
+    new_client = create_business_client(db, email, None, "basic", business_name=name)
+    # Google has already verified this email address.
+    mark_email_verified(db, new_client)
+    token = create_access_token(new_client.id, new_client.email)
+    return TokenResponse(
+        access_token=token,
+        client_id=new_client.id,
+        email=new_client.email,
+        is_new_user=True,
     )
 
 

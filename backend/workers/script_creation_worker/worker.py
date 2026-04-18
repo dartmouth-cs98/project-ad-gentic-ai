@@ -4,6 +4,8 @@ import os
 import json
 
 from dotenv import load_dotenv
+
+from services.consumer_traits_description import consumer_profile_text_for_script
 from openai import AsyncOpenAI
 from xai_sdk import Client
 from xai_sdk.chat import system, user, image
@@ -218,8 +220,7 @@ def batch_generate_ad_scripts(
             model=model,
             batch_request_id=consumer.id,
         )
-        traits_dict = json.loads(consumer.traits) if consumer.traits else {}
-        consumer_traits_string = "\n".join(f"{k}: {v}" for k, v in traits_dict.items())
+        consumer_traits_string = consumer_profile_text_for_script(consumer)
         prompt = _build_script_prompt(
             product_name,
             product_description,

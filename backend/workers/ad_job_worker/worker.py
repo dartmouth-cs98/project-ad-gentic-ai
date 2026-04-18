@@ -26,6 +26,7 @@ from crud.persona import get_personas
 from schemas.ad_variant import AdVariantCreate, AdVariantUpdate
 from schemas.ad_job import AdJobCreate
 from schemas.ad_job_batch import AdJobBatchCreate
+from services.consumer_traits_description import consumer_profile_text_for_script
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video
 from workers.script_moderation_worker.worker import evaluate_script
@@ -102,10 +103,7 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         consumer = get_consumer(db, consumer_id)
         if consumer is None:
             raise ValueError(f"Consumer not found: {consumer_id}")
-        consumer_traits = json.loads(consumer.traits or "{}")
-        consumer_traits_string = (
-            "\n".join(f"{k}: {v}" for k, v in consumer_traits.items()) if consumer_traits else ""
-        )
+        consumer_traits_string = consumer_profile_text_for_script(consumer)
 
         product = get_product(db, product_id)
         if product is None:

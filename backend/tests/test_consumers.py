@@ -62,6 +62,17 @@ def setup_db():
     Consumer.__table__.schema = _consumer_original_schema
 
 
+@pytest.fixture(autouse=True)
+def _mock_traits_description_llm():
+    """POST /consumers and CSV paths call Grok (SCRIPT_*) for narrative traits; stub in tests."""
+    with patch(
+        "routes.consumers.generate_consumer_traits_description",
+        new_callable=AsyncMock,
+        return_value="Stub audience description for tests.",
+    ):
+        yield
+
+
 @pytest.fixture()
 def client():
     """Return a FastAPI TestClient with DB and auth dependencies overridden."""
@@ -229,6 +240,8 @@ class TestListConsumers:
         assert len(data) == 2
         emails = {c["email"] for c in data}
         assert emails == {"one@example.com", "two@example.com"}
+        for row in data:
+            assert row.get("consumer_traits_description") == "Stub audience description for tests."
 
     def test_list_pagination(self, client: TestClient):
         rows = [VALID_CSV_HEADER] + [

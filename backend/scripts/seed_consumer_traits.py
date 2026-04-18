@@ -1,11 +1,13 @@
 """
 Seed script: updates existing consumer traits with new fields.
 Preserves any existing trait data — only adds missing keys.
+Regenerates ``consumer_traits_description`` from merged traits via the script LLM (``SCRIPT_*`` / Grok-compatible API).
 
 Run from backend/ directory:
     python scripts/seed_consumer_traits.py
 """
 
+import asyncio
 import json
 import random
 import sys
@@ -16,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import _get_session_factory
 from models.consumer import Consumer
+from services.consumer_traits_description import generate_consumer_traits_description
 
 # ---------------------------------------------------------------------------
 # Trait value pools — keep realistic variety and intentional missing values
@@ -95,6 +98,21 @@ def build_new_traits() -> dict:
     }
 
 
+async def _refresh_trait_descriptions(consumers: list) -> None:
+    for consumer in consumers:
+        try:
+            traits_dict = json.loads(consumer.traits or "{}")
+        except json.JSONDecodeError:
+            traits_dict = {}
+        try:
+            consumer.consumer_traits_description = await generate_consumer_traits_description(
+                traits_dict
+            )
+        except Exception as exc:
+            print(f"  WARNING: consumer {consumer.id} traits_description LLM failed: {exc}")
+            consumer.consumer_traits_description = ""
+
+
 def main():
     session_factory = _get_session_factory()
     db = session_factory()
@@ -117,6 +135,7 @@ def main():
             merged = {**new_fields, **existing}
             consumer.traits = json.dumps(merged)
 
+        asyncio.run(_refresh_trait_descriptions(consumers))
         db.commit()
         print(f"Done. Updated {len(consumers)} consumers.")
 

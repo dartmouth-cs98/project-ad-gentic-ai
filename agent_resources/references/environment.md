@@ -27,8 +27,8 @@ Loaded via **`python-dotenv`** from **`backend/.env`** (`database.py`, several w
 | Variable | Role |
 |----------|------|
 | `OPENAI_API_KEY` | `core/openai_client.py` (e.g. consumer persona flows) |
-| `SCRIPT_MODEL` | Model id for script/moderation/chat client paths |
-| `SCRIPT_API_KEY` | Key for OpenAI-compatible client (script moderation, Grok chat, some workers) |
+| `SCRIPT_MODEL` | Model id for script/moderation/chat client paths and **`consumer_traits_description`** (chat completions) |
+| `SCRIPT_API_KEY` | Key for OpenAI-compatible client (script generation, **consumer narrative from traits**, Grok chat, some workers) |
 | `SCRIPT_BASE_URL` | Base URL for same client |
 | `VIDEO_API_KEY` | OpenAI-compatible video generation (`ad_video_generation_worker`) |
 

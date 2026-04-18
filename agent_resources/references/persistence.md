@@ -7,7 +7,7 @@ ORM models live in **`backend/models/`**. Tables use schema **`dbo`** (SQL Serve
 | `business_client.py` | `business_clients` | `id` int | Email unique; `stripe_customer_id` placeholder default |
 | `campaign.py` | `campaigns` | `id` int | `business_client_id`; `brief` may store versioned JSON text |
 | `product.py` | `products` | `id` int | `business_client_id`; `image_name` / blob for generation |
-| `consumer.py` | `consumers` | `id` int | `business_client_id`; FK to `personas`; unique `(business_client_id, email)` |
+| `consumer.py` | `consumers` | `id` int | `business_client_id`; FK to `personas`; unique `(business_client_id, email)`; `traits` JSON text; **`consumer_traits_description`** narrative for script LLM (kept in sync when traits change) |
 | `persona.py` | `personas` | `id` string UUID | Unique `name`; JSON string columns for lists |
 | `ad_variant.py` | `ad_variants` | `id` int | `campaign_id`, `consumer_id`, `version_number`, `is_preview`, `status`, `media_url`, `metadata` column mapped as `meta` |
 | `ad_job.py` | `ad_jobs` | `id` UUID | `batch_id` UUID; lock columns; `input_json` / `output_json` |

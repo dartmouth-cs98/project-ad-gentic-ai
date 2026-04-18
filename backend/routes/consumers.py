@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import logging
 from typing import Optional
 from uuid import UUID
 
@@ -29,8 +30,10 @@ from schemas.consumer import (
     PersonaProcessingSummary,
 )
 from services.consumer_persona_processor.service import process_consumer_personas
+from services.consumer_traits_description import generate_consumer_traits_description
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _to_response(consumer) -> dict:
@@ -43,6 +46,7 @@ def _to_response(consumer) -> dict:
         "first_name": consumer.first_name,
         "last_name": consumer.last_name,
         "traits": json.loads(consumer.traits) if consumer.traits else None,
+        "consumer_traits_description": consumer.consumer_traits_description,
         "primary_persona": consumer.primary_persona,
         "secondary_persona": consumer.secondary_persona,
         "persona_confidence": (
@@ -139,8 +143,24 @@ async def upload_consumers_csv(
 
     created = 0
     if to_create:
+        descriptions: list[str] = []
+        for item in to_create:
+            traits = item.traits or {}
+            try:
+                descriptions.append(await generate_consumer_traits_description(traits))
+            except ValueError as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+            except Exception:
+                logger.exception(
+                    "traits_description LLM failed for email=%s; saving empty description",
+                    item.email,
+                )
+                descriptions.append("")
+
         try:
-            create_consumers_bulk(db, client_id, to_create)
+            create_consumers_bulk(
+                db, client_id, to_create, consumer_traits_descriptions=descriptions
+            )
             created = len(to_create)
         except Exception as exc:
             db.rollback()
@@ -198,14 +218,31 @@ async def assign_personas(
 
 
 @router.post("/", response_model=ConsumerResponse, status_code=201)
-def create_new_consumer(
+async def create_new_consumer(
     data: ConsumerCreate,
     db: Session = Depends(get_db),
     client_id: int = Depends(get_current_client_id),
 ):
     """Create a new consumer for the authenticated client."""
+    traits = data.traits or {}
     try:
-        consumer = create_consumer(db, client_id, data)
+        traits_description = await generate_consumer_traits_description(traits)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception:
+        logger.exception(
+            "traits_description LLM failed for new consumer email=%s; saving empty description",
+            data.email,
+        )
+        traits_description = ""
+
+    try:
+        consumer = create_consumer(
+            db,
+            client_id,
+            data,
+            consumer_traits_description=traits_description,
+        )
     except IntegrityError:
         db.rollback()
         raise HTTPException(

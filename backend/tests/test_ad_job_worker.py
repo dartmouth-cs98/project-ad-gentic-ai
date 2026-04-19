@@ -198,6 +198,42 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
     assert "data:image/png;base64," in args[2]
     assert "age" in args[3] and "fitness" in args[3]
     assert args[4] == "Test campaign brief"
+
+
+@pytest.mark.asyncio
+async def test_execute_ad_job_prefers_consumer_traits_description(
+    mock_db,
+    mock_session_factory,
+    mock_ad_variant,
+    mock_campaign,
+    mock_consumer,
+    mock_product,
+    mock_blob_client,
+):
+    """When consumer_traits_description is set, it is passed to generate_ad_script instead of trait lines."""
+    mock_consumer.consumer_traits_description = "A narrative-only audience blurb."
+    mock_consumer.traits = '{"age": "99", "interest": "ignored"}'
+    mock_gen_script = AsyncMock(return_value="Script")
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
+        patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
+        patch("workers.ad_job_worker.worker.update_ad_variant"),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
+        patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
+        patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
+        patch("workers.ad_job_worker.worker.generate_ad_script", mock_gen_script),
+        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"video"),
+    ):
+        blob_cls.from_connection_string.return_value = mock_blob_client
+
+        await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)
+
+    call_kw = mock_gen_script.await_args
+    args = call_kw[0]
+    kwargs = call_kw[1]
+    assert args[3] == "A narrative-only audience blurb."
     assert kwargs.get("campaign_name") == "Spring Launch"
     assert kwargs.get("campaign_goal") == "Drive awareness"
     assert kwargs.get("campaign_target_audience") == "Urban commuters 18-35"

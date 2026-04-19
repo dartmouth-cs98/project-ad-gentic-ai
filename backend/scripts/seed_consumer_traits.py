@@ -1,12 +1,15 @@
 """
 Seed script: updates existing consumer traits with new fields.
 Preserves any existing trait data — only adds missing keys.
+Regenerates ``consumer_traits_description`` from merged traits via the script LLM (``SCRIPT_*`` / Grok-compatible API).
 
 Run from backend/ directory:
     python scripts/seed_consumer_traits.py
 """
 
+import asyncio
 import json
+import logging
 import random
 import sys
 import os
@@ -14,8 +17,12 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+
 from database import _get_session_factory
 from models.consumer import Consumer
+from services.consumer_traits_description import generate_consumer_traits_description
 
 # ---------------------------------------------------------------------------
 # Trait value pools — keep realistic variety and intentional missing values
@@ -95,13 +102,28 @@ def build_new_traits() -> dict:
     }
 
 
+async def _refresh_trait_descriptions(consumers: list) -> None:
+    for consumer in consumers:
+        try:
+            traits_dict = json.loads(consumer.traits or "{}")
+        except json.JSONDecodeError:
+            traits_dict = {}
+        try:
+            consumer.consumer_traits_description = await generate_consumer_traits_description(
+                traits_dict
+            )
+        except Exception as exc:
+            logger.warning("consumer %s traits_description LLM failed: %s", consumer.id, exc)
+            consumer.consumer_traits_description = ""
+
+
 def main():
     session_factory = _get_session_factory()
     db = session_factory()
 
     try:
         consumers = db.query(Consumer).all()
-        print(f"Found {len(consumers)} consumers to update.")
+        logger.info("Found %s consumers to update.", len(consumers))
 
         for consumer in consumers:
             existing = {}
@@ -109,7 +131,7 @@ def main():
                 try:
                     existing = json.loads(consumer.traits)
                 except json.JSONDecodeError:
-                    print(f"  WARNING: consumer {consumer.id} has malformed traits JSON — overwriting.")
+                    logger.warning("consumer %s has malformed traits JSON — overwriting.", consumer.id)
 
             new_fields = build_new_traits()
 
@@ -117,12 +139,13 @@ def main():
             merged = {**new_fields, **existing}
             consumer.traits = json.dumps(merged)
 
+        asyncio.run(_refresh_trait_descriptions(consumers))
         db.commit()
-        print(f"Done. Updated {len(consumers)} consumers.")
+        logger.info("Done. Updated %s consumers.", len(consumers))
 
     except Exception as e:
         db.rollback()
-        print(f"ERROR: {e}")
+        logger.error("ERROR: %s", e)
         raise
     finally:
         db.close()

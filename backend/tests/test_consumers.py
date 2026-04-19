@@ -8,7 +8,7 @@ import io
 import json
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 # Ensure backend/ is on the Python path
@@ -60,6 +60,28 @@ def setup_db():
     # Restore original schemas.
     Persona.__table__.schema = _persona_original_schema
     Consumer.__table__.schema = _consumer_original_schema
+
+
+@pytest.fixture(autouse=True)
+def _mock_traits_description_llm():
+    """Stub Grok client + description so tests pass without SCRIPT_* (e.g. GitHub Actions).
+
+    CSV upload calls ``get_script_llm_client_and_model()`` before ``generate_*``; CI has no
+    SCRIPT_API_KEY / SCRIPT_BASE_URL / SCRIPT_MODEL, so that call must be mocked too.
+    """
+    mock_http = MagicMock()
+    with (
+        patch(
+            "routes.consumers.get_script_llm_client_and_model",
+            return_value=(mock_http, "stub-model"),
+        ),
+        patch(
+            "routes.consumers.generate_consumer_traits_description",
+            new_callable=AsyncMock,
+            return_value="Stub audience description for tests.",
+        ),
+    ):
+        yield
 
 
 @pytest.fixture()
@@ -130,6 +152,48 @@ class TestUploadCsv:
         assert body["created"] == 1
         assert body["skipped"] == 1
         assert "dup@example.com" in body["skipped_emails"]
+
+    def test_upload_all_empty_traits_does_not_require_script_llm_config(self, client: TestClient):
+        """Regression: CSV with only `{}` traits must not call Grok/SCRIPT_* (CI has no SCRIPT_*)."""
+        with patch(
+            "routes.consumers.get_script_llm_client_and_model",
+            side_effect=AssertionError(
+                "must not request SCRIPT_* when every row has empty traits"
+            ),
+        ):
+            csv_bytes = _make_csv([
+                VALID_CSV_HEADER,
+                "onlyempty1@example.com,555-0001,O,E,{}",
+                "onlyempty2@example.com,555-0002,T,W,{}",
+            ])
+            resp = client.post(
+                "/consumers/upload-csv",
+                files={"file": ("empty-traits.csv", io.BytesIO(csv_bytes), "text/csv")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["created"] == 2
+
+    def test_upload_with_traits_degrades_when_script_config_unavailable(self, client: TestClient):
+        """If Grok/SCRIPT_* cannot be built, still create rows with empty consumer_traits_description."""
+        with patch(
+            "routes.consumers.get_script_llm_client_and_model",
+            side_effect=ValueError("SCRIPT_API_KEY and SCRIPT_BASE_URL must be set"),
+        ):
+            csv_bytes = _make_csv([
+                VALID_CSV_HEADER,
+                'traita@example.com,555-0001,A,B,{"age": 1}',
+                'traitb@example.com,555-0002,C,D,{"age": 2}',
+            ])
+            resp = client.post(
+                "/consumers/upload-csv",
+                files={"file": ("traits-no-script.csv", io.BytesIO(csv_bytes), "text/csv")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["created"] == 2
+        rows = client.get("/consumers/").json()
+        by_email = {r["email"]: r.get("consumer_traits_description") for r in rows}
+        assert by_email["traita@example.com"] == ""
+        assert by_email["traitb@example.com"] == ""
 
     def test_upload_skips_existing_db_emails(self, client: TestClient):
         # First upload
@@ -229,6 +293,9 @@ class TestListConsumers:
         assert len(data) == 2
         emails = {c["email"] for c in data}
         assert emails == {"one@example.com", "two@example.com"}
+        by_email = {c["email"]: c.get("consumer_traits_description") for c in data}
+        assert by_email["one@example.com"] == "Stub audience description for tests."
+        assert by_email["two@example.com"] == ""
 
     def test_list_pagination(self, client: TestClient):
         rows = [VALID_CSV_HEADER] + [

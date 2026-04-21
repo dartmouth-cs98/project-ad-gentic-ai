@@ -23,10 +23,10 @@ export function SignInPage() {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        await googleAuthMutation.mutateAsync(tokenResponse.access_token);
+        const result = await googleAuthMutation.mutateAsync(tokenResponse.access_token);
         setAuthState('success');
-        setLoadingMessage('Redirecting to dashboard...');
-        setTimeout(() => { navigate('/dashboard'); }, 1000);
+        setLoadingMessage('Redirecting...');
+        setTimeout(() => { navigate(result.is_new_user ? '/onboarding' : '/dashboard'); }, 1000);
       } catch (err) {
         setAuthState('idle');
         setAuthError(err instanceof Error ? err.message : 'Google sign-in failed.');

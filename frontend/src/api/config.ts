@@ -1,4 +1,7 @@
-export const GOOGLE_CLIENT_ID = '151487466664-orlcom4ebktb65ag4ljni7p780h1hdmi.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) || '';
+if (!GOOGLE_CLIENT_ID) {
+  console.error('[config] VITE_GOOGLE_CLIENT_ID is not set — Google sign-in will not work.');
+}
 
 export const ENV = (import.meta.env.VITE_ENV as string) || 'local';
 export const isLocal = ENV === 'local';

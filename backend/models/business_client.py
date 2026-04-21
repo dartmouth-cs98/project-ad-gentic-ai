@@ -32,6 +32,7 @@ class BusinessClient(Base):
     email_verification_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     password_reset_token_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     password_reset_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    auth_provider: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="email")
 
     def __repr__(self) -> str:
         return f"<BusinessClient(id={self.id}, business_name='{self.business_name}', email='{self.email}')>"

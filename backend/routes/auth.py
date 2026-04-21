@@ -322,7 +322,7 @@ def google_auth(data: GoogleAuthRequest, db: Session = Depends(get_db)):
         )
 
     name = user_info.get("name", "")
-    new_client = create_business_client(db, email, None, "basic", business_name=name)
+    new_client = create_business_client(db, email, None, "basic", business_name=name, auth_provider="google")
     # Google has already verified this email address.
     mark_email_verified(db, new_client)
     token = create_access_token(new_client.id, new_client.email)
@@ -353,6 +353,7 @@ def get_me(
         subscription_tier=client.subscription_tier,
         credits_balance=client.credits_balance,
         traits=traits,
+        auth_provider=client.auth_provider,
     )
 
 

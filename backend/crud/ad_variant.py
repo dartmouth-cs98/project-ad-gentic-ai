@@ -74,7 +74,7 @@ def update_ad_variant(
         setattr(ad_variant, field, value)
     ad_variant.updated_at = datetime.now(timezone.utc)
     db.commit()
-    db.refresh(ad_variant)
+    # Omit refresh(): extra SELECT can fail on flaky connections after a successful commit.
     return ad_variant
 
 

@@ -15,10 +15,10 @@ sys.path.insert(0, str(_backend_dir))
 import pytest
 
 pytest.importorskip("azure.storage.blob", reason="azure-storage-blob required for ad_job_worker tests")
+from utils.product_image_names import first_product_image_blob_name
 from workers.ad_job_worker.worker import (
     execute_ad_job,
     _brief_for_version,
-    _first_product_image_blob_name,
     generate_campaign_preview,
     generate_campaign_ad_variants,
 )
@@ -55,15 +55,15 @@ class TestFirstProductImageBlobName:
     """image_name column may be JSON array (multi-upload), legacy plain blob name, or empty."""
 
     def test_json_array_uses_first_blob(self):
-        assert _first_product_image_blob_name('["a.jpg", "b.jpg"]') == "a.jpg"
+        assert first_product_image_blob_name('["a.jpg", "b.jpg"]') == "a.jpg"
 
     def test_legacy_plain_name(self):
-        assert _first_product_image_blob_name("blob-name.png") == "blob-name.png"
+        assert first_product_image_blob_name("blob-name.png") == "blob-name.png"
 
     def test_empty_none(self):
-        assert _first_product_image_blob_name(None) is None
-        assert _first_product_image_blob_name("") is None
-        assert _first_product_image_blob_name("[]") is None
+        assert first_product_image_blob_name(None) is None
+        assert first_product_image_blob_name("") is None
+        assert first_product_image_blob_name("[]") is None
 
 
 # ---------------------------------------------------------------------------

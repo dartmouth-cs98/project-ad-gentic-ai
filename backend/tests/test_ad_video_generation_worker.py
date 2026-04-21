@@ -15,7 +15,8 @@ sys.path.insert(0, str(_backend_dir))
 import pytest
 
 from workers.ad_video_generation_worker.worker import (
-    VIDEO_PROMPT_AUDIO_PREFIX,
+    allowed_video_seconds,
+    video_prompt_audio_prefix,
     generate_ad_video,
 )
 
@@ -76,9 +77,9 @@ async def test_generate_ad_video_returns_bytes_when_mock_succeeds():
     assert result == fake_video_bytes
     mock_video_client.videos.create.assert_awaited_once()
     call_kw = mock_video_client.videos.create.await_args[1]
-    assert call_kw["prompt"] == VIDEO_PROMPT_AUDIO_PREFIX + "Short script"
+    assert call_kw["seconds"] == allowed_video_seconds()
+    assert call_kw["prompt"] == video_prompt_audio_prefix(call_kw["seconds"]) + "Short script"
     assert call_kw["size"] == "720x1280"
-    assert call_kw["seconds"] == 12
 
 
 @pytest.mark.asyncio

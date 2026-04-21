@@ -26,32 +26,13 @@ from crud.product import (
     update_product,
     delete_product,
 )
+from utils.product_image_names import parse_product_image_entries
 
 router = APIRouter()
 
 CONTAINER_NAME = "product-images"
 SAS_EXPIRY_HOURS = 1
 MAX_IMAGES_PER_PRODUCT = 5
-
-
-def _parse_image_list(raw: str | None) -> list[str]:
-    """Safely parse image_url / image_name from DB.
-
-    Handles three cases:
-      - None / empty string  → []
-      - JSON array string    → ["url1", "url2"]
-      - Legacy plain string  → ["url"]   (old single-image rows)
-    """
-    if not raw:
-        return []
-    raw = raw.strip()
-    try:
-        parsed = json.loads(raw)
-        if isinstance(parsed, list):
-            return [str(x) for x in parsed if x]
-        return [str(parsed)]
-    except (json.JSONDecodeError, ValueError):
-        return [raw]
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg": ".jpg",
@@ -185,8 +166,8 @@ async def upload_product_images(
         raise HTTPException(status_code=400, detail="No files provided.")
 
     # Parse existing lists from DB (handles legacy plain-URL rows)
-    existing_urls = _parse_image_list(product.image_url)
-    existing_names = _parse_image_list(product.image_name)
+    existing_urls = parse_product_image_entries(product.image_url)
+    existing_names = parse_product_image_entries(product.image_name)
 
     slots_remaining = MAX_IMAGES_PER_PRODUCT - len(existing_urls)
     if slots_remaining <= 0:
@@ -265,8 +246,8 @@ def delete_product_image(
     if product is None or product.business_client_id != client_id:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    existing_urls = _parse_image_list(product.image_url)
-    existing_names = _parse_image_list(product.image_name)
+    existing_urls = parse_product_image_entries(product.image_url)
+    existing_names = parse_product_image_entries(product.image_name)
 
     if blob_name not in existing_names:
         raise HTTPException(status_code=404, detail="Image not found on this product.")

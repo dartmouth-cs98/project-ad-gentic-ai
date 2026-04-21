@@ -12,6 +12,8 @@ from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
 from database import _get_session_factory
+from utils.product_image_names import first_product_image_blob_name
+from workers.ad_job_worker.errors import AdJobClientError
 from crud.ad_variant import (
     create_ad_variant,
     update_ad_variant,
@@ -82,26 +84,6 @@ def _brief_for_version(brief_json: Optional[str], version_number: int) -> str:
         return ""
 
 
-def _first_product_image_blob_name(raw: Optional[str]) -> Optional[str]:
-    """Resolve blob name for ad generation from DB `image_name` (matches product routes).
-
-    Upload stores JSON arrays; legacy rows may be a single blob name or URL string.
-    """
-    if raw is None:
-        return None
-    s = str(raw).strip()
-    if not s:
-        return None
-    try:
-        parsed = json.loads(s)
-        if isinstance(parsed, list):
-            names = [str(x) for x in parsed if x]
-            return names[0] if names else None
-        return str(parsed).strip() if parsed is not None else None
-    except (json.JSONDecodeError, ValueError):
-        return s
-
-
 async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int, is_preview: bool = False) -> int:
     logger.info(
         "Executing ad job for campaign %s, product %s, consumer %s, version %s",
@@ -118,20 +100,22 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
     try:
         campaign = get_campaign(db, campaign_id)
         if campaign is None:
-            raise ValueError(f"Campaign not found: {campaign_id}")
+            raise AdJobClientError(f"Campaign not found: {campaign_id}")
         campaign_brief = _brief_for_version(campaign.brief, version_number)
 
         consumer = get_consumer(db, consumer_id)
         if consumer is None:
-            raise ValueError(f"Consumer not found: {consumer_id}")
+            raise AdJobClientError(f"Consumer not found: {consumer_id}")
         consumer_traits_string = consumer_profile_text_for_script(consumer)
 
         product = get_product(db, product_id)
         if product is None:
-            raise ValueError(f"Product not found: {product_id}")
-        product_image_filename = _first_product_image_blob_name(product.image_name)
+            raise AdJobClientError(f"Product not found: {product_id}")
+        product_image_filename = first_product_image_blob_name(product.image_name)
         if not product_image_filename:
-            raise ValueError(f"Product {product_id} has no image (image_name required for ad generation)")
+            raise AdJobClientError(
+                f"Product {product_id} has no image (image_name required for ad generation)"
+            )
         product_name = product.name
         product_description = product.description
 
@@ -143,7 +127,7 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         try:
             product_image_download = product_image_blob_client.download_blob()
         except ResourceNotFoundError as e:
-            raise ValueError(
+            raise AdJobClientError(
                 f"Product image not found in storage (container product-images, blob {product_image_filename!r}). "
                 "Re-upload the product image or fix image_name in the database."
             ) from e
@@ -206,11 +190,40 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         update_ad_variant(db, ad_variant_id, AdVariantUpdate(media_url=media_url, status="completed"))
     except Exception:
         # Error replaces meta entirely (script, if any, is not preserved)
-        update_ad_variant(
-            db,
-            ad_variant_id,
-            AdVariantUpdate(status="failed", meta=json.dumps({"error": traceback.format_exc()})),
-        )
+        err_meta = json.dumps({"error": traceback.format_exc()})
+        try:
+            db.rollback()
+        except Exception:
+            logger.warning("rollback after ad job failure failed", exc_info=True)
+        try:
+            update_ad_variant(
+                db,
+                ad_variant_id,
+                AdVariantUpdate(status="failed", meta=err_meta),
+            )
+        except Exception:
+            logger.warning(
+                "Failed to persist ad_variant failure on primary session; retrying with new session",
+                exc_info=True,
+            )
+            try:
+                db.close()
+            except Exception:
+                pass
+            retry_db: Session = factory()
+            try:
+                update_ad_variant(
+                    retry_db,
+                    ad_variant_id,
+                    AdVariantUpdate(status="failed", meta=err_meta),
+                )
+            except Exception:
+                logger.exception(
+                    "Could not persist ad_variant failed status for id=%s",
+                    ad_variant_id,
+                )
+            finally:
+                retry_db.close()
         raise
     finally:
         db.close()
@@ -226,7 +239,7 @@ async def generate_campaign_preview(
     try:
         campaign = get_campaign(db, campaign_id)
         if campaign is None:
-            raise ValueError(f"Campaign not found: {campaign_id}")
+            raise AdJobClientError(f"Campaign not found: {campaign_id}")
 
         personas = get_personas(db)
         selected_personas = random.sample(personas, min(6, len(personas)))

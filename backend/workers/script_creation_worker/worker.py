@@ -70,7 +70,7 @@ Premise, tone, and single clear comedic or emotional idea. State the chosen crea
 - What we see:
 - Camera move:
 - Lighting:
-- Action: (9–~11.3s may include performance tied to the last line; ~11.35–12s should be product hero, smile, pack shot, or gesture with no new speech)
+- Action: (9–~11.35s may include performance tied to the last line; ~11.35–12s should be product hero, smile, pack shot, or gesture with no new speech)
 - Line (approx. word count): (any final spoken line must complete before ~11.35s; use "none — ambient only" for ~11.35–12s — never script dialogue that runs against the final frame boundary)
 
 Rules for beats: Each beat's action and visuals must be producible in that time window. Sum of dialogue across all beats must fit comfortably within the dialogue window (~10.8s of speech time inside 12s) (aim for ~28 spoken words max total unless pacing is very fast — leave air at start and end). The first frame may emphasize the product; after Beat 1, move into story per the brief. No readable on-screen words, stickers, burned-in captions, lower-thirds, or typography gags — only picture and sound; "caption-style" humor must be spoken or acted, not written in-frame."""

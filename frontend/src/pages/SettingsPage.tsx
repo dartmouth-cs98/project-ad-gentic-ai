@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useSocialConnectionStatus, useConnectSocialPlatform, useDisconnectSocialPlatform } from '../hooks/useSocialConnection';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -91,8 +92,24 @@ const [brandForm, setBrandForm] = useState({
     guidelines: 'Always lead with value. Avoid jargon. Use data to support claims. Maintain a confident but approachable voice.',
   });
 
-  const [integrations, setIntegrations] = useState(initialIntegrations);
+  const { data: socialStatus = [] } = useSocialConnectionStatus();
+  const connectMeta = useConnectSocialPlatform();
+  const disconnectMeta = useDisconnectSocialPlatform();
+
+  // Static state for non-Meta platforms (mock/future integrations)
+  const [staticIntegrations, setStaticIntegrations] = useState(initialIntegrations);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+
+  // Overlay real Meta connection status onto the static list
+  const integrations = staticIntegrations.map((i) => {
+    if (i.id === 'meta') {
+      const live = socialStatus.find((s) => s.platform === 'instagram');
+      if (live) {
+        return { ...i, connected: live.connected, accountName: live.platform_account_id ?? undefined };
+      }
+    }
+    return i;
+  });
   const [notifications, setNotifications] = useState(initialNotifications);
   const [channelMasters, setChannelMasters] = useState({ email: true, inApp: true, slack: true });
 
@@ -101,6 +118,10 @@ const [brandForm, setBrandForm] = useState({
     const tab = params.get('tab');
     if (tab && ['plans', 'billing', 'notifications', 'brand', 'integrations'].includes(tab)) {
       setActiveTab(tab as TabKey);
+    }
+    if (params.get('connected')) {
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     }
   }, [location.search]);
 
@@ -118,15 +139,24 @@ const [brandForm, setBrandForm] = useState({
   };
 
   const handleConnect = (id: string) => {
+    if (id === 'meta') {
+      connectMeta.mutate({ platform: 'instagram' });
+      return;
+    }
+    // Mock connect for future platforms
     setConnectingId(id);
     setTimeout(() => {
-      setIntegrations((prev) => prev.map((i) => i.id === id ? { ...i, connected: true, accountName: 'Connected Account' } : i));
+      setStaticIntegrations((prev) => prev.map((i) => i.id === id ? { ...i, connected: true, accountName: 'Connected Account' } : i));
       setConnectingId(null);
     }, 1500);
   };
 
   const handleDisconnect = (id: string) => {
-    setIntegrations((prev) => prev.map((i) => i.id === id ? { ...i, connected: false, accountName: undefined } : i));
+    if (id === 'meta') {
+      disconnectMeta.mutate({ platform: 'instagram' });
+      return;
+    }
+    setStaticIntegrations((prev) => prev.map((i) => i.id === id ? { ...i, connected: false, accountName: undefined } : i));
   };
 
   const toggleNotification = (id: string, channel: 'email' | 'inApp' | 'slack') => {

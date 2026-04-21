@@ -28,6 +28,7 @@ class Campaign(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     product_ids: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    meta_campaign_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     def __repr__(self) -> str:
         return f"<Campaign(id={self.id}, name='{self.name}', status='{self.status}')>"

@@ -2,15 +2,6 @@
 
 Uses the Facebook Login flow (not Instagram Login) because we need
 ads_management for paid campaign publishing.
-
-Required env vars (set after Meta App is approved):
-  META_APP_ID          — developers.facebook.com > Your App > Settings > Basic
-  META_APP_SECRET      — same page
-  META_REDIRECT_URI    — registered in Meta App's Valid OAuth Redirect URIs
-                         e.g. https://yourapi.com/social-auth/callback
-  META_FRONTEND_URL    — where to redirect after callback (e.g. https://app.adgentic.ai)
-  FERNET_SECRET_KEY    — run once to generate:
-                         python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 """
 
 import os
@@ -112,7 +103,7 @@ def fetch_platform_account_info(access_token: str) -> dict:
     facebook_page_id: Optional[str] = None
     ad_account_id: Optional[str] = None
 
-    # Facebook Pages managed by this user, with linked IG account
+    # Facebook Pages managed by this user, with linked IG account 
     pages = httpx.get(
         f"{META_GRAPH_BASE}/me/accounts",
         params={

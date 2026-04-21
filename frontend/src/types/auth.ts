@@ -49,6 +49,7 @@ export interface UserProfile {
     subscription_tier: string;
     credits_balance: number;
     traits: Record<string, unknown> | null;
+    auth_provider: 'email' | 'google' | null;
 }
 
 /**

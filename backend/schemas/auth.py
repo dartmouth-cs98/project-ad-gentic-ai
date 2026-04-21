@@ -104,6 +104,7 @@ class ProfileResponse(BaseModel):
     subscription_tier: str
     credits_balance: int
     traits: Optional[dict] = None
+    auth_provider: Optional[str] = None
 
 
 class OnboardingResponse(BaseModel):

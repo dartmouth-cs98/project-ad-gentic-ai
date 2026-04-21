@@ -21,6 +21,7 @@ def create_business_client(
     business_name: str = "",
     email_verification_token_hash: str | None = None,
     email_verification_expires_at: datetime | None = None,
+    auth_provider: str = "email",
 ) -> BusinessClient:
     # Ensure business_name is populated with a non-empty value.
     # If no name is provided, default to using the email as an identifier.
@@ -37,6 +38,7 @@ def create_business_client(
         email_verified=False,
         email_verification_token_hash=email_verification_token_hash,
         email_verification_expires_at=email_verification_expires_at,
+        auth_provider=auth_provider,
     )
     db.add(client)
     db.commit()

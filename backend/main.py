@@ -93,6 +93,17 @@ def _ensure_auth_columns_exist() -> None:
             ADD password_reset_expires_at DATETIME2 NULL;
         END
         """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'auth_provider') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD auth_provider NVARCHAR(50) NULL;
+
+            UPDATE dbo.business_clients
+            SET auth_provider = 'email'
+            WHERE auth_provider IS NULL;
+        END
+        """,
     ]
 
     with engine.begin() as conn:

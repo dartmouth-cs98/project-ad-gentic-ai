@@ -27,8 +27,6 @@ META_DIALOG_URL = "https://www.facebook.com/dialog/oauth"
 META_SCOPES = ",".join([
     "ads_management",
     "ads_read",
-    "instagram_basic",
-    "instagram_content_publish",
     "pages_read_engagement",
     "pages_show_list",
     "business_management",

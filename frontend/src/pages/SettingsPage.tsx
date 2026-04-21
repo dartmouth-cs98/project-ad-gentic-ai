@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSocialConnectionStatus, useConnectSocialPlatform, useDisconnectSocialPlatform } from '../hooks/useSocialConnection';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
@@ -21,7 +21,6 @@ import {
   UsersIcon,
   SettingsIcon,
   ImageIcon,
-  Loader2Icon,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -35,18 +34,19 @@ interface Integration {
   icon: string;
   color: string;
   connected: boolean;
+  comingSoon?: boolean;
   accountName?: string;
 }
 
 const initialIntegrations: Integration[] = [
-  { id: 'meta', name: 'Meta (Facebook/Instagram)', description: 'Publish and manage ads across Facebook and Instagram.', icon: 'M', color: 'bg-blue-600', connected: true, accountName: 'Acme Inc. Business' },
-  { id: 'tiktok', name: 'TikTok Ads', description: 'Create and deploy short-form video ad campaigns.', icon: 'T', color: 'bg-slate-800', connected: true, accountName: 'acme_official' },
-  { id: 'youtube', name: 'YouTube Ads', description: 'Run video ads and bumper campaigns on YouTube.', icon: 'Y', color: 'bg-red-600', connected: false },
-  { id: 'linkedin', name: 'LinkedIn Ads', description: 'Target professionals with sponsored content and InMail.', icon: 'in', color: 'bg-blue-700', connected: false },
-  { id: 'google', name: 'Google Ads', description: 'Search, display, and Performance Max campaigns.', icon: 'G', color: 'bg-emerald-600', connected: false },
-  { id: 'slack', name: 'Slack', description: 'Get campaign alerts and approvals in your Slack channels.', icon: 'S', color: 'bg-purple-600', connected: true, accountName: '#marketing-ads' },
-  { id: 'hubspot', name: 'HubSpot', description: 'Sync contacts and audience data from your CRM.', icon: 'H', color: 'bg-orange-500', connected: false },
-  { id: 'zapier', name: 'Zapier', description: 'Connect Ad-gentic to 5,000+ apps with automations.', icon: 'Z', color: 'bg-orange-600', connected: false },
+  { id: 'meta', name: 'Meta (Facebook/Instagram)', description: 'Publish and manage ads across Facebook and Instagram.', icon: 'M', color: 'bg-blue-600', connected: false },
+  { id: 'tiktok', name: 'TikTok Ads', description: 'Create and deploy short-form video ad campaigns.', icon: 'T', color: 'bg-slate-800', connected: false, comingSoon: true },
+  { id: 'youtube', name: 'YouTube Ads', description: 'Run video ads and bumper campaigns on YouTube.', icon: 'Y', color: 'bg-red-600', connected: false, comingSoon: true },
+  { id: 'linkedin', name: 'LinkedIn Ads', description: 'Target professionals with sponsored content and InMail.', icon: 'in', color: 'bg-blue-700', connected: false, comingSoon: true },
+  { id: 'google', name: 'Google Ads', description: 'Search, display, and Performance Max campaigns.', icon: 'G', color: 'bg-emerald-600', connected: false, comingSoon: true },
+  { id: 'slack', name: 'Slack', description: 'Get campaign alerts and approvals in your Slack channels.', icon: 'S', color: 'bg-purple-600', connected: false, comingSoon: true },
+  { id: 'hubspot', name: 'HubSpot', description: 'Sync contacts and audience data from your CRM.', icon: 'H', color: 'bg-orange-500', connected: false, comingSoon: true },
+  { id: 'zapier', name: 'Zapier', description: 'Connect Ad-gentic to 5,000+ apps with automations.', icon: 'Z', color: 'bg-orange-600', connected: false, comingSoon: true },
 ];
 
 const toneOptions = [
@@ -80,6 +80,7 @@ export function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { profile, updateProfile } = useCompany();
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('billing');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -96,19 +97,27 @@ const [brandForm, setBrandForm] = useState({
   const connectMeta = useConnectSocialPlatform();
   const disconnectMeta = useDisconnectSocialPlatform();
 
-  // Static state for non-Meta platforms (mock/future integrations)
-  const [staticIntegrations, setStaticIntegrations] = useState(initialIntegrations);
-  const [connectingId, setConnectingId] = useState<string | null>(null);
-
-  // Overlay real Meta connection status onto the static list
-  const integrations = staticIntegrations.map((i) => {
-    if (i.id === 'meta') {
-      const live = socialStatus.find((s) => s.platform === 'instagram');
-      if (live) {
-        return { ...i, connected: live.connected, accountName: live.platform_account_id ?? undefined };
-      }
-    }
-    return i;
+  // Map frontend integration ids to backend platform identifiers.
+  const integrationPlatformMap: Record<string, string> = {
+    meta: 'instagram',
+    tiktok: 'tiktok',
+    youtube: 'youtube',
+    linkedin: 'linkedin',
+    google: 'google',
+    slack: 'slack',
+    hubspot: 'hubspot',
+    zapier: 'zapier',
+  };
+  const statusByPlatform = new Map(socialStatus.map((status) => [status.platform, status]));
+  const integrations = initialIntegrations.map((integration) => {
+    const platformKey = integrationPlatformMap[integration.id];
+    const liveStatus = platformKey ? statusByPlatform.get(platformKey) : undefined;
+    if (!liveStatus) return integration;
+    return {
+      ...integration,
+      connected: liveStatus.connected,
+      accountName: liveStatus.platform_account_id ?? undefined,
+    };
   });
   const [notifications, setNotifications] = useState(initialNotifications);
   const [channelMasters, setChannelMasters] = useState({ email: true, inApp: true, slack: true });
@@ -122,8 +131,14 @@ const [brandForm, setBrandForm] = useState({
     if (params.get('connected')) {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
+      params.delete('connected');
+      const nextSearch = params.toString();
+      navigate(
+        `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}`,
+        { replace: true },
+      );
     }
-  }, [location.search]);
+  }, [location.pathname, location.search, navigate]);
 
   const handleUpgrade = (plan: 'basic' | 'premium' | 'enterprise') => {
     setShowSuccess(true);
@@ -141,22 +156,13 @@ const [brandForm, setBrandForm] = useState({
   const handleConnect = (id: string) => {
     if (id === 'meta') {
       connectMeta.mutate({ platform: 'instagram' });
-      return;
     }
-    // Mock connect for future platforms
-    setConnectingId(id);
-    setTimeout(() => {
-      setStaticIntegrations((prev) => prev.map((i) => i.id === id ? { ...i, connected: true, accountName: 'Connected Account' } : i));
-      setConnectingId(null);
-    }, 1500);
   };
 
   const handleDisconnect = (id: string) => {
     if (id === 'meta') {
       disconnectMeta.mutate({ platform: 'instagram' });
-      return;
     }
-    setStaticIntegrations((prev) => prev.map((i) => i.id === id ? { ...i, connected: false, accountName: undefined } : i));
   };
 
   const toggleNotification = (id: string, channel: 'email' | 'inApp' | 'slack') => {
@@ -516,8 +522,14 @@ const [brandForm, setBrandForm] = useState({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h4 className="font-semibold text-foreground text-sm">{integration.name}</h4>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${integration.connected ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-muted text-muted-foreground border-border'}`}>
-                          {integration.connected ? 'Connected' : 'Not connected'}
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
+                          integration.connected
+                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                            : integration.comingSoon
+                              ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                              : 'bg-muted text-muted-foreground border-border'
+                        }`}>
+                          {integration.connected ? 'Connected' : integration.comingSoon ? 'Coming soon' : 'Not connected'}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{integration.description}</p>
@@ -530,16 +542,18 @@ const [brandForm, setBrandForm] = useState({
                             Disconnect
                           </button>
                         </div>
+                      ) : integration.comingSoon ? (
+                        <button
+                          disabled
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground bg-muted/40 cursor-not-allowed">
+                          <ClockIcon className="w-3 h-3" />
+                          Coming soon
+                        </button>
                       ) : (
                         <button
                           onClick={() => handleConnect(integration.id)}
-                          disabled={connectingId === integration.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors disabled:opacity-50">
-                          {connectingId === integration.id ? (
-                            <><Loader2Icon className="w-3 h-3 animate-spin" />Connecting...</>
-                          ) : (
-                            <><LinkIcon className="w-3 h-3" />Connect</>
-                          )}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors">
+                          <LinkIcon className="w-3 h-3" />Connect
                         </button>
                       )}
                     </div>

@@ -10,6 +10,17 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# Prepended to every script for the video model so speech is not flush with 0s / hard end (reduces clipped audio).
+VIDEO_PROMPT_AUDIO_PREFIX = """Mastering / timeline (mandatory — follow exactly):
+- First ~0.5s: no spoken words — only ambient sound, subtle music bed, room tone, or silence while visuals hook.
+- Last ~0.65s: no spoken words — only ambience, music tail, light foley, or silence after the final line has fully ended.
+- All dialogue must live between ~0.5s and ~11.35s of this clip; finish complete phrases with a short breath of silence before ~11.35s, then hold visuals + non-dialogue audio through the end.
+- Avoid hard cuts that start mid-consonant at t≈0 or truncate the final word at the end of the file.
+
+---
+
+"""
+
 POLL_INTERVAL_SECONDS = 5
 MAX_POLL_ATTEMPTS = 120  # 10 minutes at 5s interval
 TERMINAL_FAILURE_STATUS = "failed"
@@ -28,9 +39,9 @@ async def generate_ad_video(
     video_client = AsyncOpenAI(api_key=api_key)
     
     creation_response = await video_client.videos.create(
-        prompt=script,
+        prompt=VIDEO_PROMPT_AUDIO_PREFIX + script,
         size="720x1280",
-        seconds=8,
+        seconds=12,
         input_reference=(product_image_filename, io.BytesIO(product_image_bytes), product_image_type),
     )
 

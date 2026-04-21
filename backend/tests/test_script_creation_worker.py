@@ -118,10 +118,12 @@ class TestBuildScriptPrompt:
             consumer_profile_text="Z",
             campaign_brief="",
         )
-        assert "## Beat 1 — 0–1s (hook)" in out
-        assert "## Beat 2 — 1–3s (setup)" in out
-        assert "## Beat 3 — 3–6s (payoff)" in out
-        assert "## Beat 4 — 6–8s (product moment)" in out
+        assert "## Beat 1 — 0–2s (hook)" in out
+        assert "## Beat 2 — 2–5s (setup)" in out
+        assert "## Beat 3 — 5–9s (payoff)" in out
+        assert "## Beat 4 — 9–12s (product moment)" in out
+        assert "Audio-safe timeline" in out
+        assert "0.5s" in out and "11.35s" in out
 
     def test_includes_per_beat_fields_for_video_model(self):
         out = _build_script_prompt(

@@ -30,6 +30,7 @@ from services.consumer_traits_description import consumer_profile_text_for_scrip
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video
 from workers.script_moderation_worker.worker import evaluate_script
+from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import BlobClient, ContentSettings
 
 load_dotenv()
@@ -81,6 +82,26 @@ def _brief_for_version(brief_json: Optional[str], version_number: int) -> str:
         return ""
 
 
+def _first_product_image_blob_name(raw: Optional[str]) -> Optional[str]:
+    """Resolve blob name for ad generation from DB `image_name` (matches product routes).
+
+    Upload stores JSON arrays; legacy rows may be a single blob name or URL string.
+    """
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    try:
+        parsed = json.loads(s)
+        if isinstance(parsed, list):
+            names = [str(x) for x in parsed if x]
+            return names[0] if names else None
+        return str(parsed).strip() if parsed is not None else None
+    except (json.JSONDecodeError, ValueError):
+        return s
+
+
 async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int, is_preview: bool = False) -> int:
     logger.info(
         "Executing ad job for campaign %s, product %s, consumer %s, version %s",
@@ -108,18 +129,24 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         product = get_product(db, product_id)
         if product is None:
             raise ValueError(f"Product not found: {product_id}")
-        if not product.image_name or not product.image_name.strip():
+        product_image_filename = _first_product_image_blob_name(product.image_name)
+        if not product_image_filename:
             raise ValueError(f"Product {product_id} has no image (image_name required for ad generation)")
         product_name = product.name
         product_description = product.description
-        product_image_filename = product.image_name
 
         product_image_blob_client = BlobClient.from_connection_string(
             conn_str=os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip(),
             container_name="product-images",
-            blob_name=f"{product_image_filename}",
+            blob_name=product_image_filename,
         )
-        product_image_download = product_image_blob_client.download_blob()
+        try:
+            product_image_download = product_image_blob_client.download_blob()
+        except ResourceNotFoundError as e:
+            raise ValueError(
+                f"Product image not found in storage (container product-images, blob {product_image_filename!r}). "
+                "Re-upload the product image or fix image_name in the database."
+            ) from e
         product_image_bytes = product_image_download.readall()
         props = product_image_blob_client.get_blob_properties()
         product_image_type = props.content_settings.content_type or "image/png"

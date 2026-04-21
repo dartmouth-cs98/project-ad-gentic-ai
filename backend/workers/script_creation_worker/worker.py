@@ -38,40 +38,42 @@ def _format_campaign_context_block(
     )
 
 
-_SCRIPT_OUTPUT_FORMAT_BLOCK = """MANDATORY OUTPUT FORMAT — your entire reply MUST follow this template. The video generator reads this literally; vague prose will fail. Time ranges must partition 0–8s with no gaps and no overlap (total 8.0 seconds).
+_SCRIPT_OUTPUT_FORMAT_BLOCK = """MANDATORY OUTPUT FORMAT — your entire reply MUST follow this template. The video generator reads this literally; vague prose will fail. Time ranges must partition 0–12s with no gaps and no overlap (total 12.0 seconds).
+
+Audio-safe timeline (critical): Spoken dialogue must only occur between ~0.5s and ~11.35s. Use 0–0.5s for hook visuals with ambient/music/room tone only (no words). Use ~11.35–12s for product moment visuals with ambience or music tail only — the final spoken line must fully complete before ~11.35s with a tiny natural pause after, so nothing is clipped at export.
 
 ## Overview (2–4 sentences max)
 Premise, tone, and single clear comedic or emotional idea. State the chosen creator-native format (e.g. POV, reaction, day-in-the-life). Do not read campaign bullets aloud.
 
-## Beat 1 — 0–1s (hook)
+## Beat 1 — 0–2s (hook)
 - What we see: (subjects, environment, product visibility — be specific)
 - Camera move: (e.g. handheld close-up, slow push-in, whip pan)
 - Lighting: (time of day, key mood, practicals)
-- Action: (what moves, gestures, reactions)
-- Line (approx. word count): (spoken line or "none — ambient only" with ~0 words)
+- Action: (what moves, gestures, reactions; 0–0.5s may be silent performance / reaction only)
+- Line (approx. word count): (if spoken, place words only in ~0.5–2s — opening ~0.5s must be "none — ambient only"; otherwise "none — ambient only" for full beat)
 
-## Beat 2 — 1–3s (setup)
+## Beat 2 — 2–5s (setup)
 - What we see:
 - Camera move:
 - Lighting:
 - Action:
 - Line (approx. word count):
 
-## Beat 3 — 3–6s (payoff)
+## Beat 3 — 5–9s (payoff)
 - What we see:
 - Camera move:
 - Lighting:
 - Action:
 - Line (approx. word count):
 
-## Beat 4 — 6–8s (product moment)
+## Beat 4 — 9–12s (product moment)
 - What we see:
 - Camera move:
 - Lighting:
-- Action:
-- Line (approx. word count):
+- Action: (9–~11.3s may include performance tied to the last line; ~11.35–12s should be product hero, smile, pack shot, or gesture with no new speech)
+- Line (approx. word count): (any final spoken line must complete before ~11.35s; use "none — ambient only" for ~11.35–12s — never script dialogue that runs against the final frame boundary)
 
-Rules for beats: Each beat's action and visuals must be producible in that time window. Sum of dialogue across all beats must fit comfortably within 8 seconds (aim for ~20 spoken words max total unless pacing is very fast). The first frame may emphasize the product; after Beat 1, move into story per the brief. No readable on-screen words, stickers, burned-in captions, lower-thirds, or typography gags — only picture and sound; "caption-style" humor must be spoken or acted, not written in-frame."""
+Rules for beats: Each beat's action and visuals must be producible in that time window. Sum of dialogue across all beats must fit comfortably within the dialogue window (~10.8s of speech time inside 12s) (aim for ~28 spoken words max total unless pacing is very fast — leave air at start and end). The first frame may emphasize the product; after Beat 1, move into story per the brief. No readable on-screen words, stickers, burned-in captions, lower-thirds, or typography gags — only picture and sound; "caption-style" humor must be spoken or acted, not written in-frame."""
 
 
 def _build_script_prompt(
@@ -115,19 +117,20 @@ def _build_script_prompt(
     {_SCRIPT_OUTPUT_FORMAT_BLOCK}
 
     Requirements:
-    1. 8 seconds exactly — output ONLY the Overview plus the four beats (0–1s, 1–3s, 3–6s, 6–8s) in that order; do not add extra beats, scenes, or alternate timelines.
+    1. 12 seconds exactly — output ONLY the Overview plus the four beats (0–2s, 2–5s, 5–9s, 9–12s) in that order; do not add extra beats, scenes, or alternate timelines.
     2. Fill every bullet field in every beat; use the reference image for accurate product color, shape, label, and packaging.
     3. Make it feel creator-made, not brand-made.
     4. No obvious call-to-action or sales language.
+    5. Honor the audio-safe timeline: no spoken words in the first ~0.5s or last ~0.65s of the spot; last line fully finished before ~11.35s.
 
     Be bold with the creative direction. Surprise me with the format you choose in the Overview.
-    All spoken lines must be complete or naturally trailing off by the end of Beat 4 (8s)."""
+    All spoken lines must be complete (with a breath of space) before ~11.35s; only non-dialogue audio may continue to 12s."""
 
 
 def _moderation_revision_suffix(moderation_feedback: str) -> str:
     return f"""
 
-IMPORTANT — a previous draft failed content review. Write a complete replacement script that fixes ALL of the following while keeping the same 8-second structured format (Overview plus Beats 1–4 with all fields) and creative spirit:
+IMPORTANT — a previous draft failed content review. Write a complete replacement script that fixes ALL of the following while keeping the same 12-second structured format (Overview plus Beats 1–4 with all fields), the same audio-safe margins (no speech first ~0.5s or last ~0.65s; dialogue ends before ~11.35s), and creative spirit:
 {moderation_feedback}
 
 Output only the new script; do not include meta-commentary about the review."""

@@ -6,46 +6,13 @@ import logging
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
+from utils.video_timing import allowed_video_seconds, video_prompt_audio_prefix
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SECONDS = 5
-
-
-def allowed_video_seconds() -> int:
-    """Clip length for `videos.create` (API allows 4, 8, 12). Override with VIDEO_SECONDS."""
-    raw = os.getenv("VIDEO_SECONDS", "12").strip()
-    try:
-        v = int(raw)
-    except ValueError:
-        return 12
-    if v in (4, 8, 12):
-        return v
-    logger.warning("VIDEO_SECONDS=%r invalid; using 12 (allowed: 4, 8, 12)", raw)
-    return 12
-
-
-def video_prompt_audio_prefix(seconds: int) -> str:
-    """Prepended to the script for the video model — speech guard bands scale with clip length."""
-    if seconds == 12:
-        t_end = 11.35
-    elif seconds == 8:
-        t_end = 7.35
-    elif seconds == 4:
-        t_end = 3.35
-    else:
-        t_end = round(max(0.5, seconds - 0.73), 2)
-    return f"""Mastering / timeline (mandatory — follow exactly):
-- First ~0.5s: no spoken words — only ambient sound, subtle music bed, room tone, or silence while visuals hook.
-- Last ~0.65s: no spoken words — only ambience, music tail, light foley, or silence after the final line has fully ended.
-- All dialogue must live between ~0.5s and ~{t_end}s of this clip; finish complete phrases with a short breath of silence before ~{t_end}s, then hold visuals + non-dialogue audio through the end.
-- Avoid hard cuts that start mid-consonant at t≈0 or truncate the final word at the end of the file.
-
----
-
-"""
-
 
 MAX_POLL_ATTEMPTS = 120  # 10 minutes at 5s interval
 TERMINAL_FAILURE_STATUS = "failed"

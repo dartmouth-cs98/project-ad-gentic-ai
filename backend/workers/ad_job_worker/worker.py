@@ -124,17 +124,18 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
             container_name="product-images",
             blob_name=product_image_filename,
         )
+        blob_name_for_error = product_image_filename
         try:
             product_image_download = product_image_blob_client.download_blob()
+            product_image_bytes = product_image_download.readall()
+            props = product_image_blob_client.get_blob_properties()
+            product_image_type = props.content_settings.content_type or "image/png"
+            product_image_filename = props.name
         except ResourceNotFoundError as e:
             raise AdJobClientError(
-                f"Product image not found in storage (container product-images, blob {product_image_filename!r}). "
+                f"Product image not found in storage (container product-images, blob {blob_name_for_error!r}). "
                 "Re-upload the product image or fix image_name in the database."
             ) from e
-        product_image_bytes = product_image_download.readall()
-        props = product_image_blob_client.get_blob_properties()
-        product_image_type = props.content_settings.content_type or "image/png"
-        product_image_filename = props.name
         product_image_bytes, product_image_type = _resize_product_image(
             product_image_bytes, product_image_type
         )

@@ -107,7 +107,7 @@ def script_output_format_block(total: int) -> str:
     """MANDATORY script template for the LLM; beat windows match `total` (VIDEO_SECONDS)."""
     beats = _beat_plan(total)
     t_end = dialogue_end_seconds(total)
-    b3s, _, _ = beats[2]
+    b4s, _, _ = beats[3]
     speech_inner = round(max(0.1, total - AUDIO_START_GUARD - AUDIO_END_GUARD), 2)
     word_cap = max(6, int(28 * total / 12))
 
@@ -130,7 +130,7 @@ def script_output_format_block(total: int) -> str:
                     "- What we see:",
                     "- Camera move:",
                     "- Lighting:",
-                    f"- Action: ({_fmt_t(b3s)}–~{_fmt_t(t_end)}s may include performance tied to the last line; ~{_fmt_t(t_end)}–{_fmt_t(total)}s should be product hero, smile, pack shot, or gesture with no new speech)",
+                    f"- Action: ({_fmt_t(b4s)}–~{_fmt_t(t_end)}s may include performance tied to the last line; ~{_fmt_t(t_end)}–{_fmt_t(total)}s should be product hero, smile, pack shot, or gesture with no new speech)",
                     f'- Line (approx. word count): (any final spoken line must complete before ~{_fmt_t(t_end)}s; use "none — ambient only" for ~{_fmt_t(t_end)}–{_fmt_t(total)}s — never script dialogue that runs against the final frame boundary)',
                 ]
             )

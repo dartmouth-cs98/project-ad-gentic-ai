@@ -28,3 +28,6 @@ def test_script_block_eight_matches_video_dialogue_end():
     body = video_timing.script_output_format_block(8)
     assert "## Beat 4 — 6–8s (product moment)" in body
     assert "7.35" in body
+    # Beat 4 action must start at Beat 4 window (6s), not Beat 3 (3s).
+    assert "6–~7.35" in body
+    assert "3–~7.35" not in body

@@ -15,6 +15,9 @@ sys.path.insert(0, str(_backend_dir))
 import pytest
 
 pytest.importorskip("azure.storage.blob", reason="azure-storage-blob required for ad_job_worker tests")
+from azure.core.exceptions import ResourceNotFoundError
+from utils.product_image_names import first_product_image_blob_name
+from workers.ad_job_worker.errors import AdJobClientError
 from workers.ad_job_worker.worker import (
     execute_ad_job,
     _brief_for_version,
@@ -48,6 +51,21 @@ class TestBriefForVersion:
 
     def test_preserves_empty_string_brief_for_version(self):
         assert _brief_for_version('{"1": ""}', 1) == ""
+
+
+class TestFirstProductImageBlobName:
+    """image_name column may be JSON array (multi-upload), legacy plain blob name, or empty."""
+
+    def test_json_array_uses_first_blob(self):
+        assert first_product_image_blob_name('["a.jpg", "b.jpg"]') == "a.jpg"
+
+    def test_legacy_plain_name(self):
+        assert first_product_image_blob_name("blob-name.png") == "blob-name.png"
+
+    def test_empty_none(self):
+        assert first_product_image_blob_name(None) is None
+        assert first_product_image_blob_name("") is None
+        assert first_product_image_blob_name("[]") is None
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +138,35 @@ def mock_blob_client():
     client.get_blob_properties.return_value = props
     client.url = "https://example.blob.core.windows.net/container/blob"
     return client
+
+
+@pytest.mark.asyncio
+async def test_execute_ad_job_blob_not_found_on_readall_raises_ad_job_client_error(
+    mock_db,
+    mock_session_factory,
+    mock_ad_variant,
+    mock_campaign,
+    mock_consumer,
+    mock_product,
+):
+    """404 during stream read must map to AdJobClientError (same as missing blob on download)."""
+    download = MagicMock()
+    download.readall.side_effect = ResourceNotFoundError()
+    blob_client = MagicMock()
+    blob_client.download_blob.return_value = download
+
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
+        patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
+        patch("workers.ad_job_worker.worker.update_ad_variant"),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
+        patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
+        patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+    ):
+        blob_cls.from_connection_string.return_value = blob_client
+        with pytest.raises(AdJobClientError, match="Product image not found"):
+            await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)
 
 
 @pytest.mark.asyncio
@@ -304,6 +351,40 @@ async def test_execute_ad_job_uses_image_name_fallback(mock_db, mock_session_fac
     calls = blob_cls.from_connection_string.call_args_list
     blob_names = [c[1].get("blob_name", "") for c in calls if len(c) > 1 and isinstance(c[1], dict)]
     assert "blob-name.png" in blob_names
+
+
+@pytest.mark.asyncio
+async def test_execute_ad_job_json_image_name_uses_first_blob_for_download(
+    mock_db, mock_session_factory, mock_ad_variant, mock_campaign, mock_consumer, mock_blob_client
+):
+    """Multi-image products store image_name as JSON; worker must use first blob name only."""
+    product = MagicMock()
+    product.name = "Prod"
+    product.description = "Desc"
+    product.image_name = '["first.png", "second.png"]'
+
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
+        patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
+        patch("workers.ad_job_worker.worker.update_ad_variant"),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
+        patch("workers.ad_job_worker.worker.get_product", return_value=product),
+        patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
+        patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="S"),
+        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"v"),
+    ):
+        blob_cls.from_connection_string.return_value = mock_blob_client
+        await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)
+
+    product_calls = [
+        c
+        for c in blob_cls.from_connection_string.call_args_list
+        if len(c) > 1 and c[1].get("container_name") == "product-images"
+    ]
+    assert product_calls
+    assert product_calls[0][1]["blob_name"] == "first.png"
 
 
 # ---------------------------------------------------------------------------

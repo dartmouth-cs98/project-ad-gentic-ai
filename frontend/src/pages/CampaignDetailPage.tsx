@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
@@ -15,6 +15,8 @@ import {
   TrashIcon,
   Loader2Icon,
   AlertCircleIcon,
+  CheckCircle2Icon,
+  PlayIcon,
 } from 'lucide-react';
 
 import { AdVariantsGrid } from '../components/campaigns/AdVariantsGrid';
@@ -29,27 +31,122 @@ import type { EditFormData } from '../components/campaigns/EditCampaignModal';
 import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
 
 import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns';
-import { useCampaignAdVariants } from '../hooks/useAdGeneration';
+import { useCampaignAdVariants, useApproveVariant, useUnapproveVariant, useRunCampaign } from '../hooks/useAdGeneration';
 import { useUser } from '../contexts/UserContext';
 import { useProducts } from '../hooks/useProducts';
-import type { CampaignStatus, Product } from '../types';
+import type { CampaignStatus, Product, CampaignAnalyticsSummary } from '../types';
+import { HERO_ICON_STYLES, normalizeCampaignHeroIcon, getHeroIconStyles } from '../lib/campaignHeroIcon';
 
-// ---------- Static placeholder data (analytics not yet in API) ----------
+// ---------- Analytics helpers (live data only; empty state when API omits summary) ----------
 
-const analyticsMetrics: AnalyticsMetric[] = [
-  { label: 'Impressions', value: '342,180', change: '+14%', positive: true },
-  { label: 'Clicks', value: '14,371', change: '+22%', positive: true },
-  { label: 'CTR', value: '4.2%', change: '+0.8%', positive: true },
-  { label: 'CPC', value: '$0.86', change: '-12%', positive: true },
-  { label: 'Conversions', value: '1,240', change: '+18%', positive: true },
-  { label: 'ROAS', value: '3.4x', change: '+0.6x', positive: true },
-];
+function heroBadgeClass(style: 'positive' | 'neutral' | 'muted'): string {
+  if (style === 'positive') {
+    return 'text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full';
+  }
+  if (style === 'neutral') {
+    return 'text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full';
+  }
+  return 'text-xs font-medium text-muted-foreground bg-muted/80 px-2 py-1 rounded-full';
+}
 
-const personaPerformance: PersonaPerf[] = [
-  { name: 'The Skeptic', convRate: '4.3%', impressions: '142K', color: 'teal' },
-  { name: 'The Impulse Buyer', convRate: '5.9%', impressions: '118K', color: 'orange' },
-  { name: 'The Researcher', convRate: '3.0%', impressions: '82K', color: 'blue' },
-];
+function resolveAnalyticsSummary(campaign: { analytics_summary?: CampaignAnalyticsSummary | null }): CampaignAnalyticsSummary | null {
+  const s = campaign.analytics_summary;
+  if (!s) return null;
+  if (!Array.isArray(s.hero) || s.hero.length === 0) return null;
+  if (!Array.isArray(s.metrics) || s.metrics.length === 0) return null;
+  if (!Array.isArray(s.personas) || s.personas.length === 0) return null;
+  return {
+    ...s,
+    hero: s.hero.map((kpi) => ({
+      ...kpi,
+      icon: normalizeCampaignHeroIcon(kpi?.icon),
+    })),
+  };
+}
+
+function MousePointerClickIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m9 9 5 12 1.8-5.2L21 14Z" />
+      <path d="M7.2 2.2 8 5.1" />
+      <path d="m5.1 8-2.9-.8" />
+      <path d="M14 4.1 12 6" />
+      <path d="m6 12-1.9 2" />
+    </svg>
+  );
+}
+
+function renderHeroIcon(icon: unknown) {
+  const resolved = normalizeCampaignHeroIcon(icon);
+  const { iconClass } = HERO_ICON_STYLES[resolved];
+  switch (resolved) {
+    case 'users':
+      return <UsersIcon className={iconClass} />;
+    case 'pointer':
+      return <MousePointerClickIcon className={iconClass} />;
+    case 'chart':
+      return <BarChart3Icon className={iconClass} />;
+    case 'globe':
+      return <GlobeIcon className={iconClass} />;
+  }
+}
+
+function HeroKpiGrid({ hero }: { hero: CampaignAnalyticsSummary['hero'] }) {
+  return (
+    <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
+      {hero.map((kpi, index) => {
+        const wrap = getHeroIconStyles(kpi.icon).wrap;
+        return (
+          <Card key={`${kpi.label}-${index}`} variant="elevated" padding="md">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-2 rounded-lg ${wrap}`}>{renderHeroIcon(kpi.icon)}</div>
+              {kpi.badge != null ? (
+                <span className={heroBadgeClass(kpi.badgeStyle)}>{kpi.badge}</span>
+              ) : null}
+            </div>
+            <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
+            <p className="text-sm text-muted-foreground">{kpi.label}</p>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function AnalyticsEmptyState({
+  title,
+  description,
+  className = '',
+}: {
+  title: string;
+  description: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card variant="elevated" padding="lg" className={className}>
+      <div className="flex flex-col sm:flex-row items-start gap-4">
+        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+          <BarChart3Icon className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          <div className="text-sm text-muted-foreground mt-1 space-y-2">{description}</div>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function parseProductIds(raw: string | null): number[] {
   if (!raw) return [];
@@ -84,9 +181,9 @@ function AttachedProducts({ products }: { products: Product[] }) {
       {products.map((product) => (
         <Card key={product.id} padding="md">
           <div className="flex items-start gap-3">
-            {product.image_url ? (
+            {product.image_urls[0] ? (
               <img
-                src={product.image_url}
+                src={product.image_urls[0]}
                 alt={product.name}
                 className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
               />
@@ -135,6 +232,9 @@ export function CampaignDetailPage() {
   const editMutation = useUpdateCampaign();
   const settingsMutation = useUpdateCampaign();
   const deleteMutation = useDeleteCampaign();
+  const approveVariantMutation = useApproveVariant();
+  const unapproveVariantMutation = useUnapproveVariant();
+  const runCampaignMutation = useRunCampaign();
 
   const [activeTab, setActiveTab] = useState<'variants' | 'analytics' | 'settings'>('variants');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -248,7 +348,18 @@ export function CampaignDetailPage() {
     .map((productId) => products.find((p) => p.id === productId))
     .filter((p): p is Product => !!p);
   const productContextText = parseProductContext(campaign.product_context);
-  const approvedVariants = campaignVariants.filter((variant) => variant.status === 'completed');
+  const completedVariants = campaignVariants.filter((v) => v.status === 'completed');
+  const approvedVariants = completedVariants.filter((v) => v.is_approved);
+  const approvableVariants = completedVariants.filter((v) => !v.is_approved);
+
+  const handleApproveAll = () => {
+    approvableVariants.forEach((v) => approveVariantMutation.mutate(v.id));
+  };
+
+  const handleRunCampaign = () => {
+    runCampaignMutation.mutate(campaignId);
+  };
+  const analyticsSummary = resolveAnalyticsSummary(campaign);
 
   // ---------- Render ----------
 
@@ -287,6 +398,28 @@ export function CampaignDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {campaign.status === 'draft' && (
+                <>
+                  {approvableVariants.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      leftIcon={<CheckCircle2Icon className="w-4 h-4" />}
+                      onClick={handleApproveAll}
+                      disabled={approveVariantMutation.isPending}
+                    >
+                      Approve All
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    leftIcon={<PlayIcon className="w-4 h-4" />}
+                    onClick={handleRunCampaign}
+                    disabled={runCampaignMutation.isPending || approvedVariants.length === 0}
+                  >
+                    {runCampaignMutation.isPending ? 'Starting…' : 'Run Campaign'}
+                  </Button>
+                </>
+              )}
               <Button
                 variant="secondary"
                 leftIcon={<EditIcon className="w-4 h-4" />}
@@ -305,60 +438,20 @@ export function CampaignDetailPage() {
           </div>
         </div>
 
-        {/* Hero Metrics — static placeholders until analytics API exists */}
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          <Card variant="elevated" padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <UsersIcon className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                +12%
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">124.5K</p>
-            <p className="text-sm text-muted-foreground">Total Reach</p>
-          </Card>
-
-          <Card variant="elevated" padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <MousePointerClickIcon className="w-5 h-5 text-purple-600" />
-              </div>
-              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                +5.2%
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">4.2%</p>
-            <p className="text-sm text-muted-foreground">Click Rate (CTR)</p>
-          </Card>
-
-          <Card variant="elevated" padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <BarChart3Icon className="w-5 h-5 text-emerald-600" />
-              </div>
-              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                +8.4%
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">$1.24</p>
-            <p className="text-sm text-muted-foreground">Cost Per Click</p>
-          </Card>
-
-          <Card variant="elevated" padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <GlobeIcon className="w-5 h-5 text-amber-600" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                Global
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">4</p>
-            <p className="text-sm text-muted-foreground">Active Regions</p>
-          </Card>
-        </div>
+        {analyticsSummary ? (
+          <HeroKpiGrid hero={analyticsSummary.hero} />
+        ) : (
+          <AnalyticsEmptyState
+            className="mb-8"
+            title="Performance metrics aren’t available yet"
+            description={
+              <p>
+                Reach, CTR, spend, and regional breakdown will show here once live analytics are connected for this
+                campaign.
+              </p>
+            }
+          />
+        )}
 
         {/* Tabs */}
         <div className="mb-6 border-b border-border">
@@ -395,7 +488,7 @@ export function CampaignDetailPage() {
               </div>
             )}
 
-            {!isVariantsLoading && !isVariantsError && approvedVariants.length === 0 && (
+            {!isVariantsLoading && !isVariantsError && completedVariants.length === 0 && (
               <Card variant="elevated" padding="lg">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
@@ -433,18 +526,33 @@ export function CampaignDetailPage() {
               </Card>
             )}
 
-            {!isVariantsLoading && !isVariantsError && approvedVariants.length > 0 && (
-              <AdVariantsGrid variants={approvedVariants} />
+            {!isVariantsLoading && !isVariantsError && completedVariants.length > 0 && (
+              <AdVariantsGrid
+                variants={completedVariants}
+                onApprove={(id) => approveVariantMutation.mutate(id)}
+                onUnapprove={(id) => unapproveVariantMutation.mutate(id)}
+              />
             )}
           </>
         )}
 
-        {activeTab === 'analytics' && (
-          <CampaignAnalytics
-            metrics={analyticsMetrics}
-            personas={personaPerformance}
-          />
-        )}
+        {activeTab === 'analytics' &&
+          (analyticsSummary ? (
+            <CampaignAnalytics
+              metrics={analyticsSummary.metrics as AnalyticsMetric[]}
+              personas={analyticsSummary.personas as PersonaPerf[]}
+            />
+          ) : (
+            <AnalyticsEmptyState
+              title="No analytics data yet"
+              description={
+                <p>
+                  Charts, funnel metrics, and persona breakdown will show here after your ad platforms are connected
+                  and we receive performance payloads for this campaign.
+                </p>
+              }
+            />
+          ))}
 
         {activeTab === 'settings' && (
           <CampaignSettings
@@ -485,28 +593,5 @@ export function CampaignDetailPage() {
         )}
       </main>
     </div>
-  );
-}
-
-function MousePointerClickIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m9 9 5 12 1.8-5.2L21 14Z" />
-      <path d="M7.2 2.2 8 5.1" />
-      <path d="m5.1 8-2.9-.8" />
-      <path d="M14 4.1 12 6" />
-      <path d="m6 12-1.9 2" />
-    </svg>
   );
 }

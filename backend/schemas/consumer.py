@@ -51,6 +51,7 @@ class ConsumerResponse(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     traits: Optional[dict] = None
+    consumer_traits_description: Optional[str] = None
     # Persona fields
     primary_persona: Optional[PersonaBrief] = None
     secondary_persona: Optional[PersonaBrief] = None

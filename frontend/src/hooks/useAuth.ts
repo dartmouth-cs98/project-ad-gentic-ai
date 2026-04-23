@@ -2,14 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   signUp,
   signIn,
+  googleAuth,
   fetchProfile,
   saveOnboarding,
   logout as logoutApi,
   getToken,
 } from '../api/auth';
 import type { OnboardingPayload } from '../api/auth';
+import { queryKeys } from '../api/queryKeys';
 
-export const PROFILE_KEY = ['auth', 'profile'] as const;
+export const PROFILE_KEY = queryKeys.auth.profile;
 
 /** Fetch the current user's profile. Only enabled when a token exists. */
 export function useProfile() {
@@ -38,6 +40,16 @@ export function useSignIn() {
   return useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       signIn(email, password),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PROFILE_KEY });
+    },
+  });
+}
+
+export function useGoogleAuth() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (accessToken: string) => googleAuth(accessToken),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PROFILE_KEY });
     },

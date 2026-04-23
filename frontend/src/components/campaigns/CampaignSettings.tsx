@@ -3,16 +3,7 @@ import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { CheckIcon, Loader2Icon } from 'lucide-react';
-
-// ---------- Constants ----------
-
-const settingsPlatforms = [
-  { id: 'meta', label: 'Meta (Facebook/Instagram)' },
-  { id: 'tiktok', label: 'TikTok' },
-  { id: 'youtube', label: 'YouTube' },
-  { id: 'linkedin', label: 'LinkedIn' },
-  { id: 'google', label: 'Google Ads' },
-];
+import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
 
 // ---------- Types ----------
 
@@ -89,7 +80,7 @@ export function CampaignSettings({ initial, onSave, isSaving = false, error = nu
             Target Platforms
           </label>
           <div className="flex flex-wrap gap-2">
-            {settingsPlatforms.map((platform) => (
+            {CAMPAIGN_PLATFORM_OPTIONS.map((platform) => (
               <button
                 key={platform.id}
                 type="button"

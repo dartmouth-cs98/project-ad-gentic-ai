@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import { Logo } from '../components/ui/Logo';
 import { CheckIcon, Loader2Icon, CheckCircleIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
-import { signUp } from '../api/auth';
+import { signUp, resendVerification, verifyEmail } from '../api/auth';
+import { OtpInput } from '../components/ui/OtpInput';
+import { useGoogleAuth } from '../hooks/useAuth';
 
 function getPasswordStrength(password: string): { level: number; label: string; color: string } {
   if (!password) return { level: 0, label: '', color: '' };
@@ -21,8 +24,8 @@ function getPasswordStrength(password: string): { level: number; label: string; 
 
 export function SignUpPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<'form' | 'plan'>('form');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const googleAuthMutation = useGoogleAuth();
+  const [step, setStep] = useState<'form' | 'verify'>('form');
   const [form, setForm] = useState({ email: '', password: '', confirmPassword: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [authError, setAuthError] = useState('');
@@ -30,20 +33,67 @@ export function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifyState, setVerifyState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [verifyError, setVerifyError] = useState('');
+  const [resendState, setResendState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [resendError, setResendError] = useState('');
   const passwordStrength = getPasswordStrength(form.password);
+  const normalizedVerificationCode = verificationCode.replace(/\D/g, '');
+
+  const handleVerifyCode = async () => {
+    if (!verificationEmail || normalizedVerificationCode.length !== 6 || verifyState === 'loading') {
+      if (normalizedVerificationCode.length !== 6) {
+        setVerifyError('Enter the 6-digit code sent to your email.');
+      }
+      return;
+    }
+    setVerifyError('');
+    setVerifyState('loading');
+    try {
+      await verifyEmail(verificationEmail, normalizedVerificationCode);
+      setVerifyState('success');
+      navigate('/onboarding');
+    } catch (err) {
+      setVerifyState('error');
+      setVerifyError(err instanceof Error ? err.message : 'Verification failed.');
+    }
+  };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const result = await googleAuthMutation.mutateAsync(tokenResponse.access_token);
+        // Google users skip email verification — go straight to onboarding or dashboard.
+        if (result.is_new_user) {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        setAuthState('idle');
+        setAuthError(err instanceof Error ? err.message : 'Google sign-in failed.');
+      }
+    },
+    onError: () => {
+      setAuthState('idle');
+      setAuthError('Google sign-in failed. Please try again.');
+    },
+  });
 
   const handleGoogleSignUp = () => {
     setAuthState('loading');
-    setLoadingMessage('Creating your account...');
-    setTimeout(() => {
-      setAuthState('success');
-      setLoadingMessage('Account created! Let us pick your plan...');
-      setTimeout(() => {
-        setAuthState('idle');
-        setStep('plan');
-      }, 3000);
-    }, 1500);
+    setLoadingMessage('Connecting to Google...');
+    googleLogin();
   };
+
+  useEffect(() => {
+    if (step === 'verify' && normalizedVerificationCode.length === 6 && verifyState !== 'loading') {
+      void handleVerifyCode();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedVerificationCode, step]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,14 +115,10 @@ export function SignUpPage() {
       setAuthError(err instanceof Error ? err.message : 'Sign up failed');
       return;
     }
+    setVerificationEmail(form.email.trim().toLowerCase());
     setAuthState('success');
-    setLoadingMessage('Account created!');
-    setTimeout(() => { setAuthState('idle'); setStep('plan'); }, 3000);
-  };
-
-  const handlePlanSelect = (_plan: string) => {
-    localStorage.setItem('adgentic_auth_flow', 'signup');
-    navigate('/onboarding');
+    setLoadingMessage('Verification code sent. Check your inbox.');
+    setStep('verify');
   };
 
   return (
@@ -89,7 +135,7 @@ export function SignUpPage() {
                 <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircleIcon className="w-7 h-7 text-blue-600" />
                 </div>
-                <h2 className="text-lg font-semibold mb-1">Account created!</h2>
+                <h2 className="text-lg font-semibold mb-1">Check your inbox</h2>
                 <p className="text-sm text-muted-foreground">{loadingMessage}</p>
               </div>
             ) : (
@@ -121,7 +167,7 @@ export function SignUpPage() {
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
                   )}
-                  {authState === 'loading' ? 'Creating account...' : 'Continue with Google'}
+                  {authState === 'loading' ? 'Connecting...' : 'Continue with Google'}
                 </button>
 
                 <div className="relative mb-5">
@@ -233,107 +279,69 @@ export function SignUpPage() {
             )}
           </>
         ) : (
-          <div className="space-y-4">
-            <div className="text-center mb-6">
-              <h1 className="text-xl font-semibold mb-1">Choose your plan</h1>
-              <p className="text-sm text-muted-foreground">Start with a free trial, upgrade anytime</p>
+          <div className="bg-card border border-border rounded-xl p-8 text-center">
+            <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircleIcon className="w-7 h-7 text-blue-600" />
             </div>
-
-            {/* Billing Toggle */}
-            <div className="flex justify-center mb-2">
-              <div className="inline-flex items-center bg-muted border border-border rounded-lg p-1">
-                <button
-                  onClick={() => setBillingCycle('monthly')}
-                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${billingCycle === 'monthly' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  Monthly
-                </button>
-                <button
-                  onClick={() => setBillingCycle('annual')}
-                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${billingCycle === 'annual' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  Annual
-                  <span className={`text-xs font-semibold ${billingCycle === 'annual' ? 'text-blue-400' : 'text-blue-600'}`}>Save 20%</span>
-                </button>
-              </div>
+            <h1 className="text-xl font-semibold mb-2">Verify your email</h1>
+            <p className="text-sm text-muted-foreground mb-4">
+              We sent a 6-digit verification code to <span className="font-medium text-foreground">{verificationEmail}</span>.
+              You need to verify before signing in or starting onboarding.
+            </p>
+            <div className="mb-3">
+              <OtpInput value={verificationCode} onChange={setVerificationCode} />
             </div>
-
-            {/* Basic */}
-            <div
-              onClick={() => handlePlanSelect('basic')}
-              className="bg-card border border-border rounded-xl p-5 cursor-pointer hover:border-foreground/30 transition-colors"
+            {verifyError && (
+              <p className="text-xs text-red-500 mb-3">{verifyError}</p>
+            )}
+            {verifyState === 'success' && (
+              <p className="text-xs text-emerald-600 mb-3">Email verified. You can continue.</p>
+            )}
+            <button
+              onClick={() => {
+                void handleVerifyCode();
+              }}
+              disabled={verifyState === 'loading'}
+              className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">Basic</h3>
-                  <p className="text-sm text-muted-foreground">Free forever</p>
-                </div>
-                <p className="text-2xl font-semibold">$0</p>
-              </div>
-              <ul className="mt-3 space-y-1.5">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  3 campaigns, 20 chats/month
-                </li>
-              </ul>
-            </div>
+              {verifyState === 'loading' ? (
+                <><Loader2Icon className="w-4 h-4 animate-spin" /> Verifying...</>
+              ) : 'Verify code'}
+            </button>
 
-            {/* Premium */}
-            <div
-              onClick={() => handlePlanSelect('premium')}
-              className="bg-card border-2 border-blue-600 rounded-xl p-5 cursor-pointer hover:border-blue-500 transition-colors relative"
-            >
-              <div className="absolute -top-3 left-4 px-2.5 py-0.5 bg-blue-600 text-white text-xs font-medium rounded-full">
-                Most popular
-              </div>
-              <div className="flex items-center justify-between mt-1">
-                <div>
-                  <h3 className="font-semibold">Premium</h3>
-                  <p className="text-sm text-muted-foreground">14-day free trial</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-semibold">
-                    {billingCycle === 'annual' ? '$79' : '$99'}
-                    <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                  </p>
-                  {billingCycle === 'annual' && (
-                    <p className="text-xs text-muted-foreground line-through">$99/mo</p>
-                  )}
-                </div>
-              </div>
-              <ul className="mt-3 space-y-1.5">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  Unlimited everything + automated posting
-                </li>
-              </ul>
-            </div>
-
-            {/* Enterprise */}
-            <div
-              onClick={() => handlePlanSelect('enterprise')}
-              className="bg-card border border-border rounded-xl p-5 cursor-pointer hover:border-foreground/30 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">Enterprise</h3>
-                  <p className="text-sm text-muted-foreground">Custom pricing</p>
-                </div>
-                <p className="text-2xl font-semibold">Custom</p>
-              </div>
-              <ul className="mt-3 space-y-1.5">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  Dedicated support + custom integrations
-                </li>
-              </ul>
-            </div>
+            {resendError && (
+              <p className="text-xs text-red-500 mb-3">{resendError}</p>
+            )}
+            {resendState === 'success' && (
+              <p className="text-xs text-emerald-600 mb-3">Verification code sent again.</p>
+            )}
 
             <button
-              onClick={() => handlePlanSelect('basic')}
-              className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+              onClick={async () => {
+                if (!verificationEmail) return;
+                setResendError('');
+                setResendState('loading');
+                try {
+                  await resendVerification(verificationEmail);
+                  setResendState('success');
+                } catch (err) {
+                  setResendState('error');
+                  setResendError(err instanceof Error ? err.message : 'Failed to resend verification email.');
+                }
+              }}
+              disabled={resendState === 'loading'}
+              className="w-full py-2.5 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
             >
-              Skip — use free plan
+              {resendState === 'loading' ? (
+                <><Loader2Icon className="w-4 h-4 animate-spin" /> Sending...</>
+              ) : 'Resend verification code'}
+            </button>
+
+            <button
+              onClick={() => navigate('/sign-in')}
+              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Go to sign in
             </button>
           </div>
         )}

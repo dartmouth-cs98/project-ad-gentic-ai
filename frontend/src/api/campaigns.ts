@@ -76,6 +76,18 @@ export async function updateCampaign(
   return (await res.json()) as Campaign;
 }
 
+export async function runCampaign(campaignId: number): Promise<Campaign> {
+  const res = await fetch(apiUrl(`/campaigns/${campaignId}/run`), {
+    method: 'PATCH',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to run campaign.');
+  }
+  return (await res.json()) as Campaign;
+}
+
 export async function deleteCampaign(campaignId: number): Promise<void> {
   const res = await fetch(apiUrl(`/campaigns/${campaignId}`), {
     method: 'DELETE',

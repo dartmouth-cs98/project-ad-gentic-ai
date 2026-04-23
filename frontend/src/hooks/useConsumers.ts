@@ -2,8 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchConsumers, uploadConsumersCsv, assignPersonas } from '../api/consumers';
 import type { Consumer, ConsumerUploadResponse } from '../types';
 import type { PersonaProcessingSummary } from '../api/consumers';
+import { queryKeys } from '../api/queryKeys';
 
-export const CONSUMERS_KEY = ['consumers'] as const;
+export const CONSUMERS_KEY = queryKeys.consumers.all;
 
 /** 
  * Fetch consumers with pagination
@@ -11,10 +12,11 @@ export const CONSUMERS_KEY = ['consumers'] as const;
  * @param limit - The number of consumers to limit to
  * @returns A query result with the consumers
 */
-export function useConsumers(skip = 0, limit = 100) {
+export function useConsumers(skip = 0, limit = 100, enabled = true) {
     return useQuery<Consumer[]>({
-        queryKey: [...CONSUMERS_KEY, skip, limit],
+        queryKey: queryKeys.consumers.list(skip, limit),
         queryFn: () => fetchConsumers(skip, limit),
+        enabled,
         staleTime: 2 * 60 * 1000, // 2 min
     });
 }

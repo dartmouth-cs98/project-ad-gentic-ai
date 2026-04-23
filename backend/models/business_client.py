@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Integer, String, DateTime
+from sqlalchemy import Integer, String, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -27,6 +27,12 @@ class BusinessClient(Base):
     credits_balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     traits: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    email_verification_token_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    email_verification_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    password_reset_token_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    password_reset_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    auth_provider: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="email")
 
     def __repr__(self) -> str:
         return f"<BusinessClient(id={self.id}, business_name='{self.business_name}', email='{self.email}')>"

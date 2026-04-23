@@ -1,11 +1,42 @@
 /**
- * JWT token response returned after sign-up / sign-in
+ * JWT token response returned after sign-in.
  */
 export interface TokenResponse {
     access_token: string;
     token_type: string;
     client_id: number;
     email: string;
+    is_new_user?: boolean;
+}
+
+export interface SignUpResponse {
+    success: boolean;
+    email: string;
+    message: string;
+}
+
+export interface VerifyEmailResponse {
+    success: boolean;
+    message: string;
+    access_token: string;
+    token_type: string;
+    client_id: number;
+    email: string;
+}
+
+export interface ResendVerificationResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface RequestPasswordResetResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface ResetPasswordResponse {
+    success: boolean;
+    message: string;
 }
 
 /**
@@ -18,6 +49,7 @@ export interface UserProfile {
     subscription_tier: string;
     credits_balance: number;
     traits: Record<string, unknown> | null;
+    auth_provider: 'email' | 'google' | null;
 }
 
 /**

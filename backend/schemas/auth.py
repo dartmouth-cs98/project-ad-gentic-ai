@@ -1,18 +1,22 @@
 """Pydantic schemas for authentication and onboarding."""
 
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class SignUpRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
     plan: str = "basic"
 
 
 class SignInRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
+
+
+class GoogleAuthRequest(BaseModel):
+    access_token: str
 
 
 class TokenResponse(BaseModel):
@@ -20,6 +24,56 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     client_id: int
     email: str
+    is_new_user: bool = False
+
+
+class SignUpResponse(BaseModel):
+    success: bool
+    email: str
+    message: str
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class VerifyEmailResponse(BaseModel):
+    success: bool
+    message: str
+    access_token: str
+    token_type: str = "bearer"
+    client_id: int
+    email: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class RequestPasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class RequestPasswordResetResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+
+class ResetPasswordResponse(BaseModel):
+    success: bool
+    message: str
 
 
 class OnboardingRequest(BaseModel):
@@ -50,6 +104,7 @@ class ProfileResponse(BaseModel):
     subscription_tier: str
     credits_balance: int
     traits: Optional[dict] = None
+    auth_provider: Optional[str] = None
 
 
 class OnboardingResponse(BaseModel):

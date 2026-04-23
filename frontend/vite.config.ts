@@ -8,9 +8,16 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      environment: 'node',
+      include: ['src/**/*.test.ts'],
+    },
     server: {
       host: true,
       port: 3000,
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      },
       proxy: {
         '/api': {
           target: apiTarget,

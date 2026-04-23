@@ -6,6 +6,7 @@ import {
   SlidersHorizontalIcon,
   ChevronUpIcon,
   ChevronDownIcon,
+  CheckCircle2Icon,
 } from 'lucide-react';
 import { FilterControls } from './FilterControls';
 import { AdVariantCard } from './AdVariantCard';
@@ -28,6 +29,7 @@ interface ResultsPanelProps {
   // Actions
   onReviseSelected: () => void;
   onDeleteSelected: () => void;
+  onApproveSelected: () => void;
   // Filters
   onApplyFilters?: () => void;
 }
@@ -43,6 +45,7 @@ export function ResultsPanel({
   onClearSelection,
   onReviseSelected,
   onDeleteSelected,
+  onApproveSelected,
   onApplyFilters,
 }: ResultsPanelProps) {
   const rightPanelRef = useRef<HTMLDivElement>(null);
@@ -122,35 +125,69 @@ export function ResultsPanel({
             )}
           </div>
 
-          {/* Selection Action Bar */}
-          {selectedVariants.size > 0 && (
-            <div className="flex-shrink-0 bg-blue-600/10 border-b border-blue-600/20 px-5 py-2.5 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                {selectedVariants.size} variant{selectedVariants.size > 1 ? 's' : ''} selected
-              </span>
+          {/* Selection Action Bar — always visible once variants exist */}
+          {adVariants.length > 0 && (
+            <div className="flex-shrink-0 bg-card border-b border-border px-5 py-2.5 flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedVariants.size === adVariants.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        adVariants
+                          .filter((v) => !selectedVariants.has(String(v.id)))
+                          .forEach((v) => onVariantToggle(String(v.id)));
+                      } else {
+                        onClearSelection();
+                      }
+                    }}
+                    className="w-3.5 h-3.5 rounded accent-blue-600"
+                  />
+                </label>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {selectedVariants.size > 0
+                    ? `${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''} selected`
+                    : 'Select variants to take action'}
+                </span>
+              </div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button
+                  onClick={onApproveSelected}
+                  disabled={selectedVariants.size === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-emerald-700"
+                >
+                  <CheckCircle2Icon className="w-3.5 h-3.5" />
+                  {selectedVariants.size === adVariants.length ? 'Approve All' : 'Approve Selected'}
+                </button>
+                <button
                   onClick={onReviseSelected}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={selectedVariants.size === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-blue-700"
                 >
                   <MessageSquareIcon className="w-3.5 h-3.5" />
                   Revise Selected
                 </button>
                 <button
                   onClick={onDeleteSelected}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-red-500/20 text-red-500 text-xs font-medium rounded-lg hover:bg-red-500/10 transition-colors"
+                  disabled={selectedVariants.size === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-red-500/20 text-red-500 text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-red-500/10"
                 >
                   <Trash2Icon className="w-3.5 h-3.5" />
                   Delete
                 </button>
-                <div className="w-px h-5 bg-blue-600/20 mx-0.5" />
-                <button
-                  onClick={onClearSelection}
-                  className="p-1 rounded hover:bg-blue-600/10 transition-colors"
-                  aria-label="Clear selection"
-                >
-                  <XIcon className="w-4 h-4 text-blue-600/60 dark:text-blue-400/60" />
-                </button>
+                {selectedVariants.size > 0 && (
+                  <>
+                    <div className="w-px h-5 bg-border mx-0.5" />
+                    <button
+                      onClick={onClearSelection}
+                      className="p-1 rounded hover:bg-muted transition-colors"
+                      aria-label="Clear selection"
+                    >
+                      <XIcon className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}

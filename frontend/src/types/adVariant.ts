@@ -9,6 +9,7 @@ export interface AdVariant {
   meta: string | null;
   version_number: number;
   is_preview: boolean;
+  is_approved: boolean;
   created_at: string;
   updated_at: string;
   published_at: string | null;

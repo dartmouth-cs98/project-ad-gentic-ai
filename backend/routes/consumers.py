@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import logging
 from typing import Optional
 from uuid import UUID
 
@@ -29,8 +30,13 @@ from schemas.consumer import (
     PersonaProcessingSummary,
 )
 from services.consumer_persona_processor.service import process_consumer_personas
+from services.consumer_traits_description import (
+    generate_consumer_traits_description,
+    get_script_llm_client_and_model,
+)
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _to_response(consumer) -> dict:
@@ -43,6 +49,7 @@ def _to_response(consumer) -> dict:
         "first_name": consumer.first_name,
         "last_name": consumer.last_name,
         "traits": json.loads(consumer.traits) if consumer.traits else None,
+        "consumer_traits_description": consumer.consumer_traits_description,
         "primary_persona": consumer.primary_persona,
         "secondary_persona": consumer.secondary_persona,
         "persona_confidence": (
@@ -139,8 +146,50 @@ async def upload_consumers_csv(
 
     created = 0
     if to_create:
+        # Only touch SCRIPT_* / Grok when at least one row has non-empty traits; `{}` short-circuits
+        # without any LLM client (matches generate_consumer_traits_description and avoids 500 in
+        # environments without SCRIPT_API_KEY / SCRIPT_BASE_URL / SCRIPT_MODEL).
+        descriptions: list[str] = []
+        client_and_model: tuple | None = None
+        script_llm_unavailable = False
+        for item in to_create:
+            traits = item.traits or {}
+            if not traits:
+                descriptions.append("")
+                continue
+            if script_llm_unavailable:
+                descriptions.append("")
+                continue
+            if client_and_model is None:
+                try:
+                    client_and_model = get_script_llm_client_and_model()
+                except Exception as exc:
+                    logger.warning(
+                        "SCRIPT_* unavailable or invalid for CSV consumer_traits_description (%s); "
+                        "using empty descriptions for this row and any remaining rows with traits.",
+                        exc,
+                    )
+                    script_llm_unavailable = True
+                    descriptions.append("")
+                    continue
+            try:
+                descriptions.append(
+                    await generate_consumer_traits_description(
+                        traits,
+                        _client_and_model=client_and_model,
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    "traits_description LLM failed for email=%s; saving empty description",
+                    item.email,
+                )
+                descriptions.append("")
+
         try:
-            create_consumers_bulk(db, client_id, to_create)
+            create_consumers_bulk(
+                db, client_id, to_create, consumer_traits_descriptions=descriptions
+            )
             created = len(to_create)
         except Exception as exc:
             db.rollback()
@@ -198,14 +247,31 @@ async def assign_personas(
 
 
 @router.post("/", response_model=ConsumerResponse, status_code=201)
-def create_new_consumer(
+async def create_new_consumer(
     data: ConsumerCreate,
     db: Session = Depends(get_db),
     client_id: int = Depends(get_current_client_id),
 ):
     """Create a new consumer for the authenticated client."""
+    traits = data.traits or {}
     try:
-        consumer = create_consumer(db, client_id, data)
+        traits_description = await generate_consumer_traits_description(traits)
+    except Exception:
+        # Same resilience as CSV: missing SCRIPT_*, odd API responses (e.g. ValueError for no
+        # choices), and other LLM failures should not block consumer creation.
+        logger.exception(
+            "traits_description LLM failed for new consumer email=%s; saving empty description",
+            data.email,
+        )
+        traits_description = ""
+
+    try:
+        consumer = create_consumer(
+            db,
+            client_id,
+            data,
+            consumer_traits_description=traits_description,
+        )
     except IntegrityError:
         db.rollback()
         raise HTTPException(

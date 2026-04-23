@@ -12,6 +12,8 @@ from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
 from database import _get_session_factory
+from utils.product_image_names import first_product_image_blob_name
+from workers.ad_job_worker.errors import AdJobClientError
 from crud.ad_variant import (
     create_ad_variant,
     update_ad_variant,
@@ -26,9 +28,11 @@ from crud.persona import get_personas
 from schemas.ad_variant import AdVariantCreate, AdVariantUpdate
 from schemas.ad_job import AdJobCreate
 from schemas.ad_job_batch import AdJobBatchCreate
+from services.consumer_traits_description import consumer_profile_text_for_script
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video
 from workers.script_moderation_worker.worker import evaluate_script
+from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import BlobClient, ContentSettings
 
 load_dotenv()
@@ -96,36 +100,42 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
     try:
         campaign = get_campaign(db, campaign_id)
         if campaign is None:
-            raise ValueError(f"Campaign not found: {campaign_id}")
+            raise AdJobClientError(f"Campaign not found: {campaign_id}")
         campaign_brief = _brief_for_version(campaign.brief, version_number)
 
         consumer = get_consumer(db, consumer_id)
         if consumer is None:
-            raise ValueError(f"Consumer not found: {consumer_id}")
-        consumer_traits = json.loads(consumer.traits or "{}")
-        consumer_traits_string = (
-            "\n".join(f"{k}: {v}" for k, v in consumer_traits.items()) if consumer_traits else ""
-        )
+            raise AdJobClientError(f"Consumer not found: {consumer_id}")
+        consumer_traits_string = consumer_profile_text_for_script(consumer)
 
         product = get_product(db, product_id)
         if product is None:
-            raise ValueError(f"Product not found: {product_id}")
-        if not product.image_name or not product.image_name.strip():
-            raise ValueError(f"Product {product_id} has no image (image_name required for ad generation)")
+            raise AdJobClientError(f"Product not found: {product_id}")
+        product_image_filename = first_product_image_blob_name(product.image_name)
+        if not product_image_filename:
+            raise AdJobClientError(
+                f"Product {product_id} has no image (image_name required for ad generation)"
+            )
         product_name = product.name
         product_description = product.description
-        product_image_filename = product.image_name
 
         product_image_blob_client = BlobClient.from_connection_string(
             conn_str=os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip(),
             container_name="product-images",
-            blob_name=f"{product_image_filename}",
+            blob_name=product_image_filename,
         )
-        product_image_download = product_image_blob_client.download_blob()
-        product_image_bytes = product_image_download.readall()
-        props = product_image_blob_client.get_blob_properties()
-        product_image_type = props.content_settings.content_type or "image/png"
-        product_image_filename = props.name
+        blob_name_for_error = product_image_filename
+        try:
+            product_image_download = product_image_blob_client.download_blob()
+            product_image_bytes = product_image_download.readall()
+            props = product_image_blob_client.get_blob_properties()
+            product_image_type = props.content_settings.content_type or "image/png"
+            product_image_filename = props.name
+        except ResourceNotFoundError as e:
+            raise AdJobClientError(
+                f"Product image not found in storage (container product-images, blob {blob_name_for_error!r}). "
+                "Re-upload the product image or fix image_name in the database."
+            ) from e
         product_image_bytes, product_image_type = _resize_product_image(
             product_image_bytes, product_image_type
         )
@@ -181,11 +191,40 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         update_ad_variant(db, ad_variant_id, AdVariantUpdate(media_url=media_url, status="completed"))
     except Exception:
         # Error replaces meta entirely (script, if any, is not preserved)
-        update_ad_variant(
-            db,
-            ad_variant_id,
-            AdVariantUpdate(status="failed", meta=json.dumps({"error": traceback.format_exc()})),
-        )
+        err_meta = json.dumps({"error": traceback.format_exc()})
+        try:
+            db.rollback()
+        except Exception:
+            logger.warning("rollback after ad job failure failed", exc_info=True)
+        try:
+            update_ad_variant(
+                db,
+                ad_variant_id,
+                AdVariantUpdate(status="failed", meta=err_meta),
+            )
+        except Exception:
+            logger.warning(
+                "Failed to persist ad_variant failure on primary session; retrying with new session",
+                exc_info=True,
+            )
+            try:
+                db.close()
+            except Exception:
+                pass
+            retry_db: Session = factory()
+            try:
+                update_ad_variant(
+                    retry_db,
+                    ad_variant_id,
+                    AdVariantUpdate(status="failed", meta=err_meta),
+                )
+            except Exception:
+                logger.exception(
+                    "Could not persist ad_variant failed status for id=%s",
+                    ad_variant_id,
+                )
+            finally:
+                retry_db.close()
         raise
     finally:
         db.close()
@@ -201,7 +240,7 @@ async def generate_campaign_preview(
     try:
         campaign = get_campaign(db, campaign_id)
         if campaign is None:
-            raise ValueError(f"Campaign not found: {campaign_id}")
+            raise AdJobClientError(f"Campaign not found: {campaign_id}")
 
         personas = get_personas(db)
         selected_personas = random.sample(personas, min(6, len(personas)))

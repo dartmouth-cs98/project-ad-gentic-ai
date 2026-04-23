@@ -92,13 +92,21 @@ def get_all_consumers(db: Session) -> list[Consumer]:
     )
     return list(db.scalars(query).all())
 
-def create_consumer(db: Session, client_id: int, data: ConsumerCreate) -> Consumer:
+def create_consumer(
+    db: Session,
+    client_id: int,
+    data: ConsumerCreate,
+    *,
+    consumer_traits_description: str | None = None,
+) -> Consumer:
     """Insert a new consumer and return it."""
     payload = data.model_dump()
     payload["business_client_id"] = client_id
     # Serialize traits dict to JSON string for the nvarchar column
     if payload.get("traits") is not None:
         payload["traits"] = json.dumps(payload["traits"])
+    if consumer_traits_description is not None:
+        payload["consumer_traits_description"] = consumer_traits_description
     consumer = Consumer(**payload)
     db.add(consumer)
     db.commit()
@@ -106,14 +114,30 @@ def create_consumer(db: Session, client_id: int, data: ConsumerCreate) -> Consum
     return consumer
 
 
-def create_consumers_bulk(db: Session, client_id: int, items: list[ConsumerCreate]) -> list[Consumer]:
-    """Insert multiple consumers for a client in a single transaction and return them."""
+def create_consumers_bulk(
+    db: Session,
+    client_id: int,
+    items: list[ConsumerCreate],
+    *,
+    consumer_traits_descriptions: list[str | None] | None = None,
+) -> list[Consumer]:
+    """Insert multiple consumers for a client in a single transaction and return them.
+
+    When ``consumer_traits_descriptions`` is provided, it must be the same length as ``items``;
+    each entry is persisted alongside the matching row (``None`` skips setting the column).
+    """
+    if consumer_traits_descriptions is not None and len(consumer_traits_descriptions) != len(items):
+        raise ValueError("consumer_traits_descriptions must match items length")
     consumers = []
-    for data in items:
+    for i, data in enumerate(items):
         payload = data.model_dump()
         payload["business_client_id"] = client_id
         if payload.get("traits") is not None:
             payload["traits"] = json.dumps(payload["traits"])
+        if consumer_traits_descriptions is not None:
+            desc = consumer_traits_descriptions[i]
+            if desc is not None:
+                payload["consumer_traits_description"] = desc
         consumers.append(Consumer(**payload))
     db.add_all(consumers)
     db.commit()

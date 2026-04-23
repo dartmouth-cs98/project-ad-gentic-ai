@@ -3,6 +3,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 # Configure logging so logger.info(), etc. show in the terminal
 logging.basicConfig(
@@ -30,14 +31,94 @@ from routes.consumers import router as consumers_router
 from routes.personas import router as personas_router
 from routes.product import router as product_router
 from routes.chat_completions import router as chat_completions_router
+from routes.social_auth import router as social_auth_router
+from routes.metrics import router as metrics_router
 
 from services.ad_job_poller.service import run_poller
+from database import get_engine
+
+
+logger = logging.getLogger(__name__)
+
+
+def _ensure_auth_columns_exist() -> None:
+    """Best-effort startup migration for auth-related business_client columns."""
+    engine = get_engine()
+    # Only run this auto-migration path for SQL Server.
+    if engine.dialect.name != "mssql":
+        return
+
+    statements = [
+        """
+        IF COL_LENGTH('dbo.business_clients', 'email_verified') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD email_verified BIT NULL;
+
+            UPDATE dbo.business_clients
+            SET email_verified = 1
+            WHERE email_verified IS NULL;
+
+            ALTER TABLE dbo.business_clients
+            ADD CONSTRAINT DF_business_clients_email_verified
+            DEFAULT 0 FOR email_verified;
+
+            ALTER TABLE dbo.business_clients
+            ALTER COLUMN email_verified BIT NOT NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'email_verification_token_hash') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD email_verification_token_hash NVARCHAR(255) NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'email_verification_expires_at') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD email_verification_expires_at DATETIME2 NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'password_reset_token_hash') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD password_reset_token_hash NVARCHAR(255) NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'password_reset_expires_at') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD password_reset_expires_at DATETIME2 NULL;
+        END
+        """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'auth_provider') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD auth_provider NVARCHAR(50) NULL;
+
+            UPDATE dbo.business_clients
+            SET auth_provider = 'email'
+            WHERE auth_provider IS NULL;
+        END
+        """,
+    ]
+
+    with engine.begin() as conn:
+        for stmt in statements:
+            conn.execute(text(stmt))
+    logger.info("Ensured auth schema columns exist on dbo.business_clients.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the ad_job poller task when the app starts; cancel it on shutdown."""
     import asyncio
+    _ensure_auth_columns_exist()
     poller_task = asyncio.create_task(run_poller())
     yield
     poller_task.cancel()
@@ -83,6 +164,8 @@ app.include_router(chat_completions_router, prefix="/chat/completions", tags=["C
 app.include_router(consumers_router, prefix="/consumers", tags=["Consumers"])
 app.include_router(product_router, prefix="/products", tags=["Products"])
 app.include_router(personas_router, prefix="/personas", tags=["Personas"])
+app.include_router(social_auth_router, prefix="/social-auth", tags=["Social Auth"])
+app.include_router(metrics_router, prefix="/campaigns", tags=["Campaign Metrics"])
 
 # Methods (GET and HEAD) for uptime robot to keep the app alive
 @app.api_route("/", methods=["GET", "HEAD"])

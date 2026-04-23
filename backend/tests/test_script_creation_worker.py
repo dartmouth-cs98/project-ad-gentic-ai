@@ -118,10 +118,40 @@ class TestBuildScriptPrompt:
             consumer_profile_text="Z",
             campaign_brief="",
         )
+        assert "## Beat 1 — 0–2s (hook)" in out
+        assert "## Beat 2 — 2–5s (setup)" in out
+        assert "## Beat 3 — 5–9s (payoff)" in out
+        assert "## Beat 4 — 9–12s (product moment)" in out
+        assert "Audio-safe timeline" in out
+        assert "0.5s" in out and "11.35s" in out
+
+    def test_beat_headers_match_video_seconds_eight(self, monkeypatch):
+        monkeypatch.setenv("VIDEO_SECONDS", "8")
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="",
+        )
         assert "## Beat 1 — 0–1s (hook)" in out
         assert "## Beat 2 — 1–3s (setup)" in out
         assert "## Beat 3 — 3–6s (payoff)" in out
         assert "## Beat 4 — 6–8s (product moment)" in out
+        assert "8 seconds exactly" in out
+        assert "7.35" in out
+
+    def test_beat_headers_match_video_seconds_four(self, monkeypatch):
+        monkeypatch.setenv("VIDEO_SECONDS", "4")
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="",
+        )
+        assert "## Beat 1 — 0–1s (hook)" in out
+        assert "## Beat 4 — 3–4s (product moment)" in out
+        assert "4 seconds exactly" in out
+        assert "3.35" in out
 
     def test_includes_per_beat_fields_for_video_model(self):
         out = _build_script_prompt(
@@ -185,9 +215,17 @@ async def test_generate_ad_script_returns_script_from_mock_client():
 # ---------------------------------------------------------------------------
 
 
-def _make_consumer(id: int, traits: str | None):
-    """Consumer-like object with .id and .traits for batch_generate_ad_scripts."""
-    return SimpleNamespace(id=id, traits=traits)
+def _make_consumer(
+    id: int,
+    traits: str | None,
+    consumer_traits_description: str | None = None,
+):
+    """Consumer-like object with .id, .traits, and optional .consumer_traits_description."""
+    return SimpleNamespace(
+        id=id,
+        traits=traits,
+        consumer_traits_description=consumer_traits_description,
+    )
 
 
 class TestBatchGenerateAdScripts:
@@ -285,6 +323,47 @@ class TestBatchGenerateAdScripts:
         assert user_calls, "expected user message to contain parsed trait value (25)"
         user_calls = [c for c in mock_chat.append.call_args_list if _call_contains_traits(c, "hiking")]
         assert user_calls, "expected user message to contain parsed trait value (hiking)"
+
+    def test_prefers_consumer_traits_description_over_trait_lines(self):
+        mock_batch = MagicMock()
+        mock_batch.batch_id = "bid"
+        mock_chat = MagicMock()
+        mock_client = MagicMock()
+        mock_client.batch.create.return_value = mock_batch
+        mock_client.chat.create.return_value = mock_chat
+
+        with (
+            patch("workers.script_creation_worker.worker.Client", return_value=mock_client),
+            patch.dict(
+                "os.environ",
+                {"SCRIPT_API_KEY": "k", "SCRIPT_MODEL": "m", "SCRIPT_BASE_URL": "https://x"},
+            ),
+        ):
+            consumers = [
+                _make_consumer(
+                    1,
+                    '{"age": "99", "interest": "should-not-appear"}',
+                    "Only this prose should appear in the prompt.",
+                )
+            ]
+            batch_generate_ad_scripts(
+                product_name="Prod",
+                product_description="Desc",
+                consumers=consumers,
+                product_image_data_url="data:image/png;base64,z",
+                campaign_brief="",
+            )
+
+        assert mock_chat.append.call_count >= 2
+        prose_calls = [
+            c
+            for c in mock_chat.append.call_args_list
+            if _call_contains_traits(c, "Only this prose should appear in the prompt.")
+        ]
+        assert prose_calls, "expected user message to use consumer_traits_description"
+        assert not any(
+            _call_contains_traits(c, "should-not-appear") for c in mock_chat.append.call_args_list
+        )
 
     def test_handles_empty_or_none_traits(self):
         mock_batch = MagicMock()

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Sidebar } from '../components/layout/Sidebar';
 import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal';
 import { ChatPanel, ResultsPanel } from '../components/generate';
@@ -12,6 +13,12 @@ import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
 import { useCampaignAdVariants, useGeneratePreview, useUpdateCampaign } from '../hooks/useAdGeneration';
+import {
+  SparklesIcon,
+  PlusIcon,
+  ArrowRightIcon,
+  ZapIcon,
+} from 'lucide-react';
 
 // ─── Constants ──────────────────────────────────────────────────
 
@@ -77,6 +84,7 @@ export function GenerateAdsPage() {
   const { profile } = useCompany();
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
+  const { collapsed: sidebarCollapsed, setCollapsed: setSidebarCollapsed } = useSidebar();
   const businessClientId = user?.client_id;
 
   // ─── Data hooks ──────────────────────────────────────────────
@@ -87,8 +95,8 @@ export function GenerateAdsPage() {
 
   // ─── Core state ──────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('idle');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
+  const [chatStarted, setChatStarted] = useState(false);
   const [input, setInput] = useState('');
   const [progressIdx, setProgressIdx] = useState(0);
 
@@ -194,12 +202,11 @@ export function GenerateAdsPage() {
     prevShowSplit.current = showSplit;
   }, [showSplit]);
 
-  // ─── Set first campaign as active when campaigns load ───────
-  useEffect(() => {
-    if (campaigns.length > 0 && activeCampaignId === undefined) {
-      setActiveCampaignId(campaigns[0].id);
-    }
-  }, [campaigns, activeCampaignId]);
+  // ─── Campaign selection from empty state ─────────────────────
+  const handleStartChat = (campaign: Campaign) => {
+    setActiveCampaignId(campaign.id);
+    setChatStarted(true);
+  };
 
   // ─── Progress animation during generating ───────────────────
   useEffect(() => {
@@ -324,6 +331,7 @@ export function GenerateAdsPage() {
 
   const handleCampaignSelect = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
+    setChatStarted(true);
     setSelectedVariants(new Set());
     if (phase === 'generating') {
       setPhase('idle');
@@ -361,14 +369,105 @@ export function GenerateAdsPage() {
   // When idle but has variants, show them in "results" mode
   const resultsPanelPhase: Phase = phase !== 'idle' ? phase : (hasVariants ? 'results' : 'idle');
 
+  const statusStyles: Record<string, string> = {
+    active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    draft: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    paused: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    completed: 'bg-muted text-muted-foreground border-border',
+  };
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={setSidebarCollapsed}
-      />
+      <Sidebar />
 
-      <div
+      {/* ── Empty State: pick a campaign before entering chat ── */}
+      {!chatStarted && (
+        <div className={`flex flex-1 flex-col items-center justify-center transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} px-8`}>
+          <div className="w-full max-w-2xl">
+
+            {/* Hero */}
+            <div className="flex flex-col items-center text-center mb-12">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 rounded-full blur-3xl opacity-20 scale-150 bg-blue-500" />
+                <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600/20 to-violet-600/20 border border-blue-500/20 flex items-center justify-center shadow-xl">
+                  <SparklesIcon className="w-9 h-9 text-blue-400" />
+                </div>
+                <div className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-violet-500/50 border border-violet-400/60" />
+                <div className="absolute -bottom-1 -left-2 w-2.5 h-2.5 rounded-full bg-blue-500/50 border border-blue-400/60" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Generate your next ad</h1>
+              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                Select a campaign to continue, or create a new one to start generating persona-targeted ad variants.
+              </p>
+            </div>
+
+            {/* Campaign list */}
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                {isCampaignsLoading ? 'Loading campaigns...' : campaigns.length > 0 ? 'Continue a campaign' : 'No campaigns yet'}
+              </p>
+
+              {isCampaignsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-card border border-border rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : campaigns.length > 0 ? (
+                <div className="space-y-2">
+                  {campaigns.slice(0, 5).map((campaign) => (
+                    <button
+                      key={campaign.id}
+                      onClick={() => handleStartChat(campaign)}
+                      className="w-full flex items-center gap-4 px-5 py-4 bg-card border border-border rounded-xl hover:border-blue-500/40 hover:bg-blue-500/5 transition-all group text-left"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
+                        <ZapIcon className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{campaign.name}</p>
+                        {campaign.goal && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{campaign.goal}</p>
+                        )}
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border flex-shrink-0 ${statusStyles[campaign.status] ?? statusStyles.completed}`}>
+                        {campaign.status}
+                      </span>
+                      <ArrowRightIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* New campaign CTA */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCreateCampaignModal(true)}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-600/20"
+              >
+                <PlusIcon className="w-4 h-4" />
+                New Campaign
+              </button>
+              <button
+                onClick={() => setChatStarted(true)}
+                className="px-5 py-3.5 border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                Continue without
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chatStarted && <div
         ref={splitContainerRef}
         className={`flex flex-1 h-full transition-all duration-500 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}
       >
@@ -442,7 +541,7 @@ export function GenerateAdsPage() {
             }}
           />
         )}
-      </div>
+      </div>}
 
       {showCreateCampaignModal && (
         <CreateCampaignModal

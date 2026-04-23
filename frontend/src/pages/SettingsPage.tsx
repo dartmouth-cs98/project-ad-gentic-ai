@@ -149,20 +149,46 @@ export function SettingsPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  // Brand state
+  // Brand state — keys are scoped to the signed-in user so settings don't
+  // leak across accounts on the same device.
+  const brandKey = `brand-settings-${profile.email}`;
+  const configuredKey = `brand-configured-${profile.email}`;
+
   const [brandConfigured, setBrandConfigured] = useState(
-    () => localStorage.getItem('brand-configured') === 'true'
+    () => localStorage.getItem(configuredKey) === 'true'
   );
   const [brandSaving, setBrandSaving] = useState(false);
   const [brandSaved, setBrandSaved] = useState(false);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [brandForm, setBrandForm] = useState({
-    companyName: profile.companyName,
-    primaryColor: '#3B82F6',
-    secondaryColor: '#1E293B',
-    accentColor: '#10B981',
-    tone: 'professional',
-    guidelines: '',
+
+  const [logoPreview, setLogoPreview] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem(brandKey);
+      return saved ? (JSON.parse(saved).logoPreview ?? null) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [brandForm, setBrandForm] = useState(() => {
+    const defaults = {
+      companyName: profile.companyName,
+      primaryColor: '#3B82F6',
+      secondaryColor: '#1E293B',
+      accentColor: '#10B981',
+      tone: 'professional',
+      guidelines: '',
+    };
+    try {
+      const saved = localStorage.getItem(brandKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Always use the live companyName from profile as the source of truth.
+        return { ...defaults, ...parsed, companyName: profile.companyName };
+      }
+    } catch {
+      // ignore malformed data
+    }
+    return defaults;
   });
 
   const { data: socialStatus = [] } = useSocialConnectionStatus();
@@ -253,10 +279,16 @@ export function SettingsPage() {
     setBrandSaving(true);
     setTimeout(() => {
       updateProfile({ companyName: brandForm.companyName });
+      // Persist the full brand form (including logo) so nothing is lost on reload.
+      try {
+        localStorage.setItem(brandKey, JSON.stringify({ ...brandForm, logoPreview }));
+      } catch {
+        // localStorage can throw if storage quota is exceeded (e.g. large logo).
+      }
+      localStorage.setItem(configuredKey, 'true');
       setBrandSaving(false);
       setBrandSaved(true);
       setBrandConfigured(true);
-      localStorage.setItem('brand-configured', 'true');
       setTimeout(() => setBrandSaved(false), 3000);
     }, 1200);
   };
@@ -549,7 +581,7 @@ export function SettingsPage() {
                     title="Your brand profile isn't set up yet"
                     description="Add your logo, brand colors, and voice so Ad-gentic can generate ads that look and sound exactly like you."
                     cta="Set Up Brand Profile"
-                    onCta={() => { setBrandConfigured(true); localStorage.setItem('brand-configured', 'true'); }}
+                    onCta={() => { setBrandConfigured(true); localStorage.setItem(configuredKey, 'true'); }}
                     decorations={
                       <div className="flex items-center gap-3">
                         {[
@@ -741,7 +773,7 @@ export function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <button
-                      onClick={() => { setBrandConfigured(false); localStorage.removeItem('brand-configured'); }}
+                      onClick={() => { setBrandConfigured(false); localStorage.removeItem(configuredKey); }}
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                       ← Back
                     </button>

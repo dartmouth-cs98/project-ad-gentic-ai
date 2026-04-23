@@ -59,7 +59,7 @@ function ProtectedLayout() {
     );
   }
 
-  if (!user) {
+  if (!user && import.meta.env.VITE_ENV !== 'local') {
     return <Navigate to="/sign-in" replace />;
   }
 

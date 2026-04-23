@@ -6,11 +6,14 @@ import logging
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
+from utils.video_timing import allowed_video_seconds, video_prompt_audio_prefix
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SECONDS = 5
+
 MAX_POLL_ATTEMPTS = 120  # 10 minutes at 5s interval
 TERMINAL_FAILURE_STATUS = "failed"
 
@@ -26,11 +29,13 @@ async def generate_ad_video(
         raise RuntimeError("Video generation env vars not configured.")
 
     video_client = AsyncOpenAI(api_key=api_key)
-    
+    seconds = allowed_video_seconds()
+    prefix = video_prompt_audio_prefix(seconds)
+
     creation_response = await video_client.videos.create(
-        prompt=script,
+        prompt=prefix + script,
         size="720x1280",
-        seconds=8,
+        seconds=seconds,
         input_reference=(product_image_filename, io.BytesIO(product_image_bytes), product_image_type),
     )
 

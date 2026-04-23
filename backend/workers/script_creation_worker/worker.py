@@ -5,6 +5,14 @@ import json
 
 from dotenv import load_dotenv
 
+from utils.video_timing import (
+    AUDIO_END_GUARD,
+    AUDIO_START_GUARD,
+    allowed_video_seconds,
+    dialogue_end_seconds,
+    script_output_format_block,
+    script_requirement_beat_ranges,
+)
 from services.consumer_traits_description import consumer_profile_text_for_script
 from openai import AsyncOpenAI
 from xai_sdk import Client
@@ -38,42 +46,6 @@ def _format_campaign_context_block(
     )
 
 
-_SCRIPT_OUTPUT_FORMAT_BLOCK = """MANDATORY OUTPUT FORMAT — your entire reply MUST follow this template. The video generator reads this literally; vague prose will fail. Time ranges must partition 0–8s with no gaps and no overlap (total 8.0 seconds).
-
-## Overview (2–4 sentences max)
-Premise, tone, and single clear comedic or emotional idea. State the chosen creator-native format (e.g. POV, reaction, day-in-the-life). Do not read campaign bullets aloud.
-
-## Beat 1 — 0–1s (hook)
-- What we see: (subjects, environment, product visibility — be specific)
-- Camera move: (e.g. handheld close-up, slow push-in, whip pan)
-- Lighting: (time of day, key mood, practicals)
-- Action: (what moves, gestures, reactions)
-- Line (approx. word count): (spoken line or "none — ambient only" with ~0 words)
-
-## Beat 2 — 1–3s (setup)
-- What we see:
-- Camera move:
-- Lighting:
-- Action:
-- Line (approx. word count):
-
-## Beat 3 — 3–6s (payoff)
-- What we see:
-- Camera move:
-- Lighting:
-- Action:
-- Line (approx. word count):
-
-## Beat 4 — 6–8s (product moment)
-- What we see:
-- Camera move:
-- Lighting:
-- Action:
-- Line (approx. word count):
-
-Rules for beats: Each beat's action and visuals must be producible in that time window. Sum of dialogue across all beats must fit comfortably within 8 seconds (aim for ~20 spoken words max total unless pacing is very fast). The first frame may emphasize the product; after Beat 1, move into story per the brief. No readable on-screen words, stickers, burned-in captions, lower-thirds, or typography gags — only picture and sound; "caption-style" humor must be spoken or acted, not written in-frame."""
-
-
 def _build_script_prompt(
     product_name: str,
     product_description: str,
@@ -86,6 +58,11 @@ def _build_script_prompt(
     campaign_product_context: str = "",
 ) -> str:
     """Build the ad script generation prompt with product and consumer context."""
+    total = allowed_video_seconds()
+    t_end = dialogue_end_seconds(total)
+    beat_ranges = script_requirement_beat_ranges(total)
+    format_block = script_output_format_block(total)
+
     campaign_ctx = _format_campaign_context_block(
         campaign_name=campaign_name,
         campaign_goal=campaign_goal,
@@ -112,22 +89,24 @@ def _build_script_prompt(
 
     Visual/audio constraints (hard rules): No readable text in-frame at any time (including logos-as-typography tricks). Voice, ambient sound, and music are fine; do not script or require open captions, subtitles, or any overlay viewers must read. If the platform would add captions later, that is out of scope — script for a clean image with spoken words only.
 
-    {_SCRIPT_OUTPUT_FORMAT_BLOCK}
+    {format_block}
 
     Requirements:
-    1. 8 seconds exactly — output ONLY the Overview plus the four beats (0–1s, 1–3s, 3–6s, 6–8s) in that order; do not add extra beats, scenes, or alternate timelines.
+    1. {total} seconds exactly — output ONLY the Overview plus the four beats ({beat_ranges}) in that order; do not add extra beats, scenes, or alternate timelines.
     2. Fill every bullet field in every beat; use the reference image for accurate product color, shape, label, and packaging.
     3. Make it feel creator-made, not brand-made.
     4. No obvious call-to-action or sales language.
+    5. Honor the audio-safe timeline: no spoken words in the first ~{AUDIO_START_GUARD}s or last ~{AUDIO_END_GUARD}s of the spot; last line fully finished before ~{t_end}s.
 
     Be bold with the creative direction. Surprise me with the format you choose in the Overview.
-    All spoken lines must be complete or naturally trailing off by the end of Beat 4 (8s)."""
+    All spoken lines must be complete (with a breath of space) before ~{t_end}s; only non-dialogue audio may continue to {total}s."""
 
 
-def _moderation_revision_suffix(moderation_feedback: str) -> str:
+def _moderation_revision_suffix(moderation_feedback: str, *, total_seconds: int) -> str:
+    t_end = dialogue_end_seconds(total_seconds)
     return f"""
 
-IMPORTANT — a previous draft failed content review. Write a complete replacement script that fixes ALL of the following while keeping the same 8-second structured format (Overview plus Beats 1–4 with all fields) and creative spirit:
+IMPORTANT — a previous draft failed content review. Write a complete replacement script that fixes ALL of the following while keeping the same {total_seconds}-second structured format (Overview plus Beats 1–4 with all fields), the same audio-safe margins (no speech first ~{AUDIO_START_GUARD}s or last ~{AUDIO_END_GUARD}s; dialogue ends before ~{t_end}s), and creative spirit:
 {moderation_feedback}
 
 Output only the new script; do not include meta-commentary about the review."""
@@ -151,6 +130,7 @@ async def generate_ad_script(
     base_url = os.getenv("SCRIPT_BASE_URL", "").strip()
     script_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
+    total = allowed_video_seconds()
     prompt = _build_script_prompt(
         product_name,
         product_description,
@@ -162,7 +142,7 @@ async def generate_ad_script(
         campaign_product_context=campaign_product_context,
     )
     if moderation_feedback:
-        prompt += _moderation_revision_suffix(moderation_feedback)
+        prompt += _moderation_revision_suffix(moderation_feedback, total_seconds=total)
 
     response = await script_client.responses.create(
         model=model,

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Logo } from '../components/ui/Logo';
-import { Loader2Icon, CheckCircleIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { CheckIcon, Loader2Icon, CheckCircleIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import { signUp, resendVerification, verifyEmail } from '../api/auth';
 import { OtpInput } from '../components/ui/OtpInput';
 import { useGoogleAuth } from '../hooks/useAuth';

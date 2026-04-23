@@ -182,8 +182,9 @@ export function SettingsPage() {
       const saved = localStorage.getItem(brandKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Always use the live companyName from profile as the source of truth.
-        return { ...defaults, ...parsed, companyName: profile.companyName };
+        // Use saved companyName if present (user may have renamed it); fall
+        // back to the live profile value only when no saved name exists.
+        return { ...defaults, ...parsed, companyName: parsed.companyName ?? profile.companyName };
       }
     } catch {
       // ignore malformed data
@@ -283,16 +284,21 @@ export function SettingsPage() {
       // Both writes are in the same try/catch — if storage is full (e.g. large
       // logo data-URL) we don't want the second write to throw and abort the
       // remaining state updates, leaving the UI stuck in the saving state.
+      let persisted = false;
       try {
         localStorage.setItem(brandKey, JSON.stringify({ ...brandForm, logoPreview }));
         localStorage.setItem(configuredKey, 'true');
+        persisted = true;
       } catch {
         // localStorage can throw if storage quota is exceeded (e.g. large logo).
       }
       setBrandSaving(false);
-      setBrandSaved(true);
-      setBrandConfigured(true);
-      setTimeout(() => setBrandSaved(false), 3000);
+      // Only show success and mark configured when settings were actually saved.
+      if (persisted) {
+        setBrandSaved(true);
+        setBrandConfigured(true);
+        setTimeout(() => setBrandSaved(false), 3000);
+      }
     }, 1200);
   };
 

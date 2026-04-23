@@ -154,9 +154,13 @@ export function SettingsPage() {
   const brandKey = `brand-settings-${profile.email}`;
   const configuredKey = `brand-configured-${profile.email}`;
 
-  const [brandConfigured, setBrandConfigured] = useState(
-    () => localStorage.getItem(configuredKey) === 'true'
-  );
+  const [brandConfigured, setBrandConfigured] = useState(() => {
+    try {
+      return localStorage.getItem(configuredKey) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [brandSaving, setBrandSaving] = useState(false);
   const [brandSaved, setBrandSaved] = useState(false);
 

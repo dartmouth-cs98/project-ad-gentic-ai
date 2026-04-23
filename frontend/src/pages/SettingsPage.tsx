@@ -280,12 +280,15 @@ export function SettingsPage() {
     setTimeout(() => {
       updateProfile({ companyName: brandForm.companyName });
       // Persist the full brand form (including logo) so nothing is lost on reload.
+      // Both writes are in the same try/catch — if storage is full (e.g. large
+      // logo data-URL) we don't want the second write to throw and abort the
+      // remaining state updates, leaving the UI stuck in the saving state.
       try {
         localStorage.setItem(brandKey, JSON.stringify({ ...brandForm, logoPreview }));
+        localStorage.setItem(configuredKey, 'true');
       } catch {
         // localStorage can throw if storage quota is exceeded (e.g. large logo).
       }
-      localStorage.setItem(configuredKey, 'true');
       setBrandSaving(false);
       setBrandSaved(true);
       setBrandConfigured(true);

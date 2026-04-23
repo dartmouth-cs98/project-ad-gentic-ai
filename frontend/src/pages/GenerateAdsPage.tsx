@@ -195,12 +195,15 @@ export function GenerateAdsPage() {
   // Show split layout when generating, viewing results, OR when variants exist
   const showSplit = phase !== 'idle' || hasVariants;
 
-  // Auto-collapse sidebar when split view first activates
-  const prevShowSplit = useRef(false);
+  // Auto-collapse sidebar the first time split view activates (variants present).
+  // We intentionally never auto-expand — the sidebar should stay in whatever
+  // state the user left it when switching campaigns or navigating away.
+  const didAutoCollapse = useRef(false);
   useEffect(() => {
-    if (showSplit && !prevShowSplit.current) setSidebarCollapsed(true);
-    if (!showSplit && prevShowSplit.current) setSidebarCollapsed(false);
-    prevShowSplit.current = showSplit;
+    if (showSplit && !didAutoCollapse.current) {
+      setSidebarCollapsed(true);
+      didAutoCollapse.current = true;
+    }
   }, [showSplit]);
 
   // ─── Campaign selection from empty state ─────────────────────

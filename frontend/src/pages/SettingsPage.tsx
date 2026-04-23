@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSocialConnectionStatus, useConnectSocialPlatform, useDisconnectSocialPlatform } from '../hooks/useSocialConnection';
 import { Sidebar } from '../components/layout/Sidebar';
@@ -21,8 +21,16 @@ import {
   UsersIcon,
   SettingsIcon,
   ImageIcon,
+  Loader2Icon,
   Sun,
   Moon,
+  PaletteIcon,
+  PlugIcon,
+  ReceiptIcon,
+  ArrowRightIcon,
+  SparklesIcon,
+  UploadIcon,
+  XIcon,
 } from 'lucide-react';
 
 type TabKey = 'billing' | 'plans' | 'brand' | 'integrations' | 'notifications';
@@ -75,22 +83,117 @@ const initialNotifications: NotificationSetting[] = [
   { id: 'system', title: 'System Updates', desc: 'New features, maintenance, and platform announcements.', icon: SettingsIcon, email: true, inApp: true, slack: false },
 ];
 
+// ---------- Empty State Component ----------
+
+function EmptyState({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  glowColor,
+  title,
+  description,
+  cta,
+  onCta,
+  decorations,
+}: {
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+  glowColor: string;
+  title: string;
+  description: string;
+  cta: string;
+  onCta: () => void;
+  decorations?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
+      <div className="relative mb-8">
+        {/* Glow */}
+        <div className={`absolute inset-0 rounded-full blur-2xl opacity-30 scale-150 ${glowColor}`} />
+        {/* Icon ring */}
+        <div className={`relative w-20 h-20 rounded-2xl ${iconBg} flex items-center justify-center shadow-lg`}>
+          <Icon className={`w-9 h-9 ${iconColor}`} />
+        </div>
+        {/* Decorative orbiting dots */}
+        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500/40 border border-blue-500/60" />
+        <div className="absolute -bottom-2 -left-2 w-2 h-2 rounded-full bg-violet-500/40 border border-violet-500/60" />
+      </div>
+
+      <h3 className="text-xl font-bold text-foreground mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-8">{description}</p>
+
+      {decorations && <div className="mb-8">{decorations}</div>}
+
+      <button
+        onClick={onCta}
+        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/20"
+      >
+        {cta}
+        <ArrowRightIcon className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ---------- Main Page ----------
+
 export function SettingsPage() {
   const { collapsed } = useSidebar();
   const { theme, toggleTheme } = useTheme();
   const { profile, updateProfile } = useCompany();
   const location = useLocation();
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('billing');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-const [brandForm, setBrandForm] = useState({
-    companyName: profile.companyName,
-    primaryColor: '#3B82F6',
-    secondaryColor: '#1E293B',
-    accentColor: '#10B981',
-    tone: 'professional',
-    guidelines: 'Always lead with value. Avoid jargon. Use data to support claims. Maintain a confident but approachable voice.',
+
+  // Brand state — keys are scoped to the signed-in user so settings don't
+  // leak across accounts on the same device.
+  const brandKey = `brand-settings-${profile.email}`;
+  const configuredKey = `brand-configured-${profile.email}`;
+
+  const [brandConfigured, setBrandConfigured] = useState(() => {
+    try {
+      return localStorage.getItem(configuredKey) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [brandSaving, setBrandSaving] = useState(false);
+  const [brandSaved, setBrandSaved] = useState(false);
+
+  const [logoPreview, setLogoPreview] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem(brandKey);
+      return saved ? (JSON.parse(saved).logoPreview ?? null) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [brandForm, setBrandForm] = useState(() => {
+    const defaults = {
+      companyName: profile.companyName,
+      primaryColor: '#3B82F6',
+      secondaryColor: '#1E293B',
+      accentColor: '#10B981',
+      tone: 'professional',
+      guidelines: '',
+    };
+    try {
+      const saved = localStorage.getItem(brandKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Use saved companyName if present (user may have renamed it); fall
+        // back to the live profile value only when no saved name exists.
+        return { ...defaults, ...parsed, companyName: parsed.companyName ?? profile.companyName };
+      }
+    } catch {
+      // ignore malformed data
+    }
+    return defaults;
   });
 
   const { data: socialStatus = [] } = useSocialConnectionStatus();
@@ -169,6 +272,42 @@ const [brandForm, setBrandForm] = useState({
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, [channel]: !n[channel] } : n));
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBrand = () => {
+    setBrandSaving(true);
+    setTimeout(() => {
+      updateProfile({ companyName: brandForm.companyName });
+      // Persist the full brand form (including logo) so nothing is lost on reload.
+      // Both writes are in the same try/catch — if storage is full (e.g. large
+      // logo data-URL) we don't want the second write to throw and abort the
+      // remaining state updates, leaving the UI stuck in the saving state.
+      let persisted = false;
+      try {
+        localStorage.setItem(brandKey, JSON.stringify({ ...brandForm, logoPreview }));
+        localStorage.setItem(configuredKey, 'true');
+        persisted = true;
+      } catch {
+        // localStorage can throw if storage quota is exceeded (e.g. large logo).
+      }
+      setBrandSaving(false);
+      // Only show success and mark configured when settings were actually saved.
+      if (persisted) {
+        setBrandSaved(true);
+        setBrandConfigured(true);
+        setTimeout(() => setBrandSaved(false), 3000);
+      }
+    }, 1200);
+  };
+
+  const connectedCount = integrations.filter((i) => i.connected).length;
+
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'billing', label: 'Billing & History' },
     { key: 'plans', label: 'Plans' },
@@ -183,7 +322,7 @@ const [brandForm, setBrandForm] = useState({
 
       <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8 relative`}>
 
-        {/* Success Overlay */}
+        {/* Success Overlay — Plan change */}
         {showSuccess && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
             <div className="bg-card border border-border p-8 rounded-2xl shadow-xl flex flex-col items-center">
@@ -320,38 +459,61 @@ const [brandForm, setBrandForm] = useState({
                 <div className="p-6 border-b border-border">
                   <h3 className="text-base font-semibold text-foreground">Billing History</h3>
                 </div>
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-muted text-muted-foreground">
-                    <tr>
-                      <th className="px-6 py-3 font-medium">Date</th>
-                      <th className="px-6 py-3 font-medium">Plan</th>
-                      <th className="px-6 py-3 font-medium">Amount</th>
-                      <th className="px-6 py-3 font-medium">Status</th>
-                      <th className="px-6 py-3 font-medium text-right">Invoice</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {[
-                      { date: 'Feb 12, 2026', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
-                      { date: 'Jan 12, 2026', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
-                      { date: 'Dec 12, 2025', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
-                    ].map((item, i) => (
-                      <tr key={i} className="hover:bg-muted/50 transition-colors">
-                        <td className="px-6 py-4 text-foreground">{item.date}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{item.plan}</td>
-                        <td className="px-6 py-4 text-foreground font-medium">{item.amount}</td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-xs font-medium">
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Download</button>
-                        </td>
+
+                {profile.plan === 'basic' ? (
+                  /* Empty state for free plan — no invoices yet */
+                  <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 rounded-full blur-2xl opacity-25 scale-150 bg-blue-500" />
+                      <div className="relative w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <ReceiptIcon className="w-7 h-7 text-blue-500" />
+                      </div>
+                    </div>
+                    <h4 className="text-base font-semibold text-foreground mb-1.5">No invoices yet</h4>
+                    <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-6">
+                      You're on the free plan. Upgrade to Premium to unlock invoices and detailed billing history.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('plans')}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+                      View Plans
+                      <ArrowRightIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-muted text-muted-foreground">
+                      <tr>
+                        <th className="px-6 py-3 font-medium">Date</th>
+                        <th className="px-6 py-3 font-medium">Plan</th>
+                        <th className="px-6 py-3 font-medium">Amount</th>
+                        <th className="px-6 py-3 font-medium">Status</th>
+                        <th className="px-6 py-3 font-medium text-right">Invoice</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {[
+                        { date: 'Feb 12, 2026', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
+                        { date: 'Jan 12, 2026', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
+                        { date: 'Dec 12, 2025', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
+                      ].map((item, i) => (
+                        <tr key={i} className="hover:bg-muted/50 transition-colors">
+                          <td className="px-6 py-4 text-foreground">{item.date}</td>
+                          <td className="px-6 py-4 text-muted-foreground">{item.plan}</td>
+                          <td className="px-6 py-4 text-foreground font-medium">{item.amount}</td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-xs font-medium">
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Download</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           )}
@@ -417,91 +579,231 @@ const [brandForm, setBrandForm] = useState({
 
           {/* ==================== BRAND PROFILE TAB ==================== */}
           {activeTab === 'brand' && (
-            <div className="space-y-6 max-w-3xl">
-              {/* Company Identity */}
-              <div className="bg-card border border-border rounded-xl p-7">
-                <h3 className="text-base font-semibold text-foreground mb-1">Company Identity</h3>
-                <p className="text-sm text-muted-foreground mb-6">Your brand identity is used across all generated ads.</p>
-                <div className="flex items-start gap-6 mb-6">
-                  <div className="w-24 h-24 rounded-xl bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors group flex-shrink-0">
-                    <ImageIcon className="w-6 h-6 text-muted-foreground group-hover:text-blue-500 transition-colors" />
-                    <span className="text-[10px] text-muted-foreground mt-1 group-hover:text-blue-500">Upload logo</span>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Company Name</label>
-                    <input
-                      type="text"
-                      value={brandForm.companyName}
-                      onChange={(e) => setBrandForm({ ...brandForm, companyName: e.target.value })}
-                      className="w-full px-3 py-2 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+            <>
+              {!brandConfigured ? (
+                /* ── Brand Empty State ── */
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                  {/* Hero gradient strip */}
+                  <div className="relative h-2 bg-gradient-to-r from-blue-600 via-violet-500 to-emerald-500" />
+
+                  <EmptyState
+                    icon={PaletteIcon}
+                    iconBg="bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-blue-500/20"
+                    iconColor="text-blue-400"
+                    glowColor="bg-blue-500"
+                    title="Your brand profile isn't set up yet"
+                    description="Add your logo, brand colors, and voice so Ad-gentic can generate ads that look and sound exactly like you."
+                    cta="Set Up Brand Profile"
+                    onCta={() => setBrandConfigured(true)}
+                    decorations={
+                      <div className="flex items-center gap-3">
+                        {[
+                          { color: '#3B82F6', label: 'Primary' },
+                          { color: '#1E293B', label: 'Secondary' },
+                          { color: '#10B981', label: 'Accent' },
+                        ].map((swatch) => (
+                          <div key={swatch.label} className="flex flex-col items-center gap-1.5">
+                            <div
+                              className="w-8 h-8 rounded-lg border border-white/10 shadow-md"
+                              style={{ backgroundColor: swatch.color }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">{swatch.label}</span>
+                          </div>
+                        ))}
+                        <div className="w-px h-10 bg-border mx-1" />
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg border border-border">
+                          <SparklesIcon className="w-3.5 h-3.5 text-blue-400" />
+                          <span className="text-xs text-muted-foreground">AI-matched tone</span>
+                        </div>
+                      </div>
+                    }
+                  />
+
+                  {/* Feature hints at bottom */}
+                  <div className="border-t border-border px-8 py-5 bg-muted/30">
+                    <div className="flex items-center justify-center gap-8">
+                      {[
+                        { icon: ImageIcon, text: 'Logo upload' },
+                        { icon: PaletteIcon, text: 'Brand colors' },
+                        { icon: SparklesIcon, text: 'AI voice & tone' },
+                      ].map(({ icon: Icon, text }) => (
+                        <div key={text} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Icon className="w-3.5 h-3.5 text-blue-500" />
+                          {text}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* ── Brand Form ── */
+                <div className="space-y-6 max-w-3xl">
 
-              {/* Brand Colors */}
-              <div className="bg-card border border-border rounded-xl p-7">
-                <h3 className="text-base font-semibold text-foreground mb-1">Brand Colors</h3>
-                <p className="text-sm text-muted-foreground mb-6">These colors will be applied to generated ad creatives.</p>
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { label: 'Primary', key: 'primaryColor' as const },
-                    { label: 'Secondary', key: 'secondaryColor' as const },
-                    { label: 'Accent', key: 'accentColor' as const },
-                  ].map((color) => (
-                    <div key={color.key}>
-                      <label className="block text-sm font-medium text-foreground mb-2">{color.label}</label>
-                      <div className="rounded-xl border border-border overflow-hidden">
-                        <div className="h-12 w-full" style={{ backgroundColor: brandForm[color.key] }} />
+                  {/* Brand saved toast */}
+                  {brandSaved && (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-500">
+                      <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
+                      Brand profile saved successfully.
+                    </div>
+                  )}
+
+                  {/* Company Identity */}
+                  <div className="bg-card border border-border rounded-xl p-7">
+                    <h3 className="text-base font-semibold text-foreground mb-1">Company Identity</h3>
+                    <p className="text-sm text-muted-foreground mb-6">Your brand identity is used across all generated ads.</p>
+                    <div className="flex items-start gap-6 mb-6">
+                      {/* Logo upload */}
+                      <div className="flex-shrink-0">
+                        <input
+                          ref={logoInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoUpload}
+                        />
+                        {logoPreview ? (
+                          <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-border group cursor-pointer" onClick={() => logoInputRef.current?.click()}>
+                            <img src={logoPreview} alt="Brand logo" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                              <UploadIcon className="w-5 h-5 text-white" />
+                              <span className="text-[10px] text-white font-medium">Replace</span>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setLogoPreview(null); if (logoInputRef.current) logoInputRef.current.value = ''; }}
+                              className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <XIcon className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => logoInputRef.current?.click()}
+                            className="w-24 h-24 rounded-xl bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-500/5 transition-all group">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-1.5 group-hover:bg-blue-500/20 transition-colors">
+                              <UploadIcon className="w-4 h-4 text-blue-500" />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground group-hover:text-blue-500 transition-colors font-medium">Upload logo</span>
+                            <span className="text-[9px] text-muted-foreground mt-0.5">PNG, JPG, SVG</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-foreground mb-1.5">Company Name</label>
                         <input
                           type="text"
-                          value={brandForm[color.key]}
-                          onChange={(e) => setBrandForm({ ...brandForm, [color.key]: e.target.value })}
-                          className="w-full px-3 py-2 bg-muted border-t border-border rounded-b-xl text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                          value={brandForm.companyName}
+                          onChange={(e) => setBrandForm({ ...brandForm, companyName: e.target.value })}
+                          placeholder="e.g. Acme Inc."
+                          className="w-full px-3 py-2 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Brand Voice */}
-              <div className="bg-card border border-border rounded-xl p-7">
-                <h3 className="text-base font-semibold text-foreground mb-1">Brand Voice & Tone</h3>
-                <p className="text-sm text-muted-foreground mb-6">AI will match this tone when generating ad copy.</p>
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {toneOptions.map((tone) => (
+                  {/* Brand Colors */}
+                  <div className="bg-card border border-border rounded-xl p-7">
+                    <h3 className="text-base font-semibold text-foreground mb-1">Brand Colors</h3>
+                    <p className="text-sm text-muted-foreground mb-6">These colors will be applied to generated ad creatives.</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      {[
+                        { label: 'Primary', key: 'primaryColor' as const },
+                        { label: 'Secondary', key: 'secondaryColor' as const },
+                        { label: 'Accent', key: 'accentColor' as const },
+                      ].map((color) => (
+                        <div key={color.key}>
+                          <label className="block text-sm font-medium text-foreground mb-2">{color.label}</label>
+                          <div className="rounded-xl border border-border overflow-hidden">
+                            <div
+                              className="h-14 w-full relative cursor-pointer group"
+                              style={{ backgroundColor: brandForm[color.key] }}
+                              onClick={() => {
+                                const input = document.getElementById(`color-picker-${color.key}`) as HTMLInputElement;
+                                input?.click();
+                              }}
+                            >
+                              <input
+                                id={`color-picker-${color.key}`}
+                                type="color"
+                                value={brandForm[color.key]}
+                                onChange={(e) => setBrandForm({ ...brandForm, [color.key]: e.target.value })}
+                                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                <PaletteIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-70 transition-opacity" />
+                              </div>
+                            </div>
+                            <input
+                              type="text"
+                              value={brandForm[color.key]}
+                              onChange={(e) => setBrandForm({ ...brandForm, [color.key]: e.target.value })}
+                              className="w-full px-3 py-2 bg-muted border-t border-border rounded-b-xl text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Brand Voice */}
+                  <div className="bg-card border border-border rounded-xl p-7">
+                    <h3 className="text-base font-semibold text-foreground mb-1">Brand Voice & Tone</h3>
+                    <p className="text-sm text-muted-foreground mb-6">AI will match this tone when generating ad copy.</p>
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      {toneOptions.map((tone) => (
+                        <button
+                          key={tone.value}
+                          onClick={() => setBrandForm({ ...brandForm, tone: tone.value })}
+                          className={`p-4 rounded-xl border text-left transition-all ${brandForm.tone === tone.value ? 'border-blue-600 bg-blue-500/5 ring-1 ring-blue-600' : 'border-border hover:border-foreground/20'}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-sm text-foreground">{tone.label}</span>
+                            {brandForm.tone === tone.value && <CheckIcon className="w-4 h-4 text-blue-600" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{tone.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Guidelines — empty state hint when blank */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">Brand Guidelines</label>
+                      {brandForm.guidelines === '' && (
+                        <div className="mb-2 flex items-start gap-2 px-3 py-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                          <SparklesIcon className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-blue-400/80 leading-relaxed">
+                            Tip: describe your dos and don'ts (e.g. "Always lead with value. Avoid jargon. Use data to back claims.") — the more specific, the better your ads.
+                          </p>
+                        </div>
+                      )}
+                      <textarea
+                        rows={4}
+                        placeholder="Describe your brand's dos and don'ts for ad copy..."
+                        value={brandForm.guidelines}
+                        onChange={(e) => setBrandForm({ ...brandForm, guidelines: e.target.value })}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
                     <button
-                      key={tone.value}
-                      onClick={() => setBrandForm({ ...brandForm, tone: tone.value })}
-                      className={`p-4 rounded-xl border text-left transition-all ${brandForm.tone === tone.value ? 'border-blue-600 bg-blue-500/5 ring-1 ring-blue-600' : 'border-border hover:border-foreground/20'}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm text-foreground">{tone.label}</span>
-                        {brandForm.tone === tone.value && <CheckIcon className="w-4 h-4 text-blue-600" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{tone.desc}</p>
+                      onClick={() => { setBrandConfigured(false); localStorage.removeItem(configuredKey); }}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      ← Back
                     </button>
-                  ))}
+                    <button
+                      onClick={handleSaveBrand}
+                      disabled={brandSaving}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20">
+                      {brandSaving ? (
+                        <><Loader2Icon className="w-4 h-4 animate-spin" />Saving...</>
+                      ) : (
+                        <><CheckIcon className="w-4 h-4" />Save Brand Settings</>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Brand Guidelines</label>
-                  <textarea
-                    rows={4}
-                    placeholder="Describe your brand's dos and don'ts for ad copy..."
-                    value={brandForm.guidelines}
-                    onChange={(e) => setBrandForm({ ...brandForm, guidelines: e.target.value })}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
-                  <CheckIcon className="w-4 h-4" />
-                  Save Brand Settings
-                </button>
-              </div>
-            </div>
+              )}
+            </>
           )}
 
           {/* ==================== INTEGRATIONS TAB ==================== */}
@@ -510,9 +812,52 @@ const [brandForm, setBrandForm] = useState({
               <div>
                 <h3 className="text-base font-semibold text-foreground">Connected Platforms</h3>
                 <p className="text-sm text-muted-foreground">
-                  {integrations.filter((i) => i.connected).length} of {integrations.length} integrations active
+                  {connectedCount === 0
+                    ? 'No integrations connected yet'
+                    : `${connectedCount} of ${integrations.length} integrations active`}
                 </p>
               </div>
+
+              {connectedCount === 0 && (
+                /* ── Integrations Empty State Banner ── */
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                  <div className="relative h-1.5 bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500" />
+                  <div className="flex flex-col items-center py-12 px-8 text-center">
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 rounded-full blur-2xl opacity-25 scale-150 bg-violet-500" />
+                      <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 border border-violet-500/20 flex items-center justify-center">
+                        <PlugIcon className="w-7 h-7 text-violet-400" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500/40 border border-blue-500/60" />
+                      <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-pink-500/40 border border-pink-500/60" />
+                    </div>
+
+                    <h4 className="text-lg font-bold text-foreground mb-2">Connect your first platform</h4>
+                    <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-6">
+                      Push ads directly to your ad channels and get alerts in your tools. Connect a platform below to get started.
+                    </p>
+
+                    {/* Platform preview pills */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 mb-2">
+                      {initialIntegrations.slice(0, 5).map((int) => (
+                        <div
+                          key={int.id}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border rounded-full text-xs text-muted-foreground"
+                        >
+                          <div className={`w-4 h-4 rounded ${int.color} flex items-center justify-center text-white text-[8px] font-bold`}>
+                            {int.icon}
+                          </div>
+                          {int.name.split(' ')[0]}
+                        </div>
+                      ))}
+                      <div className="px-3 py-1.5 bg-muted border border-border rounded-full text-xs text-muted-foreground">
+                        +{initialIntegrations.length - 5} more
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 {integrations.map((integration) => (
                   <div key={integration.id} className="bg-card border border-border rounded-xl p-5 flex items-start gap-4 hover:border-foreground/20 transition-colors">

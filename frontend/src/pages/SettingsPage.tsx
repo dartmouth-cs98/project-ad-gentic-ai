@@ -594,7 +594,7 @@ export function SettingsPage() {
                     title="Your brand profile isn't set up yet"
                     description="Add your logo, brand colors, and voice so Ad-gentic can generate ads that look and sound exactly like you."
                     cta="Set Up Brand Profile"
-                    onCta={() => { setBrandConfigured(true); localStorage.setItem(configuredKey, 'true'); }}
+                    onCta={() => setBrandConfigured(true)}
                     decorations={
                       <div className="flex items-center gap-3">
                         {[

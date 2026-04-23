@@ -12,8 +12,8 @@ TODO: Activate by completing the Meta OAuth flow in the Settings page after
       META_APP_ID, META_APP_SECRET, FERNET_SECRET_KEY env vars are set.
 """
 
-import json
 import logging
+import time
 from datetime import date
 from typing import Optional
 
@@ -40,15 +40,58 @@ DEFAULT_OBJECTIVE = "OUTCOME_AWARENESS"
 DEFAULT_CAMPAIGN_DAYS = 30
 MIN_DAILY_BUDGET_CENTS = 100  # Meta minimum is $1/day per ad set
 
+# Retry tuning for transient Meta Graph failures (network / 5xx / 429).
+# Auth and validation errors (4xx other than 429) fail fast.
+_RETRY_ATTEMPTS = 3
+_RETRY_BACKOFF_SECONDS = (1, 2, 4)
+_TRANSIENT_STATUSES = {408, 429, 500, 502, 503, 504}
+
+
+class MetaPublishError(Exception):
+    """Raised when publishing to Meta fails.
+
+    Carries the Meta campaign ID if it was created before the failure so the
+    caller can persist it and resume on retry (skipping campaign creation).
+    """
+
+    def __init__(self, message: str, meta_campaign_id: Optional[str] = None):
+        super().__init__(message)
+        self.meta_campaign_id = meta_campaign_id
+
+
+def _is_transient(exc: Exception) -> bool:
+    if isinstance(exc, (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError)):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in _TRANSIENT_STATUSES
+    return False
+
 
 def _post(path: str, token: str, payload: dict) -> dict:
-    resp = httpx.post(
-        f"{META_GRAPH_BASE}/{path}",
-        json={**payload, "access_token": token},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    """POST to Meta Graph with retry on transient errors."""
+    last_exc: Optional[Exception] = None
+    for attempt in range(_RETRY_ATTEMPTS):
+        try:
+            resp = httpx.post(
+                f"{META_GRAPH_BASE}/{path}",
+                json={**payload, "access_token": token},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as exc:
+            last_exc = exc
+            if not _is_transient(exc) or attempt == _RETRY_ATTEMPTS - 1:
+                raise
+            delay = _RETRY_BACKOFF_SECONDS[attempt]
+            logger.warning(
+                "Transient Meta error on %s (attempt %d/%d): %s — retrying in %ds",
+                path, attempt + 1, _RETRY_ATTEMPTS, exc, delay,
+            )
+            time.sleep(delay)
+    # Unreachable — loop either returns or re-raises.
+    assert last_exc is not None
+    raise last_exc
 
 
 def publish_campaign(
@@ -65,24 +108,38 @@ def publish_campaign(
     ad_account_id: str,       # format: act_XXXXXXXXX
     instagram_account_id: str,
     facebook_page_id: str,
+    existing_meta_campaign_id: Optional[str] = None,
 ) -> str:
-    """Build the full Meta campaign hierarchy and return the Meta campaign ID."""
+    """Build the full Meta campaign hierarchy and return the Meta campaign ID.
+
+    If ``existing_meta_campaign_id`` is provided, campaign creation is skipped
+    and ad sets/ads are attached to the existing campaign. This supports retry
+    after a partial failure — callers should persist the returned campaign ID
+    after the first successful step so retries can resume here.
+    """
     token = decrypt_token(encrypted_token)
     objective = GOAL_TO_OBJECTIVE.get((goal or "").lower(), DEFAULT_OBJECTIVE)
 
-    # ── 1. Campaign ───────────────────────────────────────────────────────
-    campaign_resp = _post(
-        f"{ad_account_id}/campaigns",
-        token,
-        {
-            "name": campaign_name,
-            "objective": objective,
-            "status": "PAUSED",  # client activates in Meta Ads Manager after review
-            "special_ad_categories": [],
-        },
-    )
-    meta_campaign_id: str = campaign_resp["id"]
-    logger.info("Created Meta campaign %s ('%s')", meta_campaign_id, campaign_name)
+    # ── 1. Campaign (skip if resuming) ───────────────────────────────────
+    if existing_meta_campaign_id:
+        meta_campaign_id = existing_meta_campaign_id
+        logger.info("Resuming Meta publish with existing campaign %s", meta_campaign_id)
+    else:
+        try:
+            campaign_resp = _post(
+                f"{ad_account_id}/campaigns",
+                token,
+                {
+                    "name": campaign_name,
+                    "objective": objective,
+                    "status": "PAUSED",  # client activates in Meta Ads Manager after review
+                    "special_ad_categories": [],
+                },
+            )
+        except Exception as exc:
+            raise MetaPublishError(f"Meta campaign creation failed: {exc}") from exc
+        meta_campaign_id = campaign_resp["id"]
+        logger.info("Created Meta campaign %s ('%s')", meta_campaign_id, campaign_name)
 
     # ── 2. Budget maths ───────────────────────────────────────────────────
     num_adsets = len(persona_groups)
@@ -106,21 +163,27 @@ def publish_campaign(
 
         targeting = _build_targeting_for_persona(persona_traits)
 
-        adset_resp = _post(
-            f"{ad_account_id}/adsets",
-            token,
-            {
-                "name": f"{campaign_name} — {persona_name}",
-                "campaign_id": meta_campaign_id,
-                "daily_budget": daily_budget_cents,
-                "billing_event": "IMPRESSIONS",
-                "optimization_goal": "REACH",
-                "targeting": targeting,
-                "status": "PAUSED",
-                **({"start_time": start_date.isoformat()} if start_date else {}),
-                **({"end_time": end_date.isoformat()} if end_date else {}),
-            },
-        )
+        try:
+            adset_resp = _post(
+                f"{ad_account_id}/adsets",
+                token,
+                {
+                    "name": f"{campaign_name} — {persona_name}",
+                    "campaign_id": meta_campaign_id,
+                    "daily_budget": daily_budget_cents,
+                    "billing_event": "IMPRESSIONS",
+                    "optimization_goal": "REACH",
+                    "targeting": targeting,
+                    "status": "PAUSED",
+                    **({"start_time": start_date.isoformat()} if start_date else {}),
+                    **({"end_time": end_date.isoformat()} if end_date else {}),
+                },
+            )
+        except Exception as exc:
+            raise MetaPublishError(
+                f"Ad set creation failed for persona '{persona_name}': {exc}",
+                meta_campaign_id=meta_campaign_id,
+            ) from exc
         adset_id: str = adset_resp["id"]
         logger.info(
             "Created ad set '%s' (budget: $%.2f/day)",

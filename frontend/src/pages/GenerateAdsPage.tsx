@@ -244,7 +244,11 @@ export function GenerateAdsPage() {
   // ─── Handlers ───────────────────────────────────────────────
 
   const handleSend = () => {
-    if (!input.trim() || !activeCampaignId) return;
+    if (!input.trim()) return;
+    if (!activeCampaignId) {
+      setShowCreateCampaignModal(true);
+      return;
+    }
 
     const messageText = input;
     setInput('');
@@ -464,7 +468,7 @@ export function GenerateAdsPage() {
                 New Campaign
               </button>
               <button
-                onClick={() => setChatStarted(true)}
+                onClick={() => { setChatStarted(true); setInput("I'd like to create a new campaign. "); }}
                 className="px-5 py-3.5 border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 Continue without

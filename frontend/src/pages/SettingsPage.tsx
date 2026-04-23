@@ -150,7 +150,9 @@ export function SettingsPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Brand state
-  const [brandConfigured, setBrandConfigured] = useState(false);
+  const [brandConfigured, setBrandConfigured] = useState(
+    () => localStorage.getItem('brand-configured') === 'true'
+  );
   const [brandSaving, setBrandSaving] = useState(false);
   const [brandSaved, setBrandSaved] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -254,6 +256,7 @@ export function SettingsPage() {
       setBrandSaving(false);
       setBrandSaved(true);
       setBrandConfigured(true);
+      localStorage.setItem('brand-configured', 'true');
       setTimeout(() => setBrandSaved(false), 3000);
     }, 1200);
   };
@@ -546,7 +549,7 @@ export function SettingsPage() {
                     title="Your brand profile isn't set up yet"
                     description="Add your logo, brand colors, and voice so Ad-gentic can generate ads that look and sound exactly like you."
                     cta="Set Up Brand Profile"
-                    onCta={() => setBrandConfigured(true)}
+                    onCta={() => { setBrandConfigured(true); localStorage.setItem('brand-configured', 'true'); }}
                     decorations={
                       <div className="flex items-center gap-3">
                         {[
@@ -738,7 +741,7 @@ export function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <button
-                      onClick={() => setBrandConfigured(false)}
+                      onClick={() => { setBrandConfigured(false); localStorage.removeItem('brand-configured'); }}
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                       ← Back
                     </button>

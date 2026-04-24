@@ -26,16 +26,30 @@ logger = logging.getLogger(__name__)
 META_GRAPH_VERSION = "v21.0"
 META_GRAPH_BASE = f"https://graph.facebook.com/{META_GRAPH_VERSION}"
 
+# Use ODAX (Outcome-Driven) objectives — legacy values (e.g. LINK_CLICKS,
+# POST_ENGAGEMENT) often return 400 on Marketing API v17+ / v21.
 GOAL_TO_OBJECTIVE = {
-    "brand_awareness": "BRAND_AWARENESS",
-    "reach": "REACH",
-    "traffic": "LINK_CLICKS",
-    "engagement": "POST_ENGAGEMENT",
-    "leads": "LEAD_GENERATION",
+    "brand_awareness": "OUTCOME_AWARENESS",
+    "reach": "OUTCOME_AWARENESS",
+    "traffic": "OUTCOME_TRAFFIC",
+    "engagement": "OUTCOME_ENGAGEMENT",
+    "leads": "OUTCOME_LEADS",
     "sales": "OUTCOME_SALES",
     "conversions": "OUTCOME_SALES",
 }
 DEFAULT_OBJECTIVE = "OUTCOME_AWARENESS"
+
+# Ad set optimization must align with campaign objective (Meta validation).
+_OBJECTIVE_TO_OPTIMIZATION_GOAL = {
+    "OUTCOME_AWARENESS": "REACH",
+    "OUTCOME_TRAFFIC": "LINK_CLICKS",
+    "OUTCOME_ENGAGEMENT": "POST_ENGAGEMENT",
+    "OUTCOME_LEADS": "LEAD_GENERATION",
+    # Without a pixel, OFFSITE_CONVERSIONS would fail; LINK_CLICKS is a reasonable
+    # traffic-style default until conversion tracking is wired.
+    "OUTCOME_SALES": "LINK_CLICKS",
+    "OUTCOME_APP_PROMOTION": "APP_INSTALLS",
+}
 
 DEFAULT_CAMPAIGN_DAYS = 30
 MIN_DAILY_BUDGET_CENTS = 100  # Meta minimum is $1/day per ad set
@@ -59,6 +73,35 @@ class MetaPublishError(Exception):
         self.meta_campaign_id = meta_campaign_id
 
 
+def _optimization_goal_for_objective(campaign_objective: str) -> str:
+    return _OBJECTIVE_TO_OPTIMIZATION_GOAL.get(
+        campaign_objective, _OBJECTIVE_TO_OPTIMIZATION_GOAL["OUTCOME_AWARENESS"]
+    )
+
+
+def _graph_error_message(resp: httpx.Response) -> str:
+    """Best-effort parse of Graph API JSON error (400 responses are usually here)."""
+    try:
+        body = resp.json()
+    except ValueError:
+        return (resp.text or "")[:800]
+    err = body.get("error")
+    if not isinstance(err, dict):
+        return (resp.text or "")[:800]
+    parts: list[str] = []
+    for key in ("message", "error_user_msg", "error_user_title"):
+        val = err.get(key)
+        if isinstance(val, str) and val.strip():
+            parts.append(val.strip())
+    if err.get("code") is not None:
+        sub = err.get("error_subcode")
+        code_part = f"code={err['code']}"
+        if sub is not None:
+            code_part += f", subcode={sub}"
+        parts.append(code_part)
+    return " — ".join(parts) if parts else (resp.text or "")[:800]
+
+
 def _is_transient(exc: Exception) -> bool:
     if isinstance(exc, (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError)):
         return True
@@ -77,7 +120,18 @@ def _post(path: str, token: str, payload: dict) -> dict:
                 json={**payload, "access_token": token},
                 timeout=30,
             )
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                graph_msg = _graph_error_message(exc.response)
+                if graph_msg:
+                    raise httpx.HTTPStatusError(
+                        f"{exc.response.status_code} {exc.response.reason_phrase} "
+                        f"for {exc.request.url!s}: {graph_msg}",
+                        request=exc.request,
+                        response=exc.response,
+                    ) from exc
+                raise
             return resp.json()
         except Exception as exc:
             last_exc = exc
@@ -134,6 +188,9 @@ def publish_campaign(
                     "objective": objective,
                     "status": "PAUSED",  # client activates in Meta Ads Manager after review
                     "special_ad_categories": [],
+                    # Required when budgets live on ad sets (not CBO). Matches Meta's
+                    # POST /act_<id>/campaigns examples for v21+.
+                    "is_adset_budget_sharing_enabled": False,
                 },
             )
         except Exception as exc:
@@ -162,6 +219,7 @@ def publish_campaign(
             continue
 
         targeting = _build_targeting_for_persona(persona_traits)
+        optimization_goal = _optimization_goal_for_objective(objective)
 
         try:
             adset_resp = _post(
@@ -172,7 +230,8 @@ def publish_campaign(
                     "campaign_id": meta_campaign_id,
                     "daily_budget": daily_budget_cents,
                     "billing_event": "IMPRESSIONS",
-                    "optimization_goal": "REACH",
+                    "bid_strategy": "LOWEST_COST_WITHOUT_CAP",
+                    "optimization_goal": optimization_goal,
                     "targeting": targeting,
                     "status": "PAUSED",
                     **({"start_time": start_date.isoformat()} if start_date else {}),

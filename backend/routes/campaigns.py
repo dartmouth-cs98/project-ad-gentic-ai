@@ -143,10 +143,14 @@ def run_campaign(
             "Meta publish failed for campaign %d (partial meta_campaign_id=%s)",
             campaign_id, exc.meta_campaign_id,
         )
+        hint = str(exc)
+        if len(hint) > 500:
+            hint = hint[:500] + "…"
         raise HTTPException(
             status_code=502,
             detail=(
                 "We couldn't publish this campaign to Meta right now. "
+                f"{hint} "
                 "We've saved your progress — click Run Campaign again to retry. "
                 "If it keeps failing, check Settings → Integrations or contact support."
             ),

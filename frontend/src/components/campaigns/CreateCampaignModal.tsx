@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   XIcon,
   CheckIcon,
@@ -208,6 +208,7 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
         product_ids: JSON.stringify([selectedProduct!.id]),
         target_audience: newCampaign.targetAudience,
         goal: newCampaign.goal === 'other' ? customGoal || 'other' : newCampaign.goal || null,
+        platforms: JSON.stringify(newCampaign.platforms),
       },
       { onSuccess: onClose },
     );

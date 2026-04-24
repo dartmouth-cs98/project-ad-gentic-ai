@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   XIcon,
   CheckIcon,
   Loader2Icon,
-  SparklesIcon,
   PlusIcon,
   SearchIcon,
   PackageIcon,
@@ -163,7 +162,6 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
   const createMutation = useCreateCampaign();
   const autofillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [isAutofilling, setIsAutofilling] = useState(false);
   const [customGoal, setCustomGoal] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -195,25 +193,6 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
     });
   };
 
-  const handleAutofill = useCallback(() => {
-    if (autofillTimeoutRef.current !== null) {
-      clearTimeout(autofillTimeoutRef.current);
-      autofillTimeoutRef.current = null;
-    }
-    setIsAutofilling(true);
-    autofillTimeoutRef.current = setTimeout(() => {
-      autofillTimeoutRef.current = null;
-      setNewCampaign((prev) => ({
-        ...prev,
-        platforms: ['instagram', 'tiktok'],
-        region: 'na',
-        goal: 'sales',
-        targetAudience: 'Tech-savvy millennials interested in productivity tools (sample text for local testing).',
-      }));
-      setIsAutofilling(false);
-    }, 1500);
-  }, []);
-
   const handleCreateCampaign = () => {
     const newErrors: Record<string, string> = {};
     if (!newCampaign.name) newErrors.name = 'Campaign name is required';
@@ -229,6 +208,7 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
         product_ids: JSON.stringify([selectedProduct!.id]),
         target_audience: newCampaign.targetAudience,
         goal: newCampaign.goal === 'other' ? customGoal || 'other' : newCampaign.goal || null,
+        platforms: JSON.stringify(newCampaign.platforms),
       },
       { onSuccess: onClose },
     );
@@ -247,25 +227,6 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
         </div>
 
         <div className="p-6 space-y-4">
-          {import.meta.env.DEV && (
-            <button
-              type="button"
-              onClick={handleAutofill}
-              disabled={isAutofilling || isCreating}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-dashed border-border rounded-lg text-sm hover:bg-muted transition-colors disabled:opacity-50 text-muted-foreground"
-            >
-              {isAutofilling ? (
-                <>
-                  <Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" /> Filling sample data...
-                </>
-              ) : (
-                <>
-                  <SparklesIcon className="w-4 h-4 text-blue-600" /> Fill with sample data (dev only)
-                </>
-              )}
-            </button>
-          )}
-
           <div>
             <label className={labelClass}>Campaign Name <span className="text-red-500">*</span></label>
             <input

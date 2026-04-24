@@ -59,8 +59,9 @@ class CampaignCreate(_DateRangeValidator):
     product_context: Optional[str] = None
     product_ids: Optional[str] = None
     brief: Optional[str] = None
+    platforms: Optional[str] = None
 
-    @field_validator("product_context", "product_ids", "brief", mode="before")
+    @field_validator("product_context", "product_ids", "brief", "platforms", mode="before")
     @classmethod
     def coerce_to_json(cls, v: Optional[str]) -> Optional[str]:
         return _ensure_json(v)
@@ -76,8 +77,9 @@ class CampaignUpdate(_DateRangeValidator):
     product_context: Optional[str] = None
     product_ids: Optional[str] = None
     brief: Optional[str] = None
+    platforms: Optional[str] = None
 
-    @field_validator("product_context", "product_ids", "brief", mode="before")
+    @field_validator("product_context", "product_ids", "brief", "platforms", mode="before")
     @classmethod
     def coerce_to_json(cls, v: Optional[str]) -> Optional[str]:
         return _ensure_json(v)
@@ -101,5 +103,6 @@ class CampaignResponse(BaseModel):
     updated_at: datetime
     product_ids: Optional[str] = None
     brief: Optional[str] = None
+    platforms: Optional[str] = None
 
     model_config = {"from_attributes": True}

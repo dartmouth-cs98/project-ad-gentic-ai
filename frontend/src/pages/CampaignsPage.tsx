@@ -23,6 +23,7 @@ import { useUser } from '../contexts/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
+import { useProducts } from '../hooks/useProducts';
 import {
   campaignToItem,
   distinctGoalsFromCampaigns,
@@ -36,6 +37,17 @@ const EMPTY_CAMPAIGNS: Campaign[] = [];
 
 // ---------- Component ----------
 
+function parseProductIds(raw: string | null): number[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  } catch {
+    return [];
+  }
+}
+
 export function CampaignsPage() {
   const { collapsed } = useSidebar();
   const { theme, toggleTheme } = useTheme();
@@ -44,7 +56,9 @@ export function CampaignsPage() {
   const canManageCampaigns = typeof businessClientId === 'number' && businessClientId > 0;
 
   const { data: rawCampaignsData, isLoading, isError, error } = useCampaigns(businessClientId);
+  const { data: productsData } = useProducts(businessClientId);
   const rawCampaigns = rawCampaignsData ?? EMPTY_CAMPAIGNS;
+  const products = productsData ?? [];
   const deleteMutation = useDeleteCampaign();
   const updateMutation = useUpdateCampaign();
 
@@ -67,8 +81,18 @@ export function CampaignsPage() {
   }, [campaignsByDate]);
 
   const campaigns = useMemo(
-    () => campaignsByDate.map((c) => campaignToItem(c)),
-    [campaignsByDate],
+    () =>
+      campaignsByDate.map((c) => {
+        const item = campaignToItem(c);
+        const firstProductId = parseProductIds(c.product_ids)[0];
+        const product = products.find((p) => p.id === firstProductId);
+        const productImage = product?.image_urls?.[0];
+        return {
+          ...item,
+          thumbnail: productImage,
+        };
+      }),
+    [campaignsByDate, products],
   );
 
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');

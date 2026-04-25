@@ -10,6 +10,8 @@ from urllib.parse import urlsplit, urlunsplit
 from azure.storage.blob import BlobSasPermissions, generate_blob_sas
 
 VIDEO_CONTAINER_NAME = "ad-videos"
+# Public Azure Blob host suffix (avoid sovereign-cloud SSRF until explicitly supported).
+_AZURE_PUBLIC_BLOB_SUFFIX = ".blob.core.windows.net"
 # API responses: short-lived links for browsers.
 API_SAS_EXPIRY_HOURS = 1
 # Meta publish (download + multipart): allow slow networks / large files.
@@ -20,6 +22,41 @@ def parse_storage_account_key(conn_str: str) -> tuple[str, str]:
     """Return ``(account_name, account_key)`` from an Azure Storage connection string."""
     parts = dict(part.split("=", 1) for part in conn_str.split(";") if "=" in part)
     return parts["AccountName"], parts["AccountKey"]
+
+
+def expected_ad_video_blob_hostname() -> Optional[str]:
+    """Return ``<account>.blob.core.windows.net`` lowercased when connection string is set."""
+    conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip()
+    if not conn_str:
+        return None
+    try:
+        account_name, _ = parse_storage_account_key(conn_str)
+    except KeyError:
+        return None
+    return f"{account_name}{_AZURE_PUBLIC_BLOB_SUFFIX}".lower()
+
+
+def is_trusted_ad_video_backend_download_url(url: str) -> bool:
+    """True only for https URLs to this app's Azure ``ad-videos`` blobs (safe for server-side GET).
+
+    Used to gate the Meta ``advideos`` fallback that downloads ``media_url`` on this server,
+    avoiding SSRF via attacker-controlled ``media_url`` values. Requires
+    ``AZURE_STORAGE_CONNECTION_STRING`` so the storage account host can be pinned.
+    """
+    if not (url or "").strip():
+        return False
+    expected_host = expected_ad_video_blob_hostname()
+    if expected_host is None:
+        return False
+    if extract_ad_video_blob_name(url) is None:
+        return False
+    try:
+        parsed = urlsplit(url.strip())
+    except ValueError:
+        return False
+    if parsed.scheme.lower() != "https":
+        return False
+    return (parsed.hostname or "").lower() == expected_host
 
 
 def extract_ad_video_blob_name(media_url: str) -> Optional[str]:

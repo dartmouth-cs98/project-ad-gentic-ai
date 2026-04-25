@@ -28,6 +28,8 @@ from PIL import Image
 from services.meta.auth import decrypt_token
 from services.storage.ad_video_media_url import (
     PUBLISH_SAS_EXPIRY_HOURS,
+    VIDEO_CONTAINER_NAME,
+    is_trusted_ad_video_backend_download_url,
     signed_ad_video_media_url,
 )
 
@@ -70,6 +72,8 @@ _ADVVIDEO_TIMEOUT_SECONDS = 600.0
 _VIDEO_DOWNLOAD_TIMEOUT = httpx.Timeout(600.0, connect=60.0)
 # Hold up to 512MB in RAM before spilling to disk while buffering the download.
 _SPOOL_MAX_IN_MEMORY = 512 * 1024 * 1024
+# Hard cap on server-side fallback download (per variant) to bound disk/IO under abuse or errors.
+_MAX_FALLBACK_VIDEO_DOWNLOAD_BYTES = 500 * 1024 * 1024  # 500 MiB
 
 # Meta often returns empty ``thumbnails`` until the Ad Video finishes processing.
 _VIDEO_THUMB_POLL_ATTEMPTS = 15
@@ -105,6 +109,9 @@ def _graph_error_message(resp: httpx.Response) -> str:
     try:
         body = resp.json()
     except ValueError:
+        return (resp.text or "")[:800]
+    # Graph normally returns {"error": {...}}; proxies or edge cases may return a JSON array/string.
+    if not isinstance(body, dict):
         return (resp.text or "")[:800]
     err = body.get("error")
     if not isinstance(err, dict):
@@ -259,7 +266,12 @@ def _video_filename_hint(file_url: str) -> str:
 
 
 def _download_video_from_url(file_url: str) -> tuple[tempfile.SpooledTemporaryFile, int]:
-    """Stream ``file_url`` into a spool; return (spool at position 0, byte size)."""
+    """Stream ``file_url`` into a spool; return (spool at position 0, byte size).
+
+    Raises ``ValueError`` if the response is larger than
+    ``_MAX_FALLBACK_VIDEO_DOWNLOAD_BYTES`` (checked via ``Content-Length`` when
+    present and while streaming).
+    """
     spool: tempfile.SpooledTemporaryFile = tempfile.SpooledTemporaryFile(
         max_size=_SPOOL_MAX_IN_MEMORY,
         mode="w+b",
@@ -269,10 +281,27 @@ def _download_video_from_url(file_url: str) -> tuple[tempfile.SpooledTemporaryFi
         with httpx.Client(timeout=_VIDEO_DOWNLOAD_TIMEOUT) as client:
             with client.stream("GET", file_url, follow_redirects=True) as resp:
                 resp.raise_for_status()
+                cl_header = resp.headers.get("content-length")
+                if cl_header is not None:
+                    try:
+                        cl_val = int(cl_header.strip())
+                    except ValueError:
+                        cl_val = -1
+                    if cl_val > _MAX_FALLBACK_VIDEO_DOWNLOAD_BYTES:
+                        raise ValueError(
+                            f"Video download refused: Content-Length {cl_val} exceeds "
+                            f"maximum {_MAX_FALLBACK_VIDEO_DOWNLOAD_BYTES} bytes"
+                        )
                 for chunk in resp.iter_bytes(1024 * 1024):
-                    if chunk:
-                        spool.write(chunk)
-                        total += len(chunk)
+                    if not chunk:
+                        continue
+                    if total + len(chunk) > _MAX_FALLBACK_VIDEO_DOWNLOAD_BYTES:
+                        raise ValueError(
+                            f"Video download exceeded maximum size "
+                            f"({_MAX_FALLBACK_VIDEO_DOWNLOAD_BYTES} bytes) while streaming"
+                        )
+                    spool.write(chunk)
+                    total += len(chunk)
         spool.seek(0)
         logger.info("Downloaded %d bytes from media URL for Meta advideos upload", total)
         return spool, total
@@ -377,6 +406,13 @@ def _upload_video_to_ad_library(
             "Meta could not fetch file_url (code/subcode in response); "
             "uploading video bytes from this server instead.",
         )
+        if not is_trusted_ad_video_backend_download_url(file_url):
+            raise ValueError(
+                "Server-side video download is not allowed for this media_url: "
+                f"only https Azure Blob URLs in container "
+                f"{VIDEO_CONTAINER_NAME!r} for the configured storage account "
+                "(AZURE_STORAGE_CONNECTION_STRING) are permitted."
+            ) from exc
 
     spool, _size = _download_video_from_url(file_url)
     try:

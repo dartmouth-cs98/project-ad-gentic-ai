@@ -18,6 +18,8 @@ def test_publish_campaign_raises_when_all_variant_ads_fail(monkeypatch):
     """If every per-variant ad creation fails, publish_campaign should raise so /run can retry."""
 
     monkeypatch.setattr("services.meta.campaign_publisher.decrypt_token", lambda _enc: "token")
+    # Ensure we take the "resume" branch (avoid hitting real Meta in CI).
+    monkeypatch.setattr("services.meta.campaign_publisher._meta_campaign_exists", lambda *_a, **_k: True)
 
     def _fake_post(path: str, token: str, payload: dict, *, timeout: float = 30.0) -> dict:
         # publish_campaign only needs /adsets for this test (we pass existing_meta_campaign_id).

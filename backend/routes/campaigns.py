@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from cryptography.fernet import InvalidToken
 
 from database import get_db
 from dependencies import get_current_client_id
@@ -132,6 +133,16 @@ def run_campaign(
             instagram_account_id=connection.instagram_account_id,
             facebook_page_id=connection.facebook_page_id,
             existing_meta_campaign_id=campaign.meta_campaign_id,
+        )
+    except InvalidToken:
+        # Token decryption failed (e.g., rotated FERNET_SECRET_KEY or corrupted token).
+        # Treat as a user-actionable error so they can reconnect in Settings.
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Your Meta/Instagram connection is no longer valid. "
+                "Please reconnect in Settings → Integrations and try again."
+            ),
         )
     except MetaPublishError as exc:
         # Persist partial state so a retry can resume without creating duplicates.

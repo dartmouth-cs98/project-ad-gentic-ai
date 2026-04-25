@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from cryptography.fernet import InvalidToken
 
 _backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_backend_dir))
@@ -188,6 +189,24 @@ def test_run_returns_400_when_no_approved_variants(client, db_session, monkeypat
     resp = client.patch(f"/campaigns/{campaign.id}/run")
     assert resp.status_code == 400
     assert "approved" in resp.json()["detail"].lower()
+
+
+def test_run_returns_400_when_connection_token_cannot_be_decrypted(client, db_session, monkeypatch):
+    """If the stored encrypted token can't be decrypted, return actionable 400 (not 500)."""
+    campaign = _seed_campaign(db_session)
+    _patch_helpers(monkeypatch)
+
+    def _publish(**_kwargs):
+        raise InvalidToken()
+
+    monkeypatch.setattr("routes.campaigns.publish_campaign", _publish)
+
+    resp = client.patch(f"/campaigns/{campaign.id}/run")
+    assert resp.status_code == 400
+    assert "reconnect" in resp.json()["detail"].lower() or "connect" in resp.json()["detail"].lower()
+
+    db_session.refresh(campaign)
+    assert campaign.status == "draft"
 
 
 def test_run_persists_partial_meta_campaign_id_on_failure(client, db_session, monkeypatch):

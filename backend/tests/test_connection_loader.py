@@ -98,6 +98,13 @@ def test_raises_when_metadata_corrupt(db):
         load_publish_connection(db, _CLIENT_ID)
 
 
+@pytest.mark.parametrize("raw_metadata", ["[]", '"oops"', "123", "true", "null"])
+def test_raises_when_metadata_is_valid_json_but_not_object(db, raw_metadata):
+    _seed(db, raw_metadata=raw_metadata)
+    with pytest.raises(ConnectionValidationError, match="corrupted"):
+        load_publish_connection(db, _CLIENT_ID)
+
+
 def test_happy_path(db):
     _seed(db)
     result = load_publish_connection(db, _CLIENT_ID)

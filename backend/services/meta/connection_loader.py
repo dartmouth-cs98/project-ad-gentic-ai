@@ -60,6 +60,11 @@ def load_publish_connection(db: Session, client_id: int) -> ValidatedMetaConnect
             "Instagram connection metadata is corrupted — please reconnect in Settings."
         ) from exc
 
+    if not isinstance(metadata, dict):
+        raise ConnectionValidationError(
+            "Instagram connection metadata is corrupted — please reconnect in Settings."
+        )
+
     ad_account_id = metadata.get("ad_account_id")
     facebook_page_id = metadata.get("facebook_page_id")
     instagram_account_id = connection.platform_account_id

@@ -657,6 +657,8 @@ def publish_campaign(
     daily_budget_cents = max(int(raw_daily_per_adset), MIN_DAILY_BUDGET_CENTS)
 
     # ── 3. Ad Set + Ads per persona group ─────────────────────────────────
+    attempted_variant_ads = 0
+    succeeded_variant_ads = 0
     for group in persona_groups:
         persona_name: str = group["persona_name"]
         persona_traits: dict = group.get("persona_traits") or {}
@@ -698,6 +700,7 @@ def publish_campaign(
         )
 
         for variant in variants:
+            attempted_variant_ads += 1
             try:
                 _create_ad_for_variant(
                     variant=variant,
@@ -709,12 +712,21 @@ def publish_campaign(
                     campaign_name=campaign_name,
                     persona_name=persona_name,
                 )
+                succeeded_variant_ads += 1
             except Exception:
                 logger.exception(
                     "Failed to create ad for variant %s in persona '%s'",
                     variant.get("id"),
                     persona_name,
                 )
+
+    # If *every* ad creation failed, treat publish as failed so the UI can retry
+    # and the campaign won't be marked active without any ads created.
+    if attempted_variant_ads > 0 and succeeded_variant_ads == 0:
+        raise MetaPublishError(
+            "Meta publish failed: no ads were created for any variant (all attempts failed).",
+            meta_campaign_id=meta_campaign_id,
+        )
 
     return meta_campaign_id
 

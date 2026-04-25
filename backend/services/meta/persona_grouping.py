@@ -65,8 +65,8 @@ def group_approved_variants_by_persona(
         .filter(
             AdVariant.campaign_id == campaign_id,
             AdVariant.status == "completed",
-            AdVariant.is_approved.is_(True),
-            AdVariant.is_preview.is_(False),
+            AdVariant.is_approved == True,  # noqa: E712 — MSSQL: .is_() becomes invalid "IS 1"
+            AdVariant.is_preview == False,  # noqa: E712
             AdVariant.media_url.isnot(None),
         )
         .all()

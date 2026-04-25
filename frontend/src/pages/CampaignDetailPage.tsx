@@ -26,12 +26,12 @@ import { EditCampaignModal } from '../components/campaigns/EditCampaignModal';
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
 import { statusColors } from '../components/campaigns/CampaignGridCard';
 
-import type { AnalyticsMetric, PersonaPerf } from '../components/campaigns/CampaignAnalytics';
 import type { EditFormData } from '../components/campaigns/EditCampaignModal';
 import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
 
 import { useCampaign, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns';
 import { useCampaignAdVariants, useApproveVariant, useUnapproveVariant, useRunCampaign } from '../hooks/useAdGeneration';
+import { useCampaignMetrics } from '../hooks/useCampaignMetrics';
 import { useUser } from '../contexts/UserContext';
 import { useProducts } from '../hooks/useProducts';
 import type { CampaignStatus, Product, CampaignAnalyticsSummary } from '../types';
@@ -227,6 +227,11 @@ export function CampaignDetailPage() {
     isError: isVariantsError,
     error: variantsError,
   } = useCampaignAdVariants(campaignId, { enabled: !!campaign });
+
+  const { data: metricsData, isLoading: isMetricsLoading } = useCampaignMetrics(
+    campaignId,
+    !!campaign?.meta_campaign_id,
+  );
 
   // Two separate mutation instances — one for the edit modal, one for the settings tab
   const editMutation = useUpdateCampaign();
@@ -536,23 +541,12 @@ export function CampaignDetailPage() {
           </>
         )}
 
-        {activeTab === 'analytics' &&
-          (analyticsSummary ? (
-            <CampaignAnalytics
-              metrics={analyticsSummary.metrics as AnalyticsMetric[]}
-              personas={analyticsSummary.personas as PersonaPerf[]}
-            />
-          ) : (
-            <AnalyticsEmptyState
-              title="No analytics data yet"
-              description={
-                <p>
-                  Charts, funnel metrics, and persona breakdown will show here after your ad platforms are connected
-                  and we receive performance payloads for this campaign.
-                </p>
-              }
-            />
-          ))}
+        {activeTab === 'analytics' && (
+          <CampaignAnalytics
+            data={metricsData ?? null}
+            isLoading={isMetricsLoading}
+          />
+        )}
 
         {activeTab === 'settings' && (
           <CampaignSettings

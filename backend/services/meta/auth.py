@@ -1,7 +1,8 @@
 """Meta OAuth helpers: token encryption, URL building, code exchange.
 
 Uses the Facebook Login flow (not Instagram Login) because we need
-ads_management for paid campaign publishing.
+ads_management for paid campaign publishing, and instagram_basic so
+/me/accounts returns the Page's linked Instagram business account.
 """
 
 import os
@@ -18,6 +19,7 @@ META_DIALOG_URL = "https://www.facebook.com/dialog/oauth"
 META_SCOPES = ",".join([
     "ads_management",
     "ads_read",
+    "instagram_basic",
     "pages_read_engagement",
     "pages_show_list",
     "business_management",
@@ -40,6 +42,9 @@ def decrypt_token(encrypted: str) -> str:
 
 
 def build_oauth_url(state: str) -> str:
+    """Build Facebook Login URL with auth_type=rerequest so Meta re-opens the permissions
+    dialog when scopes change (otherwise repeat logins can reuse the old grant).
+    """
     app_id = os.environ.get("META_APP_ID")
     redirect_uri = os.environ.get("META_REDIRECT_URI")
     if not app_id or not redirect_uri:
@@ -50,6 +55,7 @@ def build_oauth_url(state: str) -> str:
         f"&redirect_uri={redirect_uri}"
         f"&scope={META_SCOPES}"
         f"&response_type=code"
+        f"&auth_type=rerequest"
         f"&state={state}"
     )
     return f"{META_DIALOG_URL}?{params}"

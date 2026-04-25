@@ -64,7 +64,7 @@ def test_list_ad_variants_signs_media_url(monkeypatch):
             ],
         )
         monkeypatch.setattr(
-            "routes.ad_variants.generate_blob_sas",
+            "services.storage.ad_video_media_url.generate_blob_sas",
             lambda **kwargs: "sig=abc123",
         )
 
@@ -108,7 +108,7 @@ def test_list_ad_variants_appends_sas_to_existing_query(monkeypatch):
             ],
         )
         monkeypatch.setattr(
-            "routes.ad_variants.generate_blob_sas",
+            "services.storage.ad_video_media_url.generate_blob_sas",
             lambda **kwargs: "sig=abc123",
         )
 
@@ -131,7 +131,7 @@ def test_read_ad_variant_leaves_non_azure_media_url_unchanged(monkeypatch):
         raw_url = "https://cdn.example.com/video.mp4"
         monkeypatch.setattr("routes.ad_variants.get_ad_variant", lambda *args, **kwargs: _variant(raw_url))
         monkeypatch.setattr(
-            "routes.ad_variants.generate_blob_sas",
+            "services.storage.ad_video_media_url.generate_blob_sas",
             lambda **kwargs: "sig=abc123",
         )
 

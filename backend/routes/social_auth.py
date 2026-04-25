@@ -79,7 +79,8 @@ def oauth_callback(
     and stores an encrypted SocialConnection row.
     Redirects to the frontend settings page with ?connected=instagram.
     """
-    frontend_url = os.environ.get("META_FRONTEND_URL", "http://localhost:5173")
+    # Align with frontend/vite.config.ts (server.port 3000), not Vite's stock 5173.
+    frontend_url = os.environ.get("META_FRONTEND_URL", "http://localhost:3000")
 
     client_id = _decode_state(state)
 

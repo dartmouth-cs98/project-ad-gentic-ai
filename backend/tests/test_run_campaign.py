@@ -243,6 +243,24 @@ def test_run_does_not_overwrite_existing_meta_campaign_id_on_failure(client, db_
     assert campaign.status == "draft"
 
 
+def test_run_updates_meta_campaign_id_when_publish_rotates_id_on_failure(client, db_session, monkeypatch):
+    """If publish fails but returns a different meta_campaign_id, persist the new id for retries."""
+    campaign = _seed_campaign(db_session, meta_campaign_id="meta_stale_old")
+    _patch_helpers(
+        monkeypatch,
+        publish_error=MetaPublishError(
+            "Ad set creation failed for persona 'X'", meta_campaign_id="meta_new_rotated"
+        ),
+    )
+
+    resp = client.patch(f"/campaigns/{campaign.id}/run")
+    assert resp.status_code == 502
+
+    db_session.refresh(campaign)
+    assert campaign.meta_campaign_id == "meta_new_rotated"
+    assert campaign.status == "draft"
+
+
 def test_run_resumes_from_existing_meta_campaign_id(client, db_session, monkeypatch):
     """When meta_campaign_id is already set, it should be passed to publish_campaign."""
     campaign = _seed_campaign(db_session, meta_campaign_id="meta_resume_me")

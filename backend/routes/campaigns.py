@@ -146,7 +146,9 @@ def run_campaign(
         )
     except MetaPublishError as exc:
         # Persist partial state so a retry can resume without creating duplicates.
-        if exc.meta_campaign_id and not campaign.meta_campaign_id:
+        # Also persist when publish_campaign rotated the Meta campaign id (e.g., stale stored id),
+        # so retries don't keep recreating campaigns.
+        if exc.meta_campaign_id and exc.meta_campaign_id != campaign.meta_campaign_id:
             campaign.meta_campaign_id = exc.meta_campaign_id
             campaign.updated_at = datetime.now(timezone.utc)
             db.commit()

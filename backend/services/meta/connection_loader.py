@@ -37,6 +37,7 @@ def load_publish_connection(db: Session, client_id: int) -> ValidatedMetaConnect
     connection: Optional[SocialConnection] = (
         db.query(SocialConnection)
         .filter_by(business_client_id=client_id, platform="instagram")
+        .order_by(SocialConnection.connected_at.desc(), SocialConnection.id.desc())
         .first()
     )
     if connection is None:

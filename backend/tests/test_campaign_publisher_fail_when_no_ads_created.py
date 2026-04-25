@@ -60,3 +60,57 @@ def test_publish_campaign_raises_when_all_variant_ads_fail(monkeypatch):
 
     assert exc.value.meta_campaign_id == "meta_existing_1"
 
+
+def test_publish_campaign_recreates_campaign_when_existing_id_is_stale(monkeypatch):
+    """If stored meta_campaign_id is invalid/inaccessible, publish_campaign should create a new one."""
+    monkeypatch.setattr("services.meta.campaign_publisher.decrypt_token", lambda _enc: "token")
+
+    # Pretend the stored campaign id is invalid (Meta returns 400).
+    class _Resp:
+        status_code = 400
+
+    monkeypatch.setattr("services.meta.campaign_publisher.httpx.get", lambda *a, **k: _Resp())
+
+    calls = {"campaigns": 0, "adsets": 0}
+
+    def _fake_post(path: str, token: str, payload: dict, *, timeout: float = 30.0) -> dict:
+        assert token == "token"
+        if path.endswith("/campaigns"):
+            calls["campaigns"] += 1
+            return {"id": "meta_new_2"}
+        if path.endswith("/adsets"):
+            calls["adsets"] += 1
+            # Ensure ad set creation uses the *new* campaign id.
+            assert payload["campaign_id"] == "meta_new_2"
+            return {"id": "adset_1"}
+        raise AssertionError(f"Unexpected _post call: {path}")
+
+    monkeypatch.setattr("services.meta.campaign_publisher._post", _fake_post)
+    monkeypatch.setattr("services.meta.campaign_publisher._create_ad_for_variant", lambda **_k: None)
+
+    persona_groups = [
+        {
+            "persona_name": "Persona A",
+            "persona_traits": {},
+            "variants": [{"id": 1, "media_url": "https://example.com/v.mp4", "script": "hi"}],
+        }
+    ]
+
+    meta_id = publish_campaign(
+        campaign_name="C",
+        goal="traffic",
+        budget_total=300.0,
+        start_date=None,
+        end_date=None,
+        persona_groups=persona_groups,
+        encrypted_token="enc",
+        ad_account_id="act_123",
+        instagram_account_id="ig_1",
+        facebook_page_id="page_1",
+        existing_meta_campaign_id="meta_stale_1",
+    )
+
+    assert meta_id == "meta_new_2"
+    assert calls["campaigns"] == 1
+    assert calls["adsets"] == 1
+

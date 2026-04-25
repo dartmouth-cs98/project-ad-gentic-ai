@@ -86,6 +86,46 @@ _RETRY_BACKOFF_SECONDS = (1, 2, 4)
 _TRANSIENT_STATUSES = {408, 429, 500, 502, 503, 504}
 
 
+def _meta_campaign_exists(token: str, meta_campaign_id: str) -> bool:
+    """Best-effort check that a Meta campaign ID is still valid/accessible.
+
+    Used to recover when we try to resume from a stored campaign id that no longer
+    exists (deleted in Meta) or is no longer accessible (account switched, permissions revoked).
+    """
+    try:
+        resp = httpx.get(
+            f"{META_GRAPH_BASE}/{meta_campaign_id}",
+            params={"fields": "id", "access_token": token},
+            timeout=15.0,
+        )
+        if resp.status_code == 200:
+            return True
+        # 400/403/404 are the common "invalid/stale/inaccessible id" cases.
+        if resp.status_code in (400, 403, 404):
+            logger.warning(
+                "Stored Meta campaign id %s is not usable (status=%s); will recreate campaign",
+                meta_campaign_id,
+                resp.status_code,
+            )
+            return False
+        # Anything else: treat as transient-ish and fall back to "assume exists" to avoid
+        # unnecessary duplication on flaky networks.
+        logger.warning(
+            "Unexpected status validating Meta campaign id %s (status=%s); proceeding with resume",
+            meta_campaign_id,
+            resp.status_code,
+        )
+        return True
+    except Exception:
+        # If validation fails due to network/transient issues, don't force recreation.
+        logger.warning(
+            "Could not validate Meta campaign id %s due to error; proceeding with resume",
+            meta_campaign_id,
+            exc_info=True,
+        )
+        return True
+
+
 class MetaPublishError(Exception):
     """Raised when publishing to Meta fails.
 
@@ -622,7 +662,8 @@ def publish_campaign(
     objective = GOAL_TO_OBJECTIVE.get((goal or "").lower(), DEFAULT_OBJECTIVE)
 
     # ── 1. Campaign (skip if resuming) ───────────────────────────────────
-    if existing_meta_campaign_id:
+    meta_campaign_id: Optional[str] = None
+    if existing_meta_campaign_id and _meta_campaign_exists(token, existing_meta_campaign_id):
         meta_campaign_id = existing_meta_campaign_id
         logger.info("Resuming Meta publish with existing campaign %s", meta_campaign_id)
     else:

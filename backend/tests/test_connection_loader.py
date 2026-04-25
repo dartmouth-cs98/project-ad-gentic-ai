@@ -112,3 +112,41 @@ def test_happy_path(db):
     assert result.ad_account_id == "act_1"
     assert result.facebook_page_id == "page_1"
     assert result.instagram_account_id == "ig_1"
+
+
+def test_selects_latest_connection_when_multiple_exist(db):
+    """When multiple rows exist, pick the most recently connected one."""
+    old_time = datetime.now(timezone.utc) - timedelta(days=30)
+    new_time = datetime.now(timezone.utc) - timedelta(days=1)
+
+    # Older connection is expired/bad.
+    db.add(
+        SocialConnection(
+            business_client_id=_CLIENT_ID,
+            platform="instagram",
+            encrypted_token="old",
+            token_expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+            platform_account_id="ig_old",
+            platform_metadata=json.dumps({"ad_account_id": "act_old", "facebook_page_id": "page_old"}),
+            connected_at=old_time,
+        )
+    )
+    # Newer connection is valid.
+    db.add(
+        SocialConnection(
+            business_client_id=_CLIENT_ID,
+            platform="instagram",
+            encrypted_token="new",
+            token_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            platform_account_id="ig_new",
+            platform_metadata=json.dumps({"ad_account_id": "act_new", "facebook_page_id": "page_new"}),
+            connected_at=new_time,
+        )
+    )
+    db.commit()
+
+    result = load_publish_connection(db, _CLIENT_ID)
+    assert result.encrypted_token == "new"
+    assert result.ad_account_id == "act_new"
+    assert result.facebook_page_id == "page_new"
+    assert result.instagram_account_id == "ig_new"

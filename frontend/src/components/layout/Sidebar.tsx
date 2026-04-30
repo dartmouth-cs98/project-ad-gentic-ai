@@ -89,7 +89,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
           const isActive =
             location.pathname === item.path ||
             (item.path === '/campaigns' && location.pathname.startsWith('/campaign')) ||
-            (item.path === '/customer-data' && location.pathname === '/all-consumers');
+            (item.path === '/customer-data' && location.pathname.startsWith('/customer-data/all-consumers'));
           const Icon = item.icon;
           return (
             <Link

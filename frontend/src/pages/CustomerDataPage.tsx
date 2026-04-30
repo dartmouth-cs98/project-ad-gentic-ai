@@ -496,7 +496,7 @@ export function CustomerDataPage() {
                 {/* Recent Consumers */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Recent Consumers</h3>
-                  <Link to="/all-consumers" className="text-sm text-blue-500 hover:underline font-medium">
+                  <Link to="/customer-data/all-consumers" className="text-sm text-blue-500 hover:underline font-medium">
                     View All →
                   </Link>
                 </div>

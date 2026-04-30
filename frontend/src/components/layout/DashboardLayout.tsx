@@ -11,9 +11,10 @@ import { useCompany } from '../../contexts/CompanyContext';
 interface DashboardLayoutProps {
   children: ReactNode;
   rightActions?: ReactNode;
+  contentClassName?: string;
 }
 
-export function DashboardLayout({ children, rightActions }: DashboardLayoutProps) {
+export function DashboardLayout({ children, rightActions, contentClassName }: DashboardLayoutProps) {
   const { collapsed } = useSidebar();
   const { user, logout } = useUser();
   const { profile } = useCompany();
@@ -46,8 +47,8 @@ export function DashboardLayout({ children, rightActions }: DashboardLayoutProps
     <div className="min-h-screen bg-background text-foreground">
       <Sidebar />
 
-      <div className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
-        <header className="h-16 border-b border-border px-6 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 relative`}>
+        <header className="h-16 border-b border-border px-6 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 relative z-[130] overflow-visible">
           <Breadcrumbs />
 
           <div className="flex items-center gap-3">
@@ -71,7 +72,7 @@ export function DashboardLayout({ children, rightActions }: DashboardLayoutProps
               </button>
 
               {open && (
-                <div className="absolute right-0 mt-2 w-44 rounded-lg border border-border bg-card shadow-lg p-1 z-40">
+                <div className="absolute right-0 mt-2 w-44 rounded-lg border border-border bg-card shadow-lg p-1 z-[140]">
                   <div className="px-3 py-2 text-xs text-muted-foreground border-b border-border capitalize">
                     {profile.plan} plan
                   </div>
@@ -88,7 +89,7 @@ export function DashboardLayout({ children, rightActions }: DashboardLayoutProps
           </div>
         </header>
 
-        <main className="p-8">{children}</main>
+        <main className={contentClassName ?? 'p-8'}>{children}</main>
       </div>
     </div>
   );

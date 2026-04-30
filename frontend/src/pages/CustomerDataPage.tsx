@@ -253,7 +253,9 @@ export function CustomerDataPage() {
         setUploadTick((t) => t + 1);
         setUploadResult({ created: data.created, skipped: data.skipped, errors: data.errors });
 
-        if (data.created === 0 && data.errors.length > 0) {
+        const hasRowErrors = data.errors.length > 0;
+
+        if (data.created === 0 && hasRowErrors) {
           stopProgress();
           setUploadError('Upload failed — no records were imported.');
           setUploadPhase('error');
@@ -263,19 +265,28 @@ export function CustomerDataPage() {
         setProgressIdx(0);
         setUploadPhase('assigning');
 
-        // Fire persona assignment in the background — don't block on it.
-        // It's an LLM call that scales with N customers; React Query's onSuccess
-        // invalidation will refresh the page when it eventually completes.
         assignPersonas.mutate(undefined, {
-          onSuccess: () => refetch(),
-          onError: () => {},
-        });
+          onSuccess: () => {
+            if (hasRowErrors) {
+              stopProgress();
+              setUploadError('Upload completed with row-level errors. Review the dropped rows below.');
+              setUploadPhase('error');
+              refetch();
+              return;
+            }
 
-        setTimeout(() => {
-          stopProgress();
-          setUploadPhase('complete');
-          refetch();
-        }, 1800);
+            setTimeout(() => {
+              stopProgress();
+              setUploadPhase('complete');
+              refetch();
+            }, 1800);
+          },
+          onError: (err) => {
+            stopProgress();
+            setUploadError(err.message || 'Persona assignment failed. Please try again.');
+            setUploadPhase('error');
+          },
+        });
       },
       onError: (err) => {
         stopProgress();

@@ -268,6 +268,20 @@ class TestUploadCsv:
         assert len(body["errors"]) == 1
         assert "missing email and phone" in body["errors"][0].lower()
 
+    def test_upload_handles_short_rows_without_traits_column(self, client: TestClient):
+        csv_bytes = _make_csv([
+            "email,phone,age,city",
+            "shortrow@example.com,555-0001,30",
+        ])
+        resp = client.post(
+            "/consumers/upload-csv",
+            files={"file": ("short_row.csv", io.BytesIO(csv_bytes), "text/csv")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["created"] == 1
+        assert body["errors"] == []
+
     def test_upload_rejects_empty_csv(self, client: TestClient):
         csv_bytes = _make_csv([VALID_CSV_HEADER])
         resp = client.post(

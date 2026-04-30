@@ -189,7 +189,11 @@ async def upload_consumers_csv(
                 continue
         else:
             # No explicit traits column — collect every unmapped column as flat key/value traits.
-            traits = {k: v.strip() for k, v in row.items() if k not in mapped_cols and v.strip()}
+            traits = {
+                k: v.strip()
+                for k, v in row.items()
+                if k not in mapped_cols and isinstance(v, str) and v.strip()
+            }
 
         to_create.append(ConsumerCreate(
             email=email,

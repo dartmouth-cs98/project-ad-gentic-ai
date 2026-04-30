@@ -47,6 +47,7 @@ _ALIASES: dict[str, list[str]] = {
     "phone": ["phone", "phone_number", "phonenumber", "mobile", "cell", "telephone", "tel"],
     "traits": ["traits", "attributes", "custom_fields", "metadata", "extra", "properties"],
 }
+_IDENTIFIER_COLUMNS = {"email", "phone"}
 
 
 def _normalise_header(h: str) -> str:
@@ -129,22 +130,29 @@ async def upload_consumers_csv(
 
     col = _resolve_columns(list(reader.fieldnames))
 
-    if "email" not in col:
+    if not _IDENTIFIER_COLUMNS.intersection(col.keys()):
         raise HTTPException(
             status_code=400,
             detail=(
-                "CSV must contain an email column. "
-                "Accepted names: email, email_address, e_mail, user_email."
+                "CSV must include at least one identifier column: "
+                "email or phone."
             ),
         )
 
     rows = list(reader)
     if not rows:
-        raise HTTPException(status_code=400, detail="CSV file has headers but no data rows.")
+        raise HTTPException(
+            status_code=400,
+            detail="CSV file is empty: it has headers but no data rows.",
+        )
 
     mapped_cols = set(col.values())
-    csv_emails = [r.get(col["email"], "").strip() for r in rows]
-    existing = get_existing_emails(db, client_id, csv_emails)
+    csv_emails = (
+        [r.get(col["email"], "").strip() for r in rows if r.get(col["email"], "").strip()]
+        if "email" in col
+        else []
+    )
+    existing = get_existing_emails(db, client_id, csv_emails) if csv_emails else set()
 
     skipped_emails: list[str] = []
     errors: list[str] = []
@@ -152,24 +160,25 @@ async def upload_consumers_csv(
     to_create: list[ConsumerCreate] = []
 
     for i, row in enumerate(rows, start=2):
-        email = row.get(col["email"], "").strip()
+        email = row.get(col["email"], "").strip() if "email" in col else ""
+        phone = row.get(col["phone"], "").strip() if "phone" in col else ""
 
-        if not email:
-            errors.append(f"Row {i}: missing email, skipped.")
+        if not email and not phone:
+            errors.append(f"Row {i}: missing email and phone, skipped.")
             continue
 
-        if email in seen_emails:
+        if email and email in seen_emails:
             skipped_emails.append(email)
             continue
-        seen_emails.add(email)
+        if email:
+            seen_emails.add(email)
 
-        if email in existing:
+        if email and email in existing:
             skipped_emails.append(email)
             continue
 
         first_name = row.get(col["first_name"], "").strip() if "first_name" in col else ""
         last_name = row.get(col["last_name"],  "").strip() if "last_name" in col else ""
-        phone = row.get(col["phone"], "").strip() if "phone" in col else ""
 
         if "traits" in col:
             traits_raw = row.get(col["traits"], "").strip()

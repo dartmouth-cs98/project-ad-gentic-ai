@@ -56,6 +56,7 @@ export interface Campaign {
     updated_at: string;
     product_ids: string | null;
     brief: string | null;
+    platforms: string | null;
     /** When set with a valid shape, the hero strip and analytics tab use live data. */
     analytics_summary?: CampaignAnalyticsSummary | null;
     /** Set after the campaign is published to Meta via the Marketing API. */
@@ -74,6 +75,7 @@ export interface CreateCampaignPayload {
     target_audience?: string | null;
     product_context?: string | null;
     product_ids?: string | null;
+    platforms?: string | null;
 }
 
 /** Payload for PUT /campaigns/:id */
@@ -88,4 +90,5 @@ export interface UpdateCampaignPayload {
     product_context?: string | null;
     product_ids?: string | null;
     brief?: string | null;
+    platforms?: string | null;
 }

@@ -161,6 +161,17 @@ function parseProductIds(raw: string | null): number[] {
   }
 }
 
+function parsePlatforms(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((p): p is string => typeof p === 'string' && p.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
 function parseProductContext(raw: string | null): string | null {
   if (!raw) return null;
   try {
@@ -276,6 +287,7 @@ export function CampaignDetailPage() {
         budget_total: data.budget || null,
         start_date: data.startDate || null,
         end_date: data.endDate || null,
+        platforms: JSON.stringify(data.platforms),
       },
     });
   };
@@ -341,7 +353,7 @@ export function CampaignDetailPage() {
   const settingsInitial: SettingsFormData = {
     name: campaign.name,
     status: campaign.status,
-    platforms: [],
+    platforms: parsePlatforms(campaign.platforms),
     budget: campaign.budget_total?.toString() ?? '',
     startDate: campaign.start_date ?? '',
     endDate: campaign.end_date ?? '',

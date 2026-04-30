@@ -59,6 +59,8 @@ export interface Campaign {
     platforms: string | null;
     /** When set with a valid shape, the hero strip and analytics tab use live data. */
     analytics_summary?: CampaignAnalyticsSummary | null;
+    /** Set after the campaign is published to Meta via the Marketing API. */
+    meta_campaign_id?: string | null;
 }
 
 /** Payload for POST /campaigns */

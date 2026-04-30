@@ -1,6 +1,23 @@
 import { ChevronRightIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
+const BREADCRUMB_ROUTE_MAP: Record<string, string> = {
+  campaign: '/campaigns',
+};
+
+const LINKABLE_BREADCRUMB_PATHS = new Set([
+  '/dashboard',
+  '/campaigns',
+  '/products',
+  '/onboarding',
+  '/generate',
+  '/profile',
+  '/workspace',
+  '/settings',
+  '/customer-data',
+  '/customer-data/all-consumers',
+]);
+
 function toTitleCase(segment: string) {
   return segment
     .replace(/-/g, ' ')
@@ -20,7 +37,9 @@ export function Breadcrumbs() {
       </Link>
       {segments.map((segment, idx) => {
         const isLast = idx === segments.length - 1;
-        const href = `/${segments.slice(0, idx + 1).join('/')}`;
+        const fallbackHref = `/${segments.slice(0, idx + 1).join('/')}`;
+        const href = BREADCRUMB_ROUTE_MAP[segment] ?? fallbackHref;
+        const canLink = !isLast && LINKABLE_BREADCRUMB_PATHS.has(href);
 
         if (idx === 0 && segment === 'dashboard') {
           return null;
@@ -31,10 +50,12 @@ export function Breadcrumbs() {
             <ChevronRightIcon className="w-3.5 h-3.5" />
             {isLast ? (
               <span className="text-foreground font-medium">{toTitleCase(segment)}</span>
-            ) : (
+            ) : canLink ? (
               <Link to={href} className="hover:text-foreground transition-colors">
                 {toTitleCase(segment)}
               </Link>
+            ) : (
+              <span>{toTitleCase(segment)}</span>
             )}
           </span>
         );

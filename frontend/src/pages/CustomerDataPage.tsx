@@ -1,8 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Sun, Moon } from 'lucide-react';
-import { Sidebar } from '../components/layout/Sidebar';
-import { useSidebar } from '../contexts/SidebarContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Link } from 'react-router-dom';
 import { useConsumers, useUploadConsumersCsv, useAssignPersonas } from '../hooks/useConsumers';
 import { usePersonas } from '../hooks/usePersonas';
@@ -87,8 +84,6 @@ function renderTraits(traits: Record<string, unknown> | null) {
 }
 
 export function CustomerDataPage() {
-  const { collapsed } = useSidebar();
-  const { theme, toggleTheme } = useTheme();
   const {
     data: consumers = [],
     isLoading: consumersLoading,
@@ -299,11 +294,8 @@ export function CustomerDataPage() {
   const isLoading = consumersLoading || personasLoading;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
-        <div className="max-w-6xl mx-auto">
+    <DashboardLayout>
+      <div className="mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -317,9 +309,6 @@ export function CustomerDataPage() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload New Data
-              </button>
-              <button onClick={toggleTheme} className="p-2 bg-muted rounded-lg hover:bg-border transition-colors text-muted-foreground" aria-label="Toggle theme">
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -552,8 +541,7 @@ export function CustomerDataPage() {
               </div>
             </div>
           </div>
-        </div>
-      </main>
+      </div>
 
       {/* Persona Detail Modal */}
       {selectedPersonaDetail && (() => {
@@ -641,6 +629,6 @@ export function CustomerDataPage() {
           </div>
         );
       })()}
-    </div>
+    </DashboardLayout>
   );
 }

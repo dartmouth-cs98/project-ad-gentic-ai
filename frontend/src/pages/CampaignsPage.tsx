@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sidebar } from '../components/layout/Sidebar';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import {
   LayoutGridIcon,
   ListIcon,
@@ -10,8 +10,6 @@ import {
   Loader2Icon,
   MegaphoneIcon,
   AlertCircleIcon,
-  Sun,
-  Moon,
 } from 'lucide-react';
 
 import { CampaignGridCard } from '../components/campaigns/CampaignGridCard';
@@ -20,8 +18,6 @@ import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
 
 import { useUser } from '../contexts/UserContext';
-import { useSidebar } from '../contexts/SidebarContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
 import { useProducts } from '../hooks/useProducts';
 import {
@@ -49,8 +45,6 @@ function parseProductIds(raw: string | null): number[] {
 }
 
 export function CampaignsPage() {
-  const { collapsed } = useSidebar();
-  const { theme, toggleTheme } = useTheme();
   const { user, loading: userLoading } = useUser();
   const businessClientId = user?.client_id;
   const canManageCampaigns = typeof businessClientId === 'number' && businessClientId > 0;
@@ -174,10 +168,7 @@ export function CampaignsPage() {
   const dateRangeSelectId = 'campaigns-date-range';
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
+    <DashboardLayout>
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
@@ -209,14 +200,6 @@ export function CampaignsPage() {
             >
               <PlusIcon className="w-4 h-4" />
               Create Campaign
-            </button>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -437,7 +420,6 @@ export function CampaignsPage() {
             onConfirm={handleConfirmDelete}
           />
         )}
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

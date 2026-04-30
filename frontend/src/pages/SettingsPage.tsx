@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSocialConnectionStatus, useConnectSocialPlatform, useDisconnectSocialPlatform } from '../hooks/useSocialConnection';
-import { Sidebar } from '../components/layout/Sidebar';
-import { useSidebar } from '../contexts/SidebarContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { useCompany } from '../contexts/CompanyContext';
 import {
   CreditCardIcon,
@@ -22,8 +20,6 @@ import {
   SettingsIcon,
   ImageIcon,
   Loader2Icon,
-  Sun,
-  Moon,
   PaletteIcon,
   PlugIcon,
   ReceiptIcon,
@@ -139,8 +135,6 @@ function EmptyState({
 // ---------- Main Page ----------
 
 export function SettingsPage() {
-  const { collapsed } = useSidebar();
-  const { theme, toggleTheme } = useTheme();
   const { profile, updateProfile } = useCompany();
   const location = useLocation();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -317,10 +311,8 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8 relative`}>
+    <DashboardLayout>
+      <div className="relative">
 
         {/* Success Overlay — Plan change */}
         {showSuccess && (
@@ -363,15 +355,9 @@ export function SettingsPage() {
           </div>
         )}
 
-        <div className="max-w-5xl mx-auto">
+        <div className="mx-auto">
           <div className="flex items-center justify-between mb-1">
             <h1 className="text-2xl font-bold text-foreground">Settings & Billing</h1>
-            <button
-              onClick={toggleTheme}
-              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors text-foreground"
-              aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
           </div>
           <p className="text-muted-foreground mb-8">Manage your subscription, brand identity, integrations, and preferences.</p>
 
@@ -992,7 +978,7 @@ export function SettingsPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

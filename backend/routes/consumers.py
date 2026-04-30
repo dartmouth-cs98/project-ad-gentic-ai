@@ -1,5 +1,6 @@
 """API routes for consumers — POST, GET all, CSV upload, and persona assignment."""
 
+import asyncio
 import csv
 import io
 import json
@@ -37,6 +38,31 @@ from services.consumer_traits_description import (
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# ── Flexible CSV column resolution ───────────────────────────────────────────
+_ALIASES: dict[str, list[str]] = {
+    "email": ["email", "email_address", "emailaddress", "e_mail", "user_email", "customer_email"],
+    "first_name": ["first_name", "firstname", "first", "given_name", "fname", "forename", "name"],
+    "last_name": ["last_name", "lastname", "last", "surname", "family_name", "lname"],
+    "phone": ["phone", "phone_number", "phonenumber", "mobile", "cell", "telephone", "tel"],
+    "traits": ["traits", "attributes", "custom_fields", "metadata", "extra", "properties"],
+}
+
+
+def _normalise_header(h: str) -> str:
+    return h.strip().lower().replace(" ", "_").replace("-", "_").replace(".", "_")
+
+
+def _resolve_columns(fieldnames: list[str]) -> dict[str, str]:
+    """Return {canonical_name: actual_column_header} for every recognised field."""
+    normed = {_normalise_header(f): f for f in fieldnames}
+    resolved: dict[str, str] = {}
+    for canonical, aliases in _ALIASES.items():
+        for alias in aliases:
+            if alias in normed:
+                resolved[canonical] = normed[alias]
+                break
+    return resolved
 
 
 def _to_response(consumer) -> dict:
@@ -98,18 +124,26 @@ async def upload_consumers_csv(
 
     reader = csv.DictReader(io.StringIO(text))
 
-    required_cols = {"email", "phone", "first_name", "last_name", "traits"}
-    if reader.fieldnames is None or not required_cols.issubset(set(reader.fieldnames)):
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="CSV file is empty or has no headers.")
+
+    col = _resolve_columns(list(reader.fieldnames))
+
+    if "email" not in col:
         raise HTTPException(
             status_code=400,
-            detail=f"CSV must contain columns: {', '.join(sorted(required_cols))}",
+            detail=(
+                "CSV must contain an email column. "
+                "Accepted names: email, email_address, e_mail, user_email."
+            ),
         )
 
     rows = list(reader)
     if not rows:
-        raise HTTPException(status_code=400, detail="CSV file is empty.")
+        raise HTTPException(status_code=400, detail="CSV file has headers but no data rows.")
 
-    csv_emails = [r.get("email", "").strip() for r in rows]
+    mapped_cols = set(col.values())
+    csv_emails = [r.get(col["email"], "").strip() for r in rows]
     existing = get_existing_emails(db, client_id, csv_emails)
 
     skipped_emails: list[str] = []
@@ -118,7 +152,11 @@ async def upload_consumers_csv(
     to_create: list[ConsumerCreate] = []
 
     for i, row in enumerate(rows, start=2):
-        email = row.get("email", "").strip()
+        email = row.get(col["email"], "").strip()
+
+        if not email:
+            errors.append(f"Row {i}: missing email, skipped.")
+            continue
 
         if email in seen_emails:
             skipped_emails.append(email)
@@ -129,62 +167,58 @@ async def upload_consumers_csv(
             skipped_emails.append(email)
             continue
 
-        traits_raw = row.get("traits", "").strip()
-        try:
-            traits = json.loads(traits_raw) if traits_raw else {}
-        except json.JSONDecodeError:
-            errors.append(f"Row {i}: invalid JSON in traits for '{email}'")
-            continue
+        first_name = row.get(col["first_name"], "").strip() if "first_name" in col else ""
+        last_name = row.get(col["last_name"],  "").strip() if "last_name" in col else ""
+        phone = row.get(col["phone"], "").strip() if "phone" in col else ""
+
+        if "traits" in col:
+            traits_raw = row.get(col["traits"], "").strip()
+            try:
+                traits: dict = json.loads(traits_raw) if traits_raw else {}
+            except json.JSONDecodeError:
+                errors.append(f"Row {i}: invalid JSON in traits for '{email}', skipped.")
+                continue
+        else:
+            # No explicit traits column — collect every unmapped column as flat key/value traits.
+            traits = {k: v.strip() for k, v in row.items() if k not in mapped_cols and v.strip()}
 
         to_create.append(ConsumerCreate(
             email=email,
-            phone=row.get("phone", "").strip(),
-            first_name=row.get("first_name", "").strip(),
-            last_name=row.get("last_name", "").strip(),
+            phone=phone,
+            first_name=first_name,
+            last_name=last_name,
             traits=traits,
         ))
 
     created = 0
     if to_create:
-        # Only touch SCRIPT_* / Grok when at least one row has non-empty traits; `{}` short-circuits
-        # without any LLM client (matches generate_consumer_traits_description and avoids 500 in
-        # environments without SCRIPT_API_KEY / SCRIPT_BASE_URL / SCRIPT_MODEL).
-        descriptions: list[str] = []
+        # Initialise the LLM client once; all per-row calls run concurrently via gather.
         client_and_model: tuple | None = None
-        script_llm_unavailable = False
-        for item in to_create:
+        try:
+            client_and_model = get_script_llm_client_and_model()
+        except Exception as exc:
+            logger.warning(
+                "SCRIPT_* unavailable for CSV consumer_traits_description (%s); "
+                "all descriptions will be empty.",
+                exc,
+            )
+
+        async def _describe(item: ConsumerCreate) -> str:
             traits = item.traits or {}
-            if not traits:
-                descriptions.append("")
-                continue
-            if script_llm_unavailable:
-                descriptions.append("")
-                continue
-            if client_and_model is None:
-                try:
-                    client_and_model = get_script_llm_client_and_model()
-                except Exception as exc:
-                    logger.warning(
-                        "SCRIPT_* unavailable or invalid for CSV consumer_traits_description (%s); "
-                        "using empty descriptions for this row and any remaining rows with traits.",
-                        exc,
-                    )
-                    script_llm_unavailable = True
-                    descriptions.append("")
-                    continue
+            if not traits or client_and_model is None:
+                return ""
             try:
-                descriptions.append(
-                    await generate_consumer_traits_description(
-                        traits,
-                        _client_and_model=client_and_model,
-                    )
+                return await generate_consumer_traits_description(
+                    traits, _client_and_model=client_and_model
                 )
             except Exception:
                 logger.exception(
                     "traits_description LLM failed for email=%s; saving empty description",
                     item.email,
                 )
-                descriptions.append("")
+                return ""
+
+        descriptions: list[str] = await asyncio.gather(*[_describe(item) for item in to_create])
 
         try:
             create_consumers_bulk(

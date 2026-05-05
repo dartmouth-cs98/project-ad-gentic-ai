@@ -1,35 +1,25 @@
-import React, { useState, useRef, useMemo } from 'react';
-import { Sun, Moon } from 'lucide-react';
-import { Sidebar } from '../components/layout/Sidebar';
-import { useSidebar } from '../contexts/SidebarContext';
-import { useTheme } from '../contexts/ThemeContext';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Link } from 'react-router-dom';
-import { useConsumers, useUploadConsumersCsv } from '../hooks/useConsumers';
+import { useConsumers, useUploadConsumersCsv, useAssignPersonas } from '../hooks/useConsumers';
 import { usePersonas } from '../hooks/usePersonas';
 import type { Consumer, Persona } from '../types';
 import { CLIENT_ID_KEY } from '../api/config';
+import { UploadProgressView } from '../components/customer/UploadProgressView';
+import type { UploadPhase } from '../components/customer/UploadProgressView';
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 const PERSONA_COLORS = [
-  { stroke: '#0ea5e9', dot: 'bg-sky-500',     bg: 'bg-sky-500/10',     text: 'text-sky-500'     },
-  { stroke: '#f97316', dot: 'bg-orange-500',  bg: 'bg-orange-500/10',  text: 'text-orange-500'  },
-  { stroke: '#8b5cf6', dot: 'bg-violet-500',  bg: 'bg-violet-500/10',  text: 'text-violet-500'  },
-  { stroke: '#94a3b8', dot: 'bg-muted-foreground', bg: 'bg-muted',     text: 'text-muted-foreground'   },
-  { stroke: '#10b981', dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500' },
-  { stroke: '#ec4899', dot: 'bg-pink-500',    bg: 'bg-pink-500/10',    text: 'text-pink-500'    },
+  { stroke: '#0ea5e9', dot: 'bg-sky-500', bg: 'bg-sky-500/10', text: 'text-sky-500'},
+  { stroke: '#f97316', dot: 'bg-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-500'},
+  { stroke: '#8b5cf6', dot: 'bg-violet-500', bg: 'bg-violet-500/10', text: 'text-violet-500'},
+  { stroke: '#94a3b8', dot: 'bg-muted-foreground', bg: 'bg-muted', text: 'text-muted-foreground'},
+  { stroke: '#10b981', dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500'},
+  { stroke: '#ec4899', dot: 'bg-pink-500', bg: 'bg-pink-500/10', text: 'text-pink-500'    },
 ];
 function getColor(index: number) {
   return PERSONA_COLORS[index % PERSONA_COLORS.length];
 }
-
-const completenessScore = 72;
-const completenessItems = [
-  { label: 'Contact info',       done: true  },
-  { label: 'Purchase history',   done: true  },
-  { label: 'Engagement data',    done: true  },
-  { label: 'Demographic data',   done: false },
-  { label: 'Behavioral signals', done: false },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatRelativeDate(dateString: string) {
@@ -94,8 +84,6 @@ function renderTraits(traits: Record<string, unknown> | null) {
 }
 
 export function CustomerDataPage() {
-  const { collapsed } = useSidebar();
-  const { theme, toggleTheme } = useTheme();
   const {
     data: consumers = [],
     isLoading: consumersLoading,
@@ -104,16 +92,33 @@ export function CustomerDataPage() {
   } = useConsumers(0, 1000, true);
   const { data: personas = [], isLoading: personasLoading } = usePersonas(true);
   const uploadCsv = useUploadConsumersCsv();
+  const assignPersonas = useAssignPersonas();
   const consumersError = consumersQueryError ? (consumersQueryError as Error).message : null;
 
-
-const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadPhase, setUploadPhase] = useState<'idle' | UploadPhase | 'error'>('idle');
   const [uploadResult, setUploadResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadTick, setUploadTick] = useState(0);
+  const [progressIdx, setProgressIdx] = useState(0);
   const [selectedPersonaDetail, setSelectedPersonaDetail] = useState<{ persona: Persona; colorIdx: number } | null>(null);
+
+  const startProgress = () => {
+    setProgressIdx(0);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    progressIntervalRef.current = setInterval(() => setProgressIdx((n) => n + 1), 1200);
+  };
+
+  const stopProgress = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+
+  useEffect(() => () => stopProgress(), []);
 
   const recentConsumers = consumers.slice(-5).reverse();
 
@@ -202,6 +207,22 @@ const fileInputRef = useRef<HTMLInputElement>(null);
     });
   }, [personas, personaStats, consumers.length, circumference, hasPersonaAssignments]);
 
+  const downloadTemplate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rows = [
+      'email,first_name,last_name,phone,traits',
+      'jane@example.com,Jane,Doe,+1234567890,"{""age"":30,""city"":""New York""}"',
+      'john@example.com,John,Smith,+0987654321,"{""age"":25,""city"":""Chicago""}"',
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'customer_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); setIsDragging(false);
@@ -215,25 +236,57 @@ const fileInputRef = useRef<HTMLInputElement>(null);
     e.target.value = '';
   };
   const doUpload = (file: File) => {
-    setUploadStatus('uploading');
+    setUploadPhase('uploading');
     setUploadError(null);
     setUploadResult(null);
+    startProgress();
     uploadCsv.mutate(file, {
       onSuccess: (data) => {
         const clientId = localStorage.getItem(CLIENT_ID_KEY);
         const key = clientId ? `adgentic_last_upload_${clientId}` : 'adgentic_last_upload';
-        localStorage.setItem(key, JSON.stringify({
-          filename: file.name,
-          date: new Date().toISOString(),
-        }));
+        localStorage.setItem(key, JSON.stringify({ filename: file.name, date: new Date().toISOString() }));
         setUploadTick((t) => t + 1);
         setUploadResult({ created: data.created, skipped: data.skipped, errors: data.errors });
-        setUploadStatus(data.errors.length > 0 ? 'error' : 'success');
-        refetch();
+
+        const hasRowErrors = data.errors.length > 0;
+
+        if (data.created === 0 && hasRowErrors) {
+          stopProgress();
+          setUploadError('Upload failed — no records were imported.');
+          setUploadPhase('error');
+          return;
+        }
+
+        setProgressIdx(0);
+        setUploadPhase('assigning');
+
+        assignPersonas.mutate(undefined, {
+          onSuccess: () => {
+            if (hasRowErrors) {
+              stopProgress();
+              setUploadError('Upload completed with row-level errors. Review the dropped rows below.');
+              setUploadPhase('error');
+              refetch();
+              return;
+            }
+
+            setTimeout(() => {
+              stopProgress();
+              setUploadPhase('complete');
+              refetch();
+            }, 1800);
+          },
+          onError: (err) => {
+            stopProgress();
+            setUploadError(err.message || 'Persona assignment failed. Please try again.');
+            setUploadPhase('error');
+          },
+        });
       },
       onError: (err) => {
+        stopProgress();
         setUploadError(err.message);
-        setUploadStatus('error');
+        setUploadPhase('error');
       },
     });
   };
@@ -241,11 +294,8 @@ const fileInputRef = useRef<HTMLInputElement>(null);
   const isLoading = consumersLoading || personasLoading;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
-        <div className="max-w-6xl mx-auto">
+    <DashboardLayout>
+      <div className="mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -255,37 +305,11 @@ const fileInputRef = useRef<HTMLInputElement>(null);
             <div className="flex items-center gap-3">
               <button
                 onClick={handleClickUpload}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                disabled={uploadPhase === 'uploading' || uploadPhase === 'assigning'}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload New Data
               </button>
-              <button onClick={toggleTheme} className="p-2 bg-muted rounded-lg hover:bg-border transition-colors text-muted-foreground" aria-label="Toggle theme">
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Data Completeness Bar */}
-          <div className="mb-8 bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-semibold">Audience Profile Completeness</h3>
-                <p className="text-xs text-muted-foreground">Upload more data to improve persona accuracy and ad targeting.</p>
-              </div>
-              <span className="text-2xl font-bold">{completenessScore}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden mb-3">
-              <div className="h-full bg-blue-600 rounded-full transition-all duration-700" style={{ width: `${completenessScore}%` }} />
-            </div>
-            <div className="flex items-center gap-4 flex-wrap">
-              {completenessItems.map((item) => (
-                <div key={item.label} className="flex items-center gap-1.5 text-xs">
-                  <span className={item.done ? 'text-emerald-500 font-bold' : 'text-border'}>
-                    {item.done ? '✓' : '○'}
-                  </span>
-                  <span className={item.done ? 'text-foreground' : 'text-muted-foreground'}>{item.label}</span>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -380,63 +404,99 @@ const fileInputRef = useRef<HTMLInputElement>(null);
                 <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
 
                 {/* Drop Zone */}
-                <div
-                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-6 ${
-                    isDragging
-                      ? 'border-blue-600 bg-blue-600/5'
-                      : 'border-border hover:border-blue-600/50 hover:bg-muted/50'
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                  onClick={handleClickUpload}
-                >
-                  {uploadStatus === 'uploading' ? (
-                    <>
-                      <h3 className="font-semibold">Uploading to server...</h3>
-                      <p className="text-muted-foreground text-sm mt-1">Processing your CSV file</p>
-                    </>
-                  ) : uploadStatus === 'success' ? (
-                    <>
-                      <p className="text-2xl mb-2 text-emerald-500">✓</p>
-                      <h3 className="font-semibold">Upload complete!</h3>
-                      {uploadResult && (
-                        <p className="text-muted-foreground text-sm mt-1">
-                          {uploadResult.created} created, {uploadResult.skipped} skipped
-                        </p>
+                {(() => {
+                  const isProcessing = uploadPhase === 'uploading' || uploadPhase === 'assigning';
+                  return (
+                    <div
+                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all mb-6 ${
+                        isProcessing
+                          ? 'border-blue-600/30 bg-blue-600/5 cursor-default'
+                          : uploadPhase === 'complete'
+                            ? 'border-emerald-500/30 bg-emerald-500/5 cursor-pointer'
+                            : isDragging
+                              ? 'border-blue-600 bg-blue-600/5 cursor-pointer'
+                              : 'border-border hover:border-blue-600/50 hover:bg-muted/50 cursor-pointer'
+                      }`}
+                      onDragOver={isProcessing ? undefined : handleDragOver}
+                      onDragLeave={isProcessing ? undefined : () => setIsDragging(false)}
+                      onDrop={isProcessing ? undefined : handleDrop}
+                      onClick={isProcessing ? undefined : handleClickUpload}
+                    >
+                      {uploadPhase === 'uploading' || uploadPhase === 'assigning' || uploadPhase === 'complete' ? (
+                        <UploadProgressView
+                          phase={uploadPhase}
+                          progressIdx={progressIdx}
+                          uploadedCount={uploadResult?.created}
+                          personaCount={personas.length}
+                        />
+                      ) : uploadPhase === 'error' ? (
+                        <>
+                          <h3 className="font-semibold text-red-500">Upload failed</h3>
+                          <p className="text-red-500/80 text-sm mt-1">
+                            {uploadError || 'There were errors processing the file.'}
+                          </p>
+                          {uploadResult && uploadResult.errors.length > 0 && (
+                            <div className="mt-3 text-left bg-red-500/10 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-y-auto">
+                              {uploadResult.errors.map((err, i) => (
+                                <p key={i} className="text-xs text-red-500 mb-1">{err}</p>
+                              ))}
+                            </div>
+                          )}
+                          {uploadResult && uploadResult.created > 0 && (
+                            <p className="text-muted-foreground text-xs mt-2">
+                              ({uploadResult.created} rows were still imported successfully)
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-3">Click to try again</p>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="font-semibold">Upload Customer File</h3>
+                          <p className="text-muted-foreground text-sm mt-1">Drag & drop a CSV file, or click to browse</p>
+                          <div className="mt-4 text-left inline-block">
+                            <p className="text-xs text-muted-foreground mb-1.5 font-medium">Expected columns</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[
+                                { name: 'email', required: true },
+                                { name: 'first_name', required: false },
+                                { name: 'last_name', required: false },
+                                { name: 'phone', required: false },
+                                { name: 'traits', required: false },
+                              ].map(({ name, required }) => (
+                                <span
+                                  key={name}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
+                                    required
+                                      ? 'bg-blue-600/10 text-blue-600 border-blue-600/20'
+                                      : 'bg-muted text-muted-foreground border-border'
+                                  }`}
+                                >
+                                  {name}{required ? ' *' : ''}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-2">
+                              Only <span className="font-medium text-foreground">email</span> is required. Column names are flexible.
+                            </p>
+                          </div>
+                          <div className="mt-4">
+                            <button
+                              onClick={downloadTemplate}
+                              className="text-xs text-blue-500 hover:text-blue-600 hover:underline font-medium"
+                            >
+                              Download template →
+                            </button>
+                          </div>
+                        </>
                       )}
-                    </>
-                  ) : uploadStatus === 'error' ? (
-                    <>
-                      <h3 className="font-semibold text-red-500">Upload failed</h3>
-                      <p className="text-red-500/80 text-sm mt-1">
-                        {uploadError || 'There were errors processing the file.'}
-                      </p>
-                      {uploadResult && uploadResult.errors.length > 0 && (
-                        <div className="mt-3 text-left bg-red-500/10 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-y-auto">
-                          {uploadResult.errors.map((err, i) => (
-                            <p key={i} className="text-xs text-red-500 mb-1">{err}</p>
-                          ))}
-                        </div>
-                      )}
-                      {uploadResult && uploadResult.created > 0 && (
-                        <p className="text-muted-foreground text-xs mt-2">
-                          ({uploadResult.created} rows were still imported successfully)
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="font-semibold">Upload Customer File</h3>
-                      <p className="text-muted-foreground text-sm mt-1">Drag & drop a CSV file, or click to browse</p>
-                    </>
-                  )}
-                </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Recent Consumers */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Recent Consumers</h3>
-                  <Link to="/all-consumers" className="text-sm text-blue-500 hover:underline font-medium">
+                  <Link to="/customer-data/all-consumers" className="text-sm text-blue-500 hover:underline font-medium">
                     View All →
                   </Link>
                 </div>
@@ -481,8 +541,7 @@ const fileInputRef = useRef<HTMLInputElement>(null);
               </div>
             </div>
           </div>
-        </div>
-      </main>
+      </div>
 
       {/* Persona Detail Modal */}
       {selectedPersonaDetail && (() => {
@@ -570,6 +629,6 @@ const fileInputRef = useRef<HTMLInputElement>(null);
           </div>
         );
       })()}
-    </div>
+    </DashboardLayout>
   );
 }

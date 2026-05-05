@@ -23,6 +23,7 @@ const baseCampaign = (over: Partial<Campaign>): Campaign => ({
   updated_at: '2026-01-15T12:00:00.000Z',
   product_ids: null,
   brief: null,
+  platforms: null,
   ...over,
 });
 

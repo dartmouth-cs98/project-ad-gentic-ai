@@ -25,6 +25,7 @@ class Campaign(Base):
     target_audience: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     product_context: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     brief: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    platforms: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     product_ids: Mapped[Optional[str]] = mapped_column(String, nullable=True)

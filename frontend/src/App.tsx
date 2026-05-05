@@ -104,7 +104,8 @@ export function App() {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route element={<DataPagesLayout />}>
                   <Route path="/customer-data" element={<CustomerDataPage />} />
-                  <Route path="/all-consumers" element={<AllConsumersPage />} />
+                  <Route path="/customer-data/all-consumers" element={<AllConsumersPage />} />
+                  <Route path="/all-consumers" element={<Navigate to="/customer-data/all-consumers" replace />} />
                 </Route>
               </Route>
             </Route>

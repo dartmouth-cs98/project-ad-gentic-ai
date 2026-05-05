@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Sidebar } from '../components/layout/Sidebar';
-import { useSidebar } from '../contexts/SidebarContext';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -223,7 +222,6 @@ function AttachedProducts({ products }: { products: Product[] }) {
 // ---------- Component ----------
 
 export function CampaignDetailPage() {
-  const { collapsed } = useSidebar();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useUser();
@@ -302,15 +300,14 @@ export function CampaignDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 flex items-center justify-center`}>
+      <DashboardLayout>
+        <div className="flex min-h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center text-muted-foreground">
             <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
             <p className="text-sm">Loading campaign...</p>
           </div>
-        </main>
-      </div>
+        </div>
+      </DashboardLayout>
     );
   }
 
@@ -318,9 +315,8 @@ export function CampaignDetailPage() {
 
   if (isError || !campaign) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 flex items-center justify-center`}>
+      <DashboardLayout>
+        <div className="flex min-h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center text-center">
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
               <AlertCircleIcon className="w-7 h-7 text-red-500" />
@@ -335,8 +331,8 @@ export function CampaignDetailPage() {
               Back to campaigns
             </Link>
           </div>
-        </main>
-      </div>
+        </div>
+      </DashboardLayout>
     );
   }
 
@@ -381,10 +377,7 @@ export function CampaignDetailPage() {
   // ---------- Render ----------
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
+    <DashboardLayout>
         {/* Header */}
         <div className="mb-8">
           <Link
@@ -597,7 +590,6 @@ export function CampaignDetailPage() {
             onConfirm={handleDelete}
           />
         )}
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

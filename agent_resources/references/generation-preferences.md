@@ -18,7 +18,7 @@ Snake_case in JSON; TypeScript mirror: `frontend/src/types/generationPreferences
 | Field | Type | Meaning |
 |-------|------|---------|
 | `personalization_range` | string | `individual` \| `group` \| `broad` |
-| `variants_per_group` | number | Planning / future batch |
+| `variants_per_group` | number | Caps **preview** variants per plan persona group (1–10); also stored for batch UX consistency |
 | `ad_formats` | string[] | e.g. `images`, `videos` |
 | `tone` | string | formal, playful, bold, minimal |
 | `budget_tier` | string | low, mid, premium |
@@ -27,5 +27,7 @@ Snake_case in JSON; TypeScript mirror: `frontend/src/types/generationPreferences
 | `platforms` | string[] | placement labels |
 | `color_mode` | string | brand, custom |
 | `custom_color` | string (optional) | Hex when `color_mode === custom` |
+
+**Preview:** resolved with the approved plan JSON (`utils/plan_execution.py`) and applied in `generate_campaign_preview`.
 
 **Script pipeline:** `resolve_brief_and_preferences_for_version` → `generate_ad_script` appends a deterministic **User-approved generation preferences** block to the prompt (`workers/script_creation_worker/worker.py`).

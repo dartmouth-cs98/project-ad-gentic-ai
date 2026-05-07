@@ -17,18 +17,61 @@ from schemas.generation_preferences import GenerationPreferences
 logger = logging.getLogger(__name__)
 
 
+def _extract_outer_json_object(text: str) -> Optional[str]:
+    """Return the first balanced ``{ ... }`` substring (handles nesting and braces inside strings)."""
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
+
+
 def parse_plan_json_from_message(plan_message: str) -> Optional[dict[str, Any]]:
-    """Extract the first ```json ... ``` object from the assistant plan message."""
+    """Extract the first ```json ... ``` object from the assistant plan message.
+
+    Parses the outer JSON object with a brace-aware scan so nested arrays/objects
+    (e.g. ``persona_groups``) are not truncated at the first ``}``.
+    """
     if not plan_message or not plan_message.strip():
         return None
-    match = re.search(r"```json\s*(\{[\s\S]*?\})\s*```", plan_message)
-    if not match:
+    fence = re.search(r"```json\s*", plan_message, re.IGNORECASE)
+    if not fence:
+        return None
+    body_start = fence.end()
+    fence_end = plan_message.find("```", body_start)
+    if fence_end == -1:
+        return None
+    raw_block = plan_message[body_start:fence_end].strip()
+    json_str = _extract_outer_json_object(raw_block)
+    if json_str is None:
         return None
     try:
-        return json.loads(match.group(1))
+        data = json.loads(json_str)
     except json.JSONDecodeError:
         logger.warning("Plan message contained invalid JSON in fenced block")
         return None
+    return data if isinstance(data, dict) else None
 
 
 def find_persona_for_plan_group_name(plan_name: str, personas: list[Persona]) -> Optional[Persona]:

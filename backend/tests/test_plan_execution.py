@@ -24,6 +24,29 @@ def test_parse_plan_json_from_message():
     assert d["persona_groups"][0]["name"] == "Alpha"
 
 
+def test_parse_plan_json_nested_object_not_truncated():
+    """Brace-balanced extraction must not stop at the first ``}`` inside nested arrays."""
+    text = (
+        "Plan\n```json\n"
+        '{"persona_groups": [{"name": "Trail Fans", "variant_count": 3}], "notes": "x"}\n'
+        "```\n"
+    )
+    d = parse_plan_json_from_message(text)
+    assert d is not None
+    assert d["persona_groups"][0]["name"] == "Trail Fans"
+    assert d["persona_groups"][0]["variant_count"] == 3
+    assert d["notes"] == "x"
+
+
+def test_parse_plan_json_string_with_braces_ignored():
+    """Braces inside JSON strings must not confuse depth counting."""
+    text = '```json\n{"hint": "{not an object}", "persona_groups": []}\n```'
+    d = parse_plan_json_from_message(text)
+    assert d is not None
+    assert d["hint"] == "{not an object}"
+    assert d["persona_groups"] == []
+
+
 def test_find_persona_exact_ci():
     p = MagicMock(spec=Persona)
     p.name = "Weekend Hikers"

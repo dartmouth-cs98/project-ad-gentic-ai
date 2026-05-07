@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from dependencies import get_current_client_id
 from crud.chat_message import get_chat_messages, create_chat_message
-from crud.persona import get_personas
+from utils.plan_execution import load_all_personas
 from schemas.chat_message import ChatMessageCreate, ChatMessageResponse
 from services.chat_ai.prompts import format_personas_catalog_for_prompt
 from services.chat_ai.service import get_chat_completion
@@ -82,7 +82,7 @@ async def chat_completion(
     ]
 
     # 3. Load global persona library for plan JSON (persona_groups names must match DB)
-    personas = get_personas(db, skip=0, limit=100)
+    personas = load_all_personas(db)
     personas_catalog = format_personas_catalog_for_prompt(personas)
     personas_catalog_arg = personas_catalog if personas_catalog.strip() else None
 

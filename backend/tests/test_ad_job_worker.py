@@ -462,6 +462,35 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
 
 
 @pytest.mark.asyncio
+async def test_generate_campaign_ad_variants_returns_none_when_plan_groups_unmatched():
+    """Fail-closed: plan lists persona_groups but none match dbo.personas — no batch, no fallback."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    mock_campaign.brief = '{"1": {"plan_message": "```json\\n{}\\n```"}}'
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.parse_plan_json_from_message",
+            return_value={"persona_groups": [{"name": "Unknown Persona"}]},
+        ),
+        patch(
+            "workers.ad_job_worker.worker.resolve_persona_ids_from_plan",
+            return_value=set(),
+        ),
+        patch("workers.ad_job_worker.worker.create_ad_job_batch") as mock_batch,
+        patch("workers.ad_job_worker.worker.create_ad_job") as mock_job,
+    ):
+        result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
+    assert result is None
+    mock_batch.assert_not_called()
+    mock_job.assert_not_called()
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_generate_campaign_ad_variants_returns_none_when_no_consumers_need_generation():
     """generate_campaign_ad_variants returns None when every consumer already has an ad variant."""
     mock_db = MagicMock()

@@ -317,8 +317,10 @@ async def generate_campaign_ad_variants(
     """Enqueue ad jobs for consumers missing variants for this campaign/version.
 
     When the approved plan JSON lists ``persona_groups``, only consumers whose **primary**
-    persona matches one of those groups (by name → Persona row) are included. Otherwise all
-    consumers for this campaign's tenant are eligible (legacy behavior).
+    persona matches one of those groups (by name → Persona row) are included. If the plan lists
+    groups but **no** names resolve to DB personas, returns ``None`` (no batch — avoids silently
+    enqueueing the entire tenant). When the plan has no usable ``persona_groups``, all tenant
+    consumers remain eligible (legacy behavior).
     """
     factory = _get_session_factory()
     db: Session = factory()
@@ -334,8 +336,11 @@ async def generate_campaign_ad_variants(
         matched_persona_ids = resolve_persona_ids_from_plan(db, plan) if plan else set()
         if has_groups and not matched_persona_ids:
             logger.warning(
-                "Batch: plan lists persona_groups but none matched DB personas — using all tenant consumers",
+                "Batch: plan lists persona_groups but none matched dbo.personas — "
+                "skipping enqueue (fix plan JSON names to match the persona catalog)",
             )
+            return None
+
         filter_by_persona = bool(has_groups and matched_persona_ids)
 
         consumers = get_all_consumers(db)

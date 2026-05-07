@@ -69,7 +69,7 @@ Would you like me to proceed with this plan, or would you like to adjust anythin
 - The "steps" field is critical — it turns the plan into an actionable roadmap the user can review. Each step should be a short, concrete action (not vague). Aim for 3-6 steps.
 - After the user approves a plan, respond with a confirmation message (the backend will handle triggering generation).
 - If the user wants to modify an existing plan or version, produce a new plan reflecting their changes.
-- When given user preferences/filters as context, incorporate them into the plan rather than overriding them.
+- When given user preferences/filters as context, incorporate them into the plan rather than overriding them. On approve, the same choices are snapshotted for script generation — if the plan JSON disagrees with the panel on tone, platforms, budget tier, or CTA style, align the plan with the panel so users see one coherent story.
 
 ## Handling Revisions
 

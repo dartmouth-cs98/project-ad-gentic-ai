@@ -22,7 +22,8 @@ This document answers: **“What behavior is the code trying to implement?”** 
 4. **Explore creative (preview)** — Call **campaign preview** generation: sample up to **six** personas, pick one consumer per persona, generate **preview** ad variants (`is_preview=true`) so the business can see variety before a full rollout.
 5. **Produce at scale (batch)** — **Enqueue** one **ad job** per consumer who does **not** yet have an **ad variant** for this **campaign + version**. A background **poller** processes jobs **FIFO**, with **retries** capped by `AD_JOB_MAX_ATTEMPTS` (default 3).
 6. **Iterate on creative** — Use **version numbers** on variants and **per-version briefs** on campaigns so new creative generations can align to different brief slices.
-7. **Campaign assistant chat** — JWT-protected **chat completions**: user message is stored, history + context is sent to **Grok** (xAI-compatible client), assistant reply is stored; responses may include a structured **plan** when the assistant wraps JSON in a Markdown fenced `json` code block (see `detect_plan_in_response` in `services/chat_ai/service.py`).
+7. **Campaign assistant chat** — JWT-protected **chat completions**: user message is stored, history + optional filter context is sent to the configured chat model (`SCRIPT_MODEL`, OpenAI-compatible client), assistant reply is stored; responses may include a structured **plan** when the assistant wraps JSON in a Markdown fenced `json` code block (see `detect_plan_in_response` in `services/chat_ai/service.py`).
+8. **Connect Meta & view metrics** — OAuth via **`/social-auth/*`** stores encrypted tokens; **`GET /campaigns/{id}/metrics`** serves cached Meta insights and may refresh when stale if the campaign has **`meta_campaign_id`** and an Instagram connection exists.
 
 ---
 
@@ -34,12 +35,12 @@ This document answers: **“What behavior is the code trying to implement?”** 
 | **Products** | CRUD; images uploaded to Azure **`product-images`**; **`image_name`** is required for automated ad generation (worker loads blob by name). |
 | **Consumers** | CRUD; **unique (business_client_id, email)** when email is used; **traits** JSON drives script personalization; **persona** links for segmentation. |
 | **Personas** | Global persona library (UUID id, unique name); JSON lists for motivators, pain points, optional tone preferences. |
-| **Ad variants** | One row per **campaign × consumer × version** (enforced by generation logic + CRUD helpers); **status** lifecycle includes `Generating` → `completed` or `failed`; **`meta`** holds script JSON and errors; **`media_url`** points to rendered video in blob; **`is_preview`** separates samples from full rollout. |
+| **Ad variants** | One row per **campaign × consumer × version** (enforced by generation logic + CRUD helpers); **status** lifecycle includes `Generating` → `completed` or `failed`; **`meta`** holds script JSON and errors; **`media_url`** points to rendered video in blob; **`is_preview`** separates samples from full rollout; **`is_approved`** gates publishing workflows. |
 | **Ad jobs & batches** | **Batch** tracks `total_jobs`, `succeeded_jobs`, `failed_jobs`; each **job** carries **`input_json`** with `campaign_id`, `product_id`, `consumer_id`, `version_number` (defaults to **1** if missing). Poller **claims** jobs atomically (`locked_at` / `locked_by`), runs pipeline, updates job + batch counters. |
 | **Direct single-ad run** | HTTP **`POST /ad-job-worker/run-ad-job`** runs **`execute_ad_job`** **synchronously** (no batch row required)—useful for debugging or one-off runs. |
 | **Signed video URLs** | When Azure is configured, listing/reading ad variants can append a **time-limited SAS** (default **1 hour**) to **`media_url`** for **`ad-videos`** blobs only. |
 | **Script moderation** | After script generation, a **policy reviewer** LLM call must return JSON `passed` / `feedback`. If it **fails**, the system **regenerates the script once** using the feedback, then continues (no third automatic pass in code). |
-| **Video generation** | Short-form vertical video (**8s**, **720×1280**) from script + product image via the configured video API; output uploaded to **`ad-videos`**. |
+| **Video generation** | Short-form vertical video — duration **`VIDEO_SECONDS`** (**4**, **8**, or **12**; default **12**), portrait **720×1280** — from script + product image via the configured video API; output uploaded to **`ad-videos`**. |
 
 ---
 

@@ -28,9 +28,39 @@ Loaded via **`python-dotenv`** from **`backend/.env`** (`database.py`, several w
 |----------|------|
 | `OPENAI_API_KEY` | `core/openai_client.py` (e.g. consumer persona flows) |
 | `SCRIPT_MODEL` | Model id for script/moderation/chat client paths and **`consumer_traits_description`** (chat completions) |
-| `SCRIPT_API_KEY` | Key for OpenAI-compatible client (script generation, **consumer narrative from traits**, Grok chat, some workers) |
+| `SCRIPT_API_KEY` | Key for OpenAI-compatible client (script generation via **`AsyncOpenAI`**, **consumer narrative from traits**, chat completions, some workers) |
 | `SCRIPT_BASE_URL` | Base URL for same client |
 | `VIDEO_API_KEY` | OpenAI-compatible video generation (`ad_video_generation_worker`) |
+| `VIDEO_SECONDS` | Clip length for video API: **`4`**, **`8`**, or **`12`** (default **`12`**). Drives script beat template and audio guards (`utils/video_timing.py`). |
+
+### Email (verification / password reset)
+
+| Variable | Role |
+|----------|------|
+| `RESEND_API_KEY` | Transactional email (verification + password reset) |
+| `RESEND_FROM_EMAIL` | From address for Resend |
+| `EMAIL_VERIFICATION_TOKEN_TTL_MINUTES` | Default **`15`** |
+
+### Google Sign-In
+
+| Variable | Role |
+|----------|------|
+| `GOOGLE_CLIENT_SECRET` | Server-side OAuth for **`POST /auth/google`** |
+
+### Meta (Instagram OAuth + insights)
+
+| Variable | Role |
+|----------|------|
+| `META_APP_ID` | Meta app |
+| `META_APP_SECRET` | Meta app |
+| `META_REDIRECT_URI` | Must match Meta app “Valid OAuth Redirect URIs” (e.g. `…/social-auth/callback`) |
+| `META_FRONTEND_URL` | Post-OAuth browser redirect target |
+
+### Token encryption (social connections)
+
+| Variable | Role |
+|----------|------|
+| `FERNET_SECRET_KEY` | Fernet key for **encrypted** OAuth tokens in **`social_connections`** |
 
 ### Azure Storage
 

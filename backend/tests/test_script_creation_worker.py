@@ -15,6 +15,7 @@ sys.path.insert(0, str(_backend_dir))
 
 import pytest
 
+from schemas.generation_preferences import GenerationPreferences
 from workers.script_creation_worker.worker import (
     _build_script_prompt,
     _format_campaign_context_block,
@@ -110,6 +111,29 @@ class TestBuildScriptPrompt:
         )
         assert "Campaign context (strategic" not in out
         assert "Only brief" in out
+
+    def test_includes_generation_preferences_block_when_set(self):
+        prefs = GenerationPreferences(
+            tone="minimal",
+            language="English (US)",
+            platforms=["Facebook Feed"],
+            cta_style="soft",
+            budget_tier="premium",
+            color_mode="custom",
+            custom_color="#FF00AA",
+        )
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="Brief here.",
+            generation_preferences=prefs,
+        )
+        assert "User-approved generation preferences" in out
+        assert "Tone: minimal" in out
+        assert "Facebook Feed" in out
+        assert "#FF00AA" in out
+        assert "Brief here." in out
 
     def test_includes_time_bucketed_beats(self):
         out = _build_script_prompt(

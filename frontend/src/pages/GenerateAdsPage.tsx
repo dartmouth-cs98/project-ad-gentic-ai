@@ -7,6 +7,7 @@ import { ChatPanel, ResultsPanel } from '../components/generate';
 import type { Phase, Version } from '../components/generate';
 import type { Campaign, ChatMessage, AdVariant } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
+import { buildGenerationPreferencesSnapshot } from '../types/generationPreferences';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
@@ -177,6 +178,7 @@ export function GenerateAdsPage() {
     language: filterState.language,
     platforms: Array.from(filterState.selectedPlatforms),
     colorMode: filterState.colorMode,
+    ...(filterState.colorMode === 'custom' ? { customColor: filterState.customColor } : {}),
   });
 
   // Variants selection state
@@ -300,7 +302,10 @@ export function GenerateAdsPage() {
     const newVersion = versionCounter;
     const briefContent = planMessage.content;
     const existingBrief = activeCampaign.brief ? JSON.parse(activeCampaign.brief) : {};
-    existingBrief[String(newVersion)] = briefContent;
+    existingBrief[String(newVersion)] = {
+      plan_message: briefContent,
+      generation_preferences: buildGenerationPreferencesSnapshot(filterState),
+    };
 
     updateCampaign.mutate({
       campaignId: activeCampaignId,

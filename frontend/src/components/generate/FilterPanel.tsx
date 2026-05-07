@@ -66,6 +66,11 @@ export function FilterPanel({
             </div>
           </div>
           <div className="px-4 py-3 max-h-[50vh] overflow-y-auto">
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              Tone, language, platforms, CTA, budget, and color choices are saved when you approve a plan and are applied
+              directly to script generation. Personalization depth, variant counts, and format toggles guide planning and
+              future batch flows; preview still samples up to six persona groups.
+            </p>
             <FilterControls filterState={filterState} filterDispatch={filterDispatch} compact={false} />
           </div>
         </div>

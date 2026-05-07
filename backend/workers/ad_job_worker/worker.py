@@ -29,6 +29,7 @@ from schemas.ad_variant import AdVariantCreate, AdVariantUpdate
 from schemas.ad_job import AdJobCreate
 from schemas.ad_job_batch import AdJobBatchCreate
 from services.consumer_traits_description import consumer_profile_text_for_script
+from utils.campaign_version_brief import resolve_brief_and_preferences_for_version
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video
 from workers.script_moderation_worker.worker import evaluate_script
@@ -68,20 +69,9 @@ def _resize_product_image(image_bytes: bytes, content_type: str) -> tuple[bytes,
 
 
 def _brief_for_version(brief_json: Optional[str], version_number: int) -> str:
-    """Resolve campaign brief for a version. brief_json is a JSON object with keys = version_number, value = brief text."""
-    if not brief_json or not brief_json.strip():
-        return ""
-    try:
-        data = json.loads(brief_json)
-        if not isinstance(data, dict):
-            return ""
-        # Keys may be stored as string or int
-        val = data.get(str(version_number))
-        if val is None:
-            val = data.get(version_number)
-        return val if val is not None else ""
-    except (json.JSONDecodeError, TypeError):
-        return ""
+    """Resolve plan text for a version (legacy string entries and structured ``plan_message``)."""
+    text, _ = resolve_brief_and_preferences_for_version(brief_json, version_number)
+    return text
 
 
 async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int, is_preview: bool = False) -> int:
@@ -101,7 +91,9 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         campaign = get_campaign(db, campaign_id)
         if campaign is None:
             raise AdJobClientError(f"Campaign not found: {campaign_id}")
-        campaign_brief = _brief_for_version(campaign.brief, version_number)
+        campaign_brief, generation_preferences = resolve_brief_and_preferences_for_version(
+            campaign.brief, version_number
+        )
 
         consumer = get_consumer(db, consumer_id)
         if consumer is None:
@@ -153,6 +145,7 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
             campaign_goal=campaign.goal or "",
             campaign_target_audience=campaign.target_audience or "",
             campaign_product_context=campaign.product_context or "",
+            generation_preferences=generation_preferences,
         )
         verdict = await evaluate_script(script)
         if not verdict.passed:
@@ -166,6 +159,7 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
                 campaign_goal=campaign.goal or "",
                 campaign_target_audience=campaign.target_audience or "",
                 campaign_product_context=campaign.product_context or "",
+                generation_preferences=generation_preferences,
                 moderation_feedback=verdict.feedback,
             )
         update_ad_variant(db, ad_variant_id, AdVariantUpdate(meta=json.dumps({"script": script})))

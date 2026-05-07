@@ -14,11 +14,52 @@ from utils.video_timing import (
     script_requirement_beat_ranges,
 )
 from services.consumer_traits_description import consumer_profile_text_for_script
+from schemas.generation_preferences import GenerationPreferences
 from openai import AsyncOpenAI
 from xai_sdk import Client
 from xai_sdk.chat import system, user, image
 
 load_dotenv()
+
+
+def _format_generation_preferences_block(prefs: GenerationPreferences | None) -> str:
+    """Deterministic constraints from the user's Ad Studio preference panel (approved snapshot)."""
+    if prefs is None:
+        return ""
+    data = prefs.model_dump(exclude_none=True)
+    if not data:
+        return ""
+    labels = {
+        "tone": "Tone",
+        "cta_style": "CTA style",
+        "language": "Spoken / narrative language",
+        "budget_tier": "Budget tier (production scope signal)",
+        "platforms": "Target platforms / placements",
+        "personalization_range": "Personalization depth",
+        "variants_per_group": "Variants per group (batch planning — preview count may differ)",
+        "ad_formats": "Requested ad formats",
+        "color_mode": "Color palette mode",
+        "custom_color": "Custom accent / palette hex",
+    }
+    lines: list[str] = []
+    for key, label in labels.items():
+        if key not in data:
+            continue
+        val = data[key]
+        if isinstance(val, list):
+            val_str = ", ".join(str(x) for x in val)
+        else:
+            val_str = str(val)
+        if val_str.strip():
+            lines.append(f"- {label}: {val_str}")
+    if not lines:
+        return ""
+    return (
+        "User-approved generation preferences (hard constraints — honor these for tone, delivery, "
+        "and implied visual palette; they override conflicting cues elsewhere in the brief):\n"
+        + "\n".join(lines)
+        + "\n\n"
+    )
 
 
 def _format_campaign_context_block(
@@ -56,6 +97,7 @@ def _build_script_prompt(
     campaign_goal: str = "",
     campaign_target_audience: str = "",
     campaign_product_context: str = "",
+    generation_preferences: GenerationPreferences | None = None,
 ) -> str:
     """Build the ad script generation prompt with product and consumer context."""
     total = allowed_video_seconds()
@@ -69,6 +111,7 @@ def _build_script_prompt(
         campaign_target_audience=campaign_target_audience,
         campaign_product_context=campaign_product_context,
     )
+    prefs_ctx = _format_generation_preferences_block(generation_preferences)
     return f"""You are a creative advertising director and consumer psychologist. Based on the product and audience profile below, create an entertaining short-form video concept that people would actually want to watch and share.
     Tailor the ad specifically for the following consumer based on their demographics, interests, personality, values and other characteristics: {consumer_profile_text}
     Don't explicitly mention the consumer profile in the script, but use it to tailor the ad to them.
@@ -78,7 +121,7 @@ def _build_script_prompt(
     Product Name: {product_name}
     Product Description: {product_description or 'Not provided'}
 
-    {campaign_ctx}Creative direction (version brief — interpret freely; honor any campaign context above when present):
+    {campaign_ctx}{prefs_ctx}Creative direction (version brief — interpret freely; honor any campaign context above when present):
     Campaign Brief: {campaign_brief}
 
     Create a short video script designed to entertain first, not sell. Think about:
@@ -123,6 +166,7 @@ async def generate_ad_script(
     campaign_goal: str = "",
     campaign_target_audience: str = "",
     campaign_product_context: str = "",
+    generation_preferences: GenerationPreferences | None = None,
     moderation_feedback: str = "",
 ) -> str:
     api_key = os.getenv("SCRIPT_API_KEY", "").strip()
@@ -140,6 +184,7 @@ async def generate_ad_script(
         campaign_goal=campaign_goal,
         campaign_target_audience=campaign_target_audience,
         campaign_product_context=campaign_product_context,
+        generation_preferences=generation_preferences,
     )
     if moderation_feedback:
         prompt += _moderation_revision_suffix(moderation_feedback, total_seconds=total)
@@ -186,6 +231,7 @@ def batch_generate_ad_scripts(
     campaign_goal: str = "",
     campaign_target_audience: str = "",
     campaign_product_context: str = "",
+    generation_preferences: GenerationPreferences | None = None,
 ):
     api_key = os.getenv("SCRIPT_API_KEY", "").strip()
     model = os.getenv("SCRIPT_MODEL", "").strip()
@@ -210,6 +256,7 @@ def batch_generate_ad_scripts(
             campaign_goal=campaign_goal,
             campaign_target_audience=campaign_target_audience,
             campaign_product_context=campaign_product_context,
+            generation_preferences=generation_preferences,
         )
         chat.append(system("You are an expert advertising creative director specializing in short-form video ads."))
         chat.append(user(prompt, image(image_url=product_image_data_url, detail="high")))

@@ -31,7 +31,8 @@ flowchart LR
 
   subgraph ext [External APIs]
     OAI[OpenAI-compatible APIs]
-    XAI[xAI - script generation]
+    XAI[xAI - script + chat]
+    META[Meta - OAuth + insights]
   end
 
   UI -->|HTTPS JSON JWT| HTTP
@@ -43,12 +44,14 @@ flowchart LR
   W --> BLOB
   W --> OAI
   W --> XAI
+  HTTP --> META
 ```
 
 - **`frontend/`** — SPA (Vite + React). Calls the FastAPI backend for auth, resources, and chat-style features.
 - **`backend/`** — One **FastAPI** application (`main.py`) that exposes:
-  - **Resource APIs** under paths like `/auth`, `/campaigns`, `/ad-jobs`, `/consumers`, `/personas`, `/products`, `/chat/...`, etc.
+  - **Resource APIs** under paths like `/auth`, `/campaigns`, `/ad-jobs`, `/consumers`, `/personas`, `/products`, `/social-auth`, `/chat/...`, etc.
   - **Worker HTTP routes** under `/ad-job-worker` and `/ad-post-worker`: includes **hello-style** endpoints and **generation triggers** (e.g. **`POST /ad-job-worker/run-ad-job`** runs the full pipeline **in-process**, not a separate worker service). Heavy work is still **not** isolated in another deployable here.
+  - **Startup:** SQL Server gets best-effort **auth column** DDL in **`_ensure_auth_columns_exist()`** (see `main.py` lifespan).
 - **In-process orchestration** — On startup, the app starts an **asyncio background poller** (`services/ad_job_poller`) that watches the database for **pending ad jobs**, claims them, and runs **`execute_ad_job`** in `workers/ad_job_worker` (script → moderation → video → blob upload).
 
 There is **no separate message broker** (e.g. Redis/RabbitMQ) in the current dependency set: **the SQL `ad_jobs` table is the queue**, with **row-level locking** (`locked_at` / `locked_by`) so multiple API instances can poll safely.
@@ -69,15 +72,19 @@ Uploads flow through **`routes/product.py`**: files land in Azure Blob (**`produ
 
 Operations such as persona assignment use **`get_openai_client()`** and **`services/consumer_persona_processor`** / **`services/persona_assignment`** — LLM calls over **OpenAI’s client**, backed by **`OPENAI_API_KEY`** (see `core/openai_client.py` and consumers route).
 
-### 4. Ad generation pipeline (async, DB-driven)
+### 4. Instagram OAuth and campaign metrics
+
+Users connect Meta via **`/social-auth/connect`** → **`/callback`**; tokens are stored on **`social_connections`**. **`GET /campaigns/{id}/metrics`** returns cached **`campaign_metrics`** and may refresh from Meta when stale and a **`meta_campaign_id`** exists.
+
+### 5. Ad generation pipeline (async, DB-driven)
 
 1. Something (e.g. campaign flow) creates **`ad_job` rows** and an **`ad_job_batch`** with JSON **`input_json`** (campaign / product / consumer / version).
 2. The **poller** picks pending jobs, **claims** one atomically, and runs **`execute_ad_job`**:
    - Creates / updates **`ad_variant`** rows (status, `meta`, `media_url`).
    - Loads campaign, consumer traits, product; **downloads product image** from Blob.
-   - **`generate_ad_script`** — uses **xAI SDK** (`xai_sdk`) and env such as **`SCRIPT_*`** (see `workers/script_creation_worker`).
+   - **`generate_ad_script`** — **OpenAI-compatible** **`AsyncOpenAI`** + **`SCRIPT_*`** for the primary path; **`xai_sdk`** used for **batch** script generation (see `workers/script_creation_worker`).
    - **`evaluate_script`** — moderation pass via an **OpenAI-compatible** client (`workers/script_moderation_worker`).
-   - **`generate_ad_video`** — **OpenAI video API** (`AsyncOpenAI` + **`VIDEO_API_KEY`**), polls until complete.
+   - **`generate_ad_video`** — **OpenAI video API** (`AsyncOpenAI` + **`VIDEO_API_KEY`**), clip length from **`VIDEO_SECONDS`** (**4** / **8** / **12**), polls until complete.
    - Uploads MP4 to **`ad-videos`** container; stores URL on the variant.
 
 Failures are recorded on the variant **`meta`** (e.g. error trace) and statuses move to **`failed`** where applicable.
@@ -94,7 +101,8 @@ Failures are recorded on the variant **`meta`** (e.g. error trace) and statuses 
 | **Blob storage** | **Azure Storage** — **`AZURE_STORAGE_CONNECTION_STRING`**; containers e.g. **`product-images`**, **`ad-videos`** |
 | **Caches** | None required for core flow; clients may be cached in-process (e.g. OpenAI client LRU) |
 | **Queues** | **Database** (`ad_jobs` + locks), not a separate queue service |
-| **LLM / media APIs** | **OpenAI** (chat, video, some moderation paths), **xAI** (script generation SDK), env-driven keys/URLs (`backend/.env.example`) |
+| **LLM / media APIs** | **OpenAI-compatible** clients (chat, video, moderation, primary script path), **xAI SDK** (batch scripts), env-driven keys/URLs (`backend/.env.example`) |
+| **Meta** | OAuth token storage, insights fetch, campaign publish — `services/meta/`, `routes/social_auth.py`, `routes/metrics.py` |
 
 ---
 

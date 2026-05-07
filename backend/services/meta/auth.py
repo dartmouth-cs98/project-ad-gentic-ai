@@ -98,13 +98,31 @@ def exchange_code_for_long_lived_token(code: str) -> dict:
 def fetch_platform_account_info(access_token: str) -> dict:
     """Return IG business account ID, Facebook Page ID, and first Ad Account ID.
 
+    Calls GET /me?fields=id,name (Graph User) for Meta app-review verification,
+    in addition to /me/accounts and /me/adaccounts.
+
     Returns:
         {
+            "meta_user_id": str | None,
+            "meta_user_name": str | None,
             "instagram_account_id": str | None,
             "facebook_page_id": str | None,
             "ad_account_id": str | None,   # format: act_XXXXXXXXX
         }
     """
+    me = httpx.get(
+        f"{META_GRAPH_BASE}/me",
+        params={
+            "access_token": access_token,
+            "fields": "id,name",
+        },
+        timeout=15,
+    )
+    me.raise_for_status()
+    me_json = me.json()
+    meta_user_id: Optional[str] = me_json.get("id")
+    meta_user_name: Optional[str] = me_json.get("name")
+
     instagram_account_id: Optional[str] = None
     facebook_page_id: Optional[str] = None
     ad_account_id: Optional[str] = None
@@ -137,6 +155,8 @@ def fetch_platform_account_info(access_token: str) -> dict:
         ad_account_id = accounts[0]["id"]
 
     return {
+        "meta_user_id": meta_user_id,
+        "meta_user_name": meta_user_name,
         "instagram_account_id": instagram_account_id,
         "facebook_page_id": facebook_page_id,
         "ad_account_id": ad_account_id,

@@ -13,6 +13,9 @@ export interface AdVariant {
   created_at: string;
   updated_at: string;
   published_at: string | null;
+  /** Persona resolved via Consumer.primary_persona — null when no consumer or no assignment. */
+  persona_id: string | null;
+  persona_name: string | null;
 }
 
 /** Parsed script stored in AdVariant.meta JSON */

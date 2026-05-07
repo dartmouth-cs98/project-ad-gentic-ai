@@ -11,10 +11,12 @@ import {
 import { FilterControls } from './FilterControls';
 import { AdVariantCard } from './AdVariantCard';
 import { GeneratingView } from './GeneratingView';
+import { VariantGroupSection } from '../shared/VariantGroupSection';
 import type { Phase } from './types';
 import type { AdVariant } from '../../types';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters } from '../../hooks/useFilterState';
+import { useGroupedVariants } from '../../hooks/useGroupedVariants';
 
 interface ResultsPanelProps {
   phase: Phase;
@@ -52,6 +54,7 @@ export function ResultsPanel({
   const [variantCols, setVariantCols] = useState(2);
   const [showFilters, setShowFilters] = useState(true);
   const activeFilterCount = countActiveFilters(filterState);
+  const groups = useGroupedVariants(adVariants);
 
   // Responsive variant grid columns
   useEffect(() => {
@@ -192,25 +195,40 @@ export function ResultsPanel({
             </div>
           )}
 
-          {/* Variant grid */}
+          {/* Variant grid — grouped by persona */}
           <div className="flex-1 overflow-y-auto p-5">
             {adVariants.length === 0 ? (
               <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
                 No ad variants found for this campaign.
               </div>
             ) : (
-              <div
-                className="grid gap-4"
-                style={{ gridTemplateColumns: `repeat(${variantCols}, minmax(0, 1fr))` }}
-              >
-                {adVariants.map((variant) => (
-                  <AdVariantCard
-                    key={variant.id}
-                    variant={variant}
-                    isSelected={selectedVariants.has(String(variant.id))}
-                    onToggle={onVariantToggle}
-                  />
-                ))}
+              <div className="space-y-6">
+                {groups.map((group) => {
+                  const approvedCount = group.variants.filter((v) => v.is_approved).length;
+                  return (
+                    <VariantGroupSection
+                      key={group.key}
+                      name={group.name}
+                      isGeneral={group.isGeneral}
+                      approvedCount={approvedCount}
+                      totalCount={group.variants.length}
+                    >
+                      <div
+                        className="grid gap-4"
+                        style={{ gridTemplateColumns: `repeat(${variantCols}, minmax(0, 1fr))` }}
+                      >
+                        {group.variants.map((variant) => (
+                          <AdVariantCard
+                            key={variant.id}
+                            variant={variant}
+                            isSelected={selectedVariants.has(String(variant.id))}
+                            onToggle={onVariantToggle}
+                          />
+                        ))}
+                      </div>
+                    </VariantGroupSection>
+                  );
+                })}
               </div>
             )}
           </div>

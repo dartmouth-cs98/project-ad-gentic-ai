@@ -15,6 +15,7 @@ from crud.ad_variant import (
     create_ad_variant,
     update_ad_variant,
     delete_ad_variant,
+    attach_personas,
 )
 from services.storage.ad_video_media_url import API_SAS_EXPIRY_HOURS, signed_ad_video_media_url
 
@@ -51,6 +52,7 @@ def list_ad_variants(
         status=status,
         is_preview=is_preview,
     )
+    attach_personas(db, variants)
     return [_sign_ad_variant(v) for v in variants]
 
 
@@ -60,6 +62,7 @@ def read_ad_variant(ad_variant_id: int, db: Session = Depends(get_db)):
     ad_variant = get_ad_variant(db, ad_variant_id)
     if ad_variant is None:
         raise HTTPException(status_code=404, detail="Ad variant not found")
+    attach_personas(db, [ad_variant])
     return _sign_ad_variant(ad_variant)
 
 
@@ -103,6 +106,9 @@ def approve_ad_variant(
         raise HTTPException(status_code=403, detail="Not authorised to approve this variant")
 
     updated = update_ad_variant(db, ad_variant_id, AdVariantUpdate(is_approved=True))
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Ad variant not found")
+    attach_personas(db, [updated])
     return _sign_ad_variant(updated)
 
 
@@ -122,4 +128,7 @@ def unapprove_ad_variant(
         raise HTTPException(status_code=403, detail="Not authorised to modify this variant")
 
     updated = update_ad_variant(db, ad_variant_id, AdVariantUpdate(is_approved=False))
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Ad variant not found")
+    attach_personas(db, [updated])
     return _sign_ad_variant(updated)

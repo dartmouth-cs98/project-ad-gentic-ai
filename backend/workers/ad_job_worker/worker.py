@@ -24,12 +24,19 @@ from crud.ad_job_batch import create_ad_job_batch
 from crud.campaign import get_campaign
 from crud.consumer import get_consumer, get_all_consumers, get_consumers_by_persona_id
 from crud.product import get_product
-from crud.persona import get_personas
 from schemas.ad_variant import AdVariantCreate, AdVariantUpdate
 from schemas.ad_job import AdJobCreate
 from schemas.ad_job_batch import AdJobBatchCreate
 from services.consumer_traits_description import consumer_profile_text_for_script
 from utils.campaign_version_brief import resolve_brief_and_preferences_for_version
+from utils.plan_execution import (
+    parse_plan_json_from_message,
+    find_persona_for_plan_group_name,
+    load_all_personas,
+    resolve_persona_ids_from_plan,
+    variants_per_group_target,
+    pick_consumers_for_preview_group,
+)
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video
 from workers.script_moderation_worker.worker import evaluate_script
@@ -228,7 +235,13 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
 async def generate_campaign_preview(
     campaign_id: int, product_id: int, version_number: int
 ) -> list:
-    """Generate up to 6 preview ad variants (one consumer per selected persona). Returns list of ad_variant IDs."""
+    """Generate preview ad variants using the approved plan's persona groups when available.
+
+    For each ``persona_groups[]`` entry we resolve the DB persona by name, take up to
+    ``variants_per_group`` distinct consumers for this tenant (preference snapshot wins over
+    ``variant_count`` in the plan JSON). If the plan has no usable fenced JSON block, falls back
+    to legacy behavior: up to 6 random personas with one variant each.
+    """
     factory = _get_session_factory()
     db: Session = factory()
     try:
@@ -236,15 +249,62 @@ async def generate_campaign_preview(
         if campaign is None:
             raise AdJobClientError(f"Campaign not found: {campaign_id}")
 
-        personas = get_personas(db)
+        plan_message, prefs = resolve_brief_and_preferences_for_version(campaign.brief, version_number)
+        plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
+        groups = plan.get("persona_groups") if plan else None
+
+        if isinstance(groups, list) and groups:
+            personas = load_all_personas(db)
+            created_ad_variant_ids: list[int] = []
+            client_id = campaign.business_client_id
+            for g in groups:
+                if not isinstance(g, dict):
+                    continue
+                raw_name = g.get("name")
+                persona = find_persona_for_plan_group_name(str(raw_name or ""), personas)
+                if persona is None:
+                    logger.warning(
+                        "Preview: skipping plan persona group %r — no matching Persona in DB",
+                        raw_name,
+                    )
+                    continue
+                consumers = get_consumers_by_persona_id(db, persona.id)
+                consumers = [c for c in consumers if c.business_client_id == client_id]
+                if not consumers:
+                    logger.warning(
+                        "Preview: no consumers for persona %s (client %s)",
+                        persona.name,
+                        client_id,
+                    )
+                    continue
+                n = variants_per_group_target(g, prefs)
+                picked = pick_consumers_for_preview_group(consumers, n)
+                for consumer in picked:
+                    ad_variant_id = await execute_ad_job(
+                        campaign_id, product_id, consumer.id, version_number, is_preview=True
+                    )
+                    created_ad_variant_ids.append(ad_variant_id)
+            if created_ad_variant_ids:
+                return created_ad_variant_ids
+            logger.warning(
+                "Preview: plan had persona_groups but produced no variants (falling back to random personas)",
+            )
+
+        # Legacy: random personas (global library), one consumer each
+        personas = load_all_personas(db)
+        if not personas:
+            return []
         selected_personas = random.sample(personas, min(6, len(personas)))
         created_ad_variant_ids = []
         for persona in selected_personas:
             consumers = get_consumers_by_persona_id(db, persona.id)
+            consumers = [c for c in consumers if c.business_client_id == campaign.business_client_id]
             if not consumers:
                 continue
             selected_consumer = random.choice(consumers)
-            ad_variant_id = await execute_ad_job(campaign_id, product_id, selected_consumer.id, version_number, is_preview=True)
+            ad_variant_id = await execute_ad_job(
+                campaign_id, product_id, selected_consumer.id, version_number, is_preview=True
+            )
             created_ad_variant_ids.append(ad_variant_id)
         return created_ad_variant_ids
     finally:
@@ -254,13 +314,37 @@ async def generate_campaign_preview(
 async def generate_campaign_ad_variants(
     campaign_id: int, product_id: int, version_number: int, user_id: Optional[uuid.UUID] = None
 ):
-    """Enqueue ad jobs for all consumers that don't yet have an ad variant for this campaign/version. Returns batch ID."""
+    """Enqueue ad jobs for consumers missing variants for this campaign/version.
+
+    When the approved plan JSON lists ``persona_groups``, only consumers whose **primary**
+    persona matches one of those groups (by name → Persona row) are included. Otherwise all
+    consumers for this campaign's tenant are eligible (legacy behavior).
+    """
     factory = _get_session_factory()
     db: Session = factory()
     try:
+        campaign = get_campaign(db, campaign_id)
+        if campaign is None:
+            raise AdJobClientError(f"Campaign not found: {campaign_id}")
+
+        plan_message, _prefs = resolve_brief_and_preferences_for_version(campaign.brief, version_number)
+        plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
+        raw_groups = plan.get("persona_groups") if plan else None
+        has_groups = isinstance(raw_groups, list) and len(raw_groups) > 0
+        matched_persona_ids = resolve_persona_ids_from_plan(db, plan) if plan else set()
+        if has_groups and not matched_persona_ids:
+            logger.warning(
+                "Batch: plan lists persona_groups but none matched DB personas — using all tenant consumers",
+            )
+        filter_by_persona = bool(has_groups and matched_persona_ids)
+
         consumers = get_all_consumers(db)
+        consumers = [c for c in consumers if c.business_client_id == campaign.business_client_id]
+
         need_to_generate = []
         for consumer in consumers:
+            if filter_by_persona and consumer.primary_persona_id not in matched_persona_ids:
+                continue
             existing = get_ad_variant_by_campaign_consumer_version(
                 db, campaign_id=campaign_id, consumer_id=consumer.id, version_number=version_number
             )

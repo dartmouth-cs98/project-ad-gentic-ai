@@ -307,24 +307,45 @@ export function GenerateAdsPage() {
       generation_preferences: buildGenerationPreferencesSnapshot(filterState),
     };
 
-    updateCampaign.mutate({
-      campaignId: activeCampaignId,
-      data: { brief: JSON.stringify(existingBrief) },
-    });
-
     sendAssistantMessage(
       'Plan approved! Starting ad generation — this may take a few minutes...',
     );
     setPhase('generating');
     setGeneratingVersionNumber(newVersion);
 
-    generatePreview.mutate(
-      { campaignId: activeCampaignId, productId, versionNumber: newVersion },
+    // Persist brief first: preview reads campaign.brief from the DB; firing preview in parallel
+    // races the save and yields no plan_message / wrong personas for this version.
+    updateCampaign.mutate(
       {
-        onError: (err) => {
+        campaignId: activeCampaignId,
+        data: { brief: JSON.stringify(existingBrief) },
+      },
+      {
+        onSuccess: () => {
+          generatePreview.mutate(
+            { campaignId: activeCampaignId, productId, versionNumber: newVersion },
+            {
+              onSuccess: (data) => {
+                if (!data.ad_variant_ids?.length) {
+                  setPhase('idle');
+                  setGeneratingVersionNumber(null);
+                  sendAssistantMessage(
+                    'Preview returned no variants. Check that persona names in the plan match your Personas catalog and that this business has consumers for those personas.',
+                  );
+                }
+              },
+              onError: (err) => {
+                setPhase('idle');
+                setGeneratingVersionNumber(null);
+                sendAssistantMessage(`Generation failed: ${(err as Error).message}. Please try again.`);
+              },
+            },
+          );
+        },
+        onError: () => {
           setPhase('idle');
           setGeneratingVersionNumber(null);
-          sendAssistantMessage(`Generation failed: ${(err as Error).message}. Please try again.`);
+          sendAssistantMessage('Could not save the approved plan. Please try again.');
         },
       },
     );

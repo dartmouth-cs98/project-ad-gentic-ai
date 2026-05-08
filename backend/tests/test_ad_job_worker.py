@@ -500,6 +500,67 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
 
 
 @pytest.mark.asyncio
+async def test_generate_campaign_ad_variants_returns_none_when_structured_plan_json_unparseable():
+    """Fail-closed: structured brief with non-empty plan_message but no ```json fence — no full-tenant batch."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    # Generic markdown fence (not ```json) — parse_plan_json_from_message returns None
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```\n"
+                '{"persona_groups":[{"name":"Trail Fans"}]}'
+                "\n```"
+            ),
+        },
+    })
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_all_consumers") as mock_consumers,
+        patch("workers.ad_job_worker.worker.create_ad_job_batch") as mock_batch,
+        patch("workers.ad_job_worker.worker.create_ad_job") as mock_job,
+    ):
+        result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
+    assert result is None
+    mock_consumers.assert_not_called()
+    mock_batch.assert_not_called()
+    mock_job.assert_not_called()
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_campaign_preview_returns_empty_when_structured_plan_json_unparseable():
+    """Structured brief but fenced block is not ```json — fail closed, no legacy random preview."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```\n"
+                '{"persona_groups":[{"name":"Trail Fans","variant_count":3}]}'
+                "\n```"
+            ),
+        },
+    })
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.load_all_personas") as mock_personas,
+        patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock) as mock_exec,
+    ):
+        result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
+    assert result == []
+    mock_personas.assert_not_called()
+    mock_exec.assert_not_called()
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_generate_campaign_ad_variants_returns_none_when_plan_groups_unmatched():
     """Fail-closed: plan lists persona_groups but none match dbo.personas — no batch, no fallback."""
     mock_db = MagicMock()

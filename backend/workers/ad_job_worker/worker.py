@@ -77,7 +77,7 @@ def _resize_product_image(image_bytes: bytes, content_type: str) -> tuple[bytes,
 
 def _brief_for_version(brief_json: Optional[str], version_number: int) -> str:
     """Resolve plan text for a version (legacy string entries and structured ``plan_message``)."""
-    text, _ = resolve_brief_and_preferences_for_version(brief_json, version_number)
+    text, _, _ = resolve_brief_and_preferences_for_version(brief_json, version_number)
     return text
 
 
@@ -98,7 +98,7 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         campaign = get_campaign(db, campaign_id)
         if campaign is None:
             raise AdJobClientError(f"Campaign not found: {campaign_id}")
-        campaign_brief, generation_preferences = resolve_brief_and_preferences_for_version(
+        campaign_brief, generation_preferences, _ = resolve_brief_and_preferences_for_version(
             campaign.brief, version_number
         )
 
@@ -242,7 +242,9 @@ async def generate_campaign_preview(
     ``variant_count`` in the plan JSON). If the plan lists non-empty ``persona_groups`` but no
     variants can be produced (no DB match, no consumers, etc.), returns an **empty** list — no
     random fallback. Legacy behavior (up to 6 random personas, one consumer each) runs only when
-    the plan has **no** usable ``persona_groups`` list.
+    the brief uses **legacy** string entries or structured entries with **no** usable
+    ``persona_groups`` list. For **structured** briefs, if ``plan_message`` is non-empty but the
+    fenced plan JSON cannot be parsed, returns **empty** (fail closed — no legacy fallback).
     """
     factory = _get_session_factory()
     db: Session = factory()
@@ -251,8 +253,16 @@ async def generate_campaign_preview(
         if campaign is None:
             raise AdJobClientError(f"Campaign not found: {campaign_id}")
 
-        plan_message, prefs = resolve_brief_and_preferences_for_version(campaign.brief, version_number)
+        plan_message, prefs, structured_brief = resolve_brief_and_preferences_for_version(
+            campaign.brief, version_number
+        )
         plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
+        if structured_brief and (plan_message or "").strip() and plan is None:
+            logger.warning(
+                "Preview: structured brief has plan_message but plan JSON could not be parsed — "
+                "returning empty (no legacy fallback)",
+            )
+            return []
         groups = plan.get("persona_groups") if plan else None
 
         if isinstance(groups, list) and groups:
@@ -323,7 +333,9 @@ async def generate_campaign_ad_variants(
     persona matches one of those groups (by name → Persona row) are included. If the plan lists
     groups but **no** names resolve to DB personas, returns ``None`` (no batch — avoids silently
     enqueueing the entire tenant). When the plan has no usable ``persona_groups``, all tenant
-    consumers remain eligible (legacy behavior).
+    consumers remain eligible (**legacy string briefs only**). For **structured** briefs, if
+    ``plan_message`` is non-empty but the fenced plan JSON cannot be parsed, returns ``None``
+    (fail closed — no full-tenant enqueue).
     """
     factory = _get_session_factory()
     db: Session = factory()
@@ -332,8 +344,16 @@ async def generate_campaign_ad_variants(
         if campaign is None:
             raise AdJobClientError(f"Campaign not found: {campaign_id}")
 
-        plan_message, _prefs = resolve_brief_and_preferences_for_version(campaign.brief, version_number)
+        plan_message, _prefs, structured_brief = resolve_brief_and_preferences_for_version(
+            campaign.brief, version_number
+        )
         plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
+        if structured_brief and (plan_message or "").strip() and plan is None:
+            logger.warning(
+                "Batch: structured brief has plan_message but plan JSON could not be parsed — "
+                "skipping enqueue (fix fenced ```json block in approved plan)",
+            )
+            return None
         raw_groups = plan.get("persona_groups") if plan else None
         has_groups = isinstance(raw_groups, list) and len(raw_groups) > 0
         matched_persona_ids = resolve_persona_ids_from_plan(db, plan) if plan else set()

@@ -30,22 +30,25 @@ class TestParseGenerationPreferences:
 class TestResolveBriefAndPreferences:
     def test_legacy_string_entry(self):
         brief_json = '{"1": "Plain plan text"}'
-        text, prefs = resolve_brief_and_preferences_for_version(brief_json, 1)
+        text, prefs, structured = resolve_brief_and_preferences_for_version(brief_json, 1)
         assert text == "Plain plan text"
         assert prefs is None
+        assert structured is False
 
     def test_structured_entry(self):
         brief_json = """{"1": {"plan_message": "Hello plan", "generation_preferences": {"tone": "playful", "language": "Spanish"}}}"""
-        text, prefs = resolve_brief_and_preferences_for_version(brief_json, 1)
+        text, prefs, structured = resolve_brief_and_preferences_for_version(brief_json, 1)
         assert text == "Hello plan"
         assert prefs is not None
         assert prefs.tone == "playful"
         assert prefs.language == "Spanish"
+        assert structured is True
 
     def test_missing_version(self):
-        text, prefs = resolve_brief_and_preferences_for_version('{"2": "x"}', 1)
+        text, prefs, structured = resolve_brief_and_preferences_for_version('{"2": "x"}', 1)
         assert text == ""
         assert prefs is None
+        assert structured is False
 
     def test_brief_text_alias(self):
         assert brief_text_for_version('{"1": "Z"}', 1) == "Z"

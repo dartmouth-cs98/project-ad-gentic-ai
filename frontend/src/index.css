@@ -1,0 +1,237 @@
+/* URL IMPORTS (SUCH AS FONT IMPORTS) SHOULD BE KEPT ABOVE TAILWIND IMPORTS - DO NOT DELETE THIS COMMENT */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+/* PLEASE NOTE: THESE TAILWIND IMPORTS SHOULD NEVER BE DELETED - DO NOT DELETE THIS COMMENT */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* DO NOT DELETE THESE TAILWIND IMPORTS, OTHERWISE THE STYLING WILL NOT RENDER AT ALL - DO NOT DELETE THIS COMMENT */
+
+:root {
+  /* === Figma Landing Theme Variables === */
+  --background: #F5F7FA;
+  --foreground: #0F1419;
+  --card: #FFFFFF;
+  --card-foreground: #0F1419;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F1419;
+  --primary: #4A9EBD;
+  --primary-foreground: #FFFFFF;
+  --secondary: #7AB85C;
+  --secondary-foreground: #FFFFFF;
+  --accent: #D97742;
+  --accent-foreground: #FFFFFF;
+  --muted: #E6E9EF;
+  --muted-foreground: #5C6370;
+  --border: #D1D5DB;
+  --ring: #4A9EBD;
+  --gradient-start: #4A9EBD;
+  --gradient-middle: #7AB85C;
+  --gradient-end: #D97742;
+
+  /* Primary Colors - Deep Navy */
+  --color-navy-900: #0A1628;
+  --color-navy-800: #0F2137;
+  --color-navy-700: #1E3A5F;
+  --color-navy-600: #2D4A6F;
+  /* Accent Colors */
+  --color-blue-500: #3B82F6;
+  --color-blue-600: #2563EB;
+  --color-blue-400: #60A5FA;
+  /* Success/Status */
+  --color-green-500: #10B981;
+  --color-green-400: #34D399;
+  /* Surface Colors */
+  --color-surface: #F8FAFC;
+  --color-surface-dark: #F1F5F9;
+  /* Glass Effect */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  /* Persona Theme Variables — defaults to neutral */
+  --persona-accent: #3B82F6;
+  --persona-accent-light: rgba(59, 130, 246, 0.1);
+  --persona-glow: rgba(59, 130, 246, 0.15);
+}
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+}
+/* Dark mode theme variable overrides */
+.dark {
+  --background: #0F1520;
+  --foreground: #E6E9EF;
+  --card: #111720;
+  --card-foreground: #E6E9EF;
+  --popover: #111720;
+  --popover-foreground: #E6E9EF;
+  --primary: #4A9EBD;
+  --primary-foreground: #FFFFFF;
+  --secondary: #7AB85C;
+  --secondary-foreground: #0A0E14;
+  --accent: #D97742;
+  --accent-foreground: #FFFFFF;
+  --muted: #1A1F29;
+  --muted-foreground: #8B92A8;
+  --border: #252D3A;
+  --ring: #4A9EBD;
+  --gradient-start: #8b5cf6;
+  --gradient-middle: #ec4899;
+  --gradient-end: #f97316;
+}
+
+/* Custom scrollbar for dark sections */
+.dark-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+/* Gradient mesh animation for hero */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+/* Subtle float animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+/* Mesh Blob Animation */
+@keyframes mesh-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.95); }
+}
+.mesh-blob {
+  animation: mesh-float 20s ease-in-out infinite;
+}
+/* Custom utility for orange gradient button text shadow */
+.text-shadow-sm {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+/* Blueprint grid pattern for Skeptic card */
+.blueprint-grid {
+  background-image: 
+    linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+/* Neural network line animation */
+@keyframes neural-pulse {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.4; }
+}
+.neural-line {
+  animation: neural-pulse 4s ease-in-out infinite;
+}
+/* Glow effect for active persona cards */
+@keyframes subtle-glow {
+  0%, 100% { box-shadow: 0 0 20px var(--persona-glow); }
+  50% { box-shadow: 0 0 40px var(--persona-glow); }
+}
+.persona-glow {
+  animation: subtle-glow 3s ease-in-out infinite;
+}
+/* Serif font class */
+.font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+/* Sentiment graph animation */
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+.animate-draw {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: draw-line 2s ease-out forwards;
+}
+/* ===== Smooth theme transition ===== */
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+}
+
+/* ===== Technical UI Utilities (SimpleLanding) ===== */
+.tech-grid {
+  background-image:
+    linear-gradient(rgba(74, 158, 189, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 158, 189, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.font-mono-tech {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+.hexagon {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+/* ===== Generate Ads Page Animations ===== */
+@keyframes deal-in {
+  0% { opacity: 0; transform: translateY(40px) scale(0.9) rotate(-2deg); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.01) rotate(0deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes progress-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes color-fill {
+  0% { clip-path: inset(100% 0 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+.deal-in { animation: deal-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
+.shimmer-bg {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+.dark .shimmer-bg {
+  background: linear-gradient(90deg, #1A1F29 25%, #252D3A 50%, #1A1F29 75%);
+  background-size: 200% 100%;
+}
+.fade-up { animation: fade-up 0.5s ease-out forwards; opacity: 0; }
+.progress-pulse { animation: progress-pulse 2s ease-in-out infinite; }
+.color-fill { animation: color-fill 0.8s ease-out forwards; }
+.typing-dot { animation: typing-dot 1.4s ease-in-out infinite; }

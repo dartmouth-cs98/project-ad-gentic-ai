@@ -28,6 +28,6 @@ Snake_case in JSON; TypeScript mirror: `frontend/src/types/generationPreferences
 | `color_mode` | string | brand, custom |
 | `custom_color` | string (optional) | Hex when `color_mode === custom` |
 
-**Preview:** resolved with the approved plan JSON (`utils/plan_execution.py`) and applied in `generate_campaign_preview`.
+**Preview:** resolved with the approved plan JSON (`utils/plan_execution.py`) and applied in `generate_campaign_preview`. If **`persona_groups`** are present but resolve to **zero** variants (name mismatch, no consumers, etc.), the API returns **no** previews — there is **no** random fallback to unrelated personas.
 
 **Script pipeline:** `resolve_brief_and_preferences_for_version` → `generate_ad_script` appends a deterministic **User-approved generation preferences** block to the prompt (`workers/script_creation_worker/worker.py`).

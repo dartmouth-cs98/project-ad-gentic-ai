@@ -239,8 +239,10 @@ async def generate_campaign_preview(
 
     For each ``persona_groups[]`` entry we resolve the DB persona by name, take up to
     ``variants_per_group`` distinct consumers for this tenant (preference snapshot wins over
-    ``variant_count`` in the plan JSON). If the plan has no usable fenced JSON block, falls back
-    to legacy behavior: up to 6 random personas with one variant each.
+    ``variant_count`` in the plan JSON). If the plan lists non-empty ``persona_groups`` but no
+    variants can be produced (no DB match, no consumers, etc.), returns an **empty** list — no
+    random fallback. Legacy behavior (up to 6 random personas, one consumer each) runs only when
+    the plan has **no** usable ``persona_groups`` list.
     """
     factory = _get_session_factory()
     db: Session = factory()
@@ -287,10 +289,11 @@ async def generate_campaign_preview(
             if created_ad_variant_ids:
                 return created_ad_variant_ids
             logger.warning(
-                "Preview: plan had persona_groups but produced no variants (falling back to random personas)",
+                "Preview: plan had persona_groups but produced no variants — returning empty (no random fallback)",
             )
+            return []
 
-        # Legacy: random personas (global library), one consumer each
+        # Legacy: no persona_groups in plan — random personas (global library), one consumer each
         personas = load_all_personas(db)
         if not personas:
             return []

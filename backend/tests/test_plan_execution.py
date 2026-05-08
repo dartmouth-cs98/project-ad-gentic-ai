@@ -54,6 +54,17 @@ def test_find_persona_exact_ci():
     assert find_persona_for_plan_group_name("weekend hikers", [p]) is p
 
 
+def test_find_persona_no_substring_false_positive():
+    """Short plan labels must not match unrelated persona names via substring overlap."""
+    women = MagicMock(spec=Persona)
+    women.name = "Women Shoppers"
+    researchers = MagicMock(spec=Persona)
+    researchers.name = "The Researcher"
+    roster = [women, researchers]
+    assert find_persona_for_plan_group_name("Men", roster) is None
+    assert find_persona_for_plan_group_name("Women Shoppers", roster) is women
+
+
 def test_variants_per_group_pref_wins():
     from schemas.generation_preferences import GenerationPreferences
 

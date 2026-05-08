@@ -75,16 +75,18 @@ def parse_plan_json_from_message(plan_message: str) -> Optional[dict[str, Any]]:
 
 
 def find_persona_for_plan_group_name(plan_name: str, personas: list[Persona]) -> Optional[Persona]:
-    """Match plan persona_groups[].name to a global Persona row (case-insensitive, trimmed)."""
+    """Match plan persona_groups[].name to a global Persona row.
+
+    **Exact match only** after trim, case-insensitive. Substring / partial matching is intentionally
+    not used — it can map short labels (e.g. ``Men``) to unrelated catalog names (e.g.
+    ``Women Shoppers``) and breaks fail-closed targeting.
+    """
     if not plan_name or not str(plan_name).strip():
         return None
     needle = str(plan_name).strip().lower()
     for p in personas:
         if p.name.strip().lower() == needle:
             return p
-    loose = [p for p in personas if needle in p.name.lower() or p.name.lower() in needle]
-    if len(loose) == 1:
-        return loose[0]
     return None
 
 

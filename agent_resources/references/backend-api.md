@@ -20,8 +20,24 @@ OpenAPI: **`/docs`**, **`/redoc`**.
 |--------|------|
 | POST | `/auth/signup` |
 | POST | `/auth/signin` |
+| POST | `/auth/verify-email` |
+| POST | `/auth/resend-verification` |
+| POST | `/auth/request-password-reset` |
+| POST | `/auth/reset-password` |
+| POST | `/auth/google` |
 | GET | `/auth/me` |
 | POST | `/auth/onboarding` |
+
+### `/social-auth`
+
+JWT required except **`GET /social-auth/callback`** (browser redirect from Meta).
+
+| Method | Path |
+|--------|------|
+| GET | `/social-auth/connect` |
+| GET | `/social-auth/callback` |
+| GET | `/social-auth/status` |
+| DELETE | `/social-auth/disconnect` |
 
 ### `/ad-job-worker`
 
@@ -47,6 +63,8 @@ OpenAPI: **`/docs`**, **`/redoc`**.
 | POST | `/ad-variants/` |
 | PUT | `/ad-variants/{ad_variant_id}` |
 | DELETE | `/ad-variants/{ad_variant_id}` |
+| PATCH | `/ad-variants/{ad_variant_id}/approve` |
+| PATCH | `/ad-variants/{ad_variant_id}/unapprove` |
 
 ### `/ad-jobs`
 
@@ -77,6 +95,15 @@ OpenAPI: **`/docs`**, **`/redoc`**.
 | POST | `/campaigns/` |
 | PUT | `/campaigns/{campaign_id}` |
 | DELETE | `/campaigns/{campaign_id}` |
+| PATCH | `/campaigns/{campaign_id}/run` |
+
+**Campaign metrics** (separate router file; same URL prefix **`/campaigns`** — registered after core campaign routes in `main.py`):
+
+| Method | Path |
+|--------|------|
+| GET | `/campaigns/{campaign_id}/metrics` |
+
+Requires JWT; returns cached Meta insights (may refresh if stale and social account connected).
 
 ### `/chat-messages`
 
@@ -111,6 +138,7 @@ OpenAPI: **`/docs`**, **`/redoc`**.
 | PUT | `/products/{product_id}` |
 | DELETE | `/products/{product_id}` |
 | POST | `/products/{product_id}/upload-image` |
+| DELETE | `/products/{product_id}/images/{blob_name}` |
 
 ### `/personas`
 
@@ -120,4 +148,4 @@ OpenAPI: **`/docs`**, **`/redoc`**.
 
 ---
 
-**Auth note:** Many routes use **`get_current_client_id`**; some (notably parts of **`/campaigns`**) do not—see [BACKEND.md](../BACKEND.md). Prefer verifying each handler when integrating.
+**Auth note:** Many routes use **`get_current_client_id`**; some (notably parts of **`/campaigns`** CRUD) still use **`business_client_id` query params** instead of JWT—see [BACKEND.md](../BACKEND.md). **`/campaigns/{id}/metrics`** and **`/social-auth/*`** (except **`GET /callback`**) require JWT.

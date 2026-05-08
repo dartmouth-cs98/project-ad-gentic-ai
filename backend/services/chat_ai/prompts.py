@@ -69,7 +69,8 @@ Would you like me to proceed with this plan, or would you like to adjust anythin
 - The "steps" field is critical — it turns the plan into an actionable roadmap the user can review. Each step should be a short, concrete action (not vague). Aim for 3-6 steps.
 - After the user approves a plan, respond with a confirmation message (the backend will handle triggering generation).
 - If the user wants to modify an existing plan or version, produce a new plan reflecting their changes.
-- When given user preferences/filters as context, incorporate them into the plan rather than overriding them.
+- When given user preferences/filters as context, incorporate them into the plan rather than overriding them. On approve, the same choices are snapshotted for script generation — if the plan JSON disagrees with the panel on tone, platforms, budget tier, or CTA style, align the plan with the panel so users see one coherent story.
+- When a **persona library** appears in additional context, each `persona_groups[].name` MUST be copied **exactly** from one of the listed persona names (same spelling and capitalization). Pick whichever subset of those personas best fits the campaign—typically three groups—and distribute variant_count across them.
 
 ## Handling Revisions
 
@@ -89,11 +90,30 @@ Use this context to produce better, more targeted plans. Don't repeat the contex
 """
 
 
+def format_personas_catalog_for_prompt(personas: list) -> str:
+    """Format global Persona rows for the strategist (names must match DB exactly).
+
+    ``personas`` is a list of SQLAlchemy ``Persona`` models or duck-typed objects with ``name`` and ``description``.
+    """
+    if not personas:
+        return ""
+    lines: list[str] = []
+    for p in personas:
+        name = getattr(p, "name", "") or ""
+        raw_desc = getattr(p, "description", "") or ""
+        desc = " ".join(raw_desc.split())
+        if len(desc) > 280:
+            desc = desc[:277].rstrip() + "..."
+        lines.append(f"- `{name}` — {desc}")
+    return "\n".join(lines)
+
+
 def build_messages_for_completion(
     conversation_history: list[dict],
     filter_context: dict | None = None,
     campaign_context: dict | None = None,
     previous_plan: str | None = None,
+    personas_catalog: str | None = None,
 ) -> list[dict]:
     """Build the full message list for the Grok API call.
 
@@ -117,6 +137,12 @@ def build_messages_for_completion(
     if previous_plan:
         context_parts.append(
             f"Previous plan (for reference if the user wants to revise): {previous_plan}"
+        )
+
+    if personas_catalog:
+        context_parts.append(
+            "Persona library (required names for persona_groups — copy each name exactly as shown in backticks):\n"
+            + personas_catalog
         )
 
     if context_parts:

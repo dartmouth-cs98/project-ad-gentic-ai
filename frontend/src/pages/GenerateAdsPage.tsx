@@ -7,6 +7,7 @@ import { ChatPanel, ResultsPanel } from '../components/generate';
 import type { Phase, Version } from '../components/generate';
 import type { Campaign, ChatMessage, AdVariant } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
+import { buildGenerationPreferencesSnapshot } from '../types/generationPreferences';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
@@ -177,6 +178,7 @@ export function GenerateAdsPage() {
     language: filterState.language,
     platforms: Array.from(filterState.selectedPlatforms),
     colorMode: filterState.colorMode,
+    ...(filterState.colorMode === 'custom' ? { customColor: filterState.customColor } : {}),
   });
 
   // Variants selection state
@@ -300,12 +302,10 @@ export function GenerateAdsPage() {
     const newVersion = versionCounter;
     const briefContent = planMessage.content;
     const existingBrief = activeCampaign.brief ? JSON.parse(activeCampaign.brief) : {};
-    existingBrief[String(newVersion)] = briefContent;
-
-    updateCampaign.mutate({
-      campaignId: activeCampaignId,
-      data: { brief: JSON.stringify(existingBrief) },
-    });
+    existingBrief[String(newVersion)] = {
+      plan_message: briefContent,
+      generation_preferences: buildGenerationPreferencesSnapshot(filterState),
+    };
 
     sendAssistantMessage(
       'Plan approved! Starting ad generation — this may take a few minutes...',
@@ -313,13 +313,39 @@ export function GenerateAdsPage() {
     setPhase('generating');
     setGeneratingVersionNumber(newVersion);
 
-    generatePreview.mutate(
-      { campaignId: activeCampaignId, productId, versionNumber: newVersion },
+    // Persist brief first: preview reads campaign.brief from the DB; firing preview in parallel
+    // races the save and yields no plan_message / wrong personas for this version.
+    updateCampaign.mutate(
       {
-        onError: (err) => {
+        campaignId: activeCampaignId,
+        data: { brief: JSON.stringify(existingBrief) },
+      },
+      {
+        onSuccess: () => {
+          generatePreview.mutate(
+            { campaignId: activeCampaignId, productId, versionNumber: newVersion },
+            {
+              onSuccess: (data) => {
+                if (!data.ad_variant_ids?.length) {
+                  setPhase('idle');
+                  setGeneratingVersionNumber(null);
+                  sendAssistantMessage(
+                    'Preview returned no variants. Check that persona names in the plan match your Personas catalog and that this business has consumers for those personas.',
+                  );
+                }
+              },
+              onError: (err) => {
+                setPhase('idle');
+                setGeneratingVersionNumber(null);
+                sendAssistantMessage(`Generation failed: ${(err as Error).message}. Please try again.`);
+              },
+            },
+          );
+        },
+        onError: () => {
           setPhase('idle');
           setGeneratingVersionNumber(null);
-          sendAssistantMessage(`Generation failed: ${(err as Error).message}. Please try again.`);
+          sendAssistantMessage('Could not save the approved plan. Please try again.');
         },
       },
     );

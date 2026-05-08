@@ -32,7 +32,10 @@ async def generate_campaign_preview(campaign_id: int, product_id: int, version_n
 
 @router.post("/generate-campaign-ad-variants")
 async def generate_campaign_ad_variants(campaign_id: int, product_id: int, version_number: int):
-    batch_id = await run_generate_campaign_ad_variants(campaign_id, product_id, version_number)
+    try:
+        batch_id = await run_generate_campaign_ad_variants(campaign_id, product_id, version_number)
+    except AdJobClientError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     if batch_id is None:
         return {"status": "completed", "message": "No ad variants to generate"}
     return {"status": "completed", "batch_id": str(batch_id), "message": "Campaign ad variants enqueued"}

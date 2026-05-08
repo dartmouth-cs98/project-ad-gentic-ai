@@ -238,13 +238,13 @@ async def generate_campaign_preview(
     """Generate preview ad variants using the approved plan's persona groups when available.
 
     For each ``persona_groups[]`` entry we resolve the DB persona by name, take up to
-    ``variants_per_group`` distinct consumers for this tenant (preference snapshot wins over
-    ``variant_count`` in the plan JSON). If the plan lists non-empty ``persona_groups`` but no
-    variants can be produced (no DB match, no consumers, etc.), returns an **empty** list — no
-    random fallback. Legacy behavior (up to 6 random personas, one consumer each) runs only when
-    the brief uses **legacy** string entries or structured entries with **no** usable
-    ``persona_groups`` list. For **structured** briefs, if ``plan_message`` is non-empty but the
-    fenced plan JSON cannot be parsed, returns **empty** (fail closed — no legacy fallback).
+    ``variants_per_group`` distinct consumers from the database (any client; preference snapshot
+    wins over ``variant_count`` in the plan JSON). If the plan lists non-empty ``persona_groups``
+    but no variants can be produced (no DB match, no consumers, etc.), returns an **empty** list — no
+    random fallback. Legacy behavior (up to 6 random personas, one consumer each from the full
+    consumer table) runs only when the brief uses **legacy** string entries or structured entries
+    with **no** usable ``persona_groups`` list. For **structured** briefs, if ``plan_message`` is
+    non-empty but the fenced plan JSON cannot be parsed, returns **empty** (fail closed — no legacy fallback).
     """
     factory = _get_session_factory()
     db: Session = factory()
@@ -259,8 +259,10 @@ async def generate_campaign_preview(
         plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
         if structured_brief and (plan_message or "").strip() and plan is None:
             logger.warning(
-                "Preview: structured brief has plan_message but plan JSON could not be parsed — "
-                "returning empty (no legacy fallback)",
+                "Preview: campaign_id=%s business_client_id=%s structured brief has plan_message "
+                "but plan JSON could not be parsed — returning empty (no legacy fallback)",
+                campaign_id,
+                campaign.business_client_id,
             )
             return []
         groups = plan.get("persona_groups") if plan else None
@@ -268,7 +270,6 @@ async def generate_campaign_preview(
         if isinstance(groups, list) and groups:
             personas = load_all_personas(db)
             created_ad_variant_ids: list[int] = []
-            client_id = campaign.business_client_id
             for g in groups:
                 if not isinstance(g, dict):
                     continue
@@ -281,12 +282,13 @@ async def generate_campaign_preview(
                     )
                     continue
                 consumers = get_consumers_by_persona_id(db, persona.id)
-                consumers = [c for c in consumers if c.business_client_id == client_id]
                 if not consumers:
                     logger.warning(
-                        "Preview: no consumers for persona %s (client %s)",
+                        "Preview: campaign_id=%s business_client_id=%s no consumers for persona %s "
+                        "(primary persona match in database)",
+                        campaign_id,
+                        campaign.business_client_id,
                         persona.name,
-                        client_id,
                     )
                     continue
                 n = variants_per_group_target(g, prefs)
@@ -299,7 +301,10 @@ async def generate_campaign_preview(
             if created_ad_variant_ids:
                 return created_ad_variant_ids
             logger.warning(
-                "Preview: plan had persona_groups but produced no variants — returning empty (no random fallback)",
+                "Preview: campaign_id=%s business_client_id=%s plan had persona_groups but produced "
+                "no variants — returning empty (no random fallback)",
+                campaign_id,
+                campaign.business_client_id,
             )
             return []
 
@@ -311,7 +316,6 @@ async def generate_campaign_preview(
         created_ad_variant_ids = []
         for persona in selected_personas:
             consumers = get_consumers_by_persona_id(db, persona.id)
-            consumers = [c for c in consumers if c.business_client_id == campaign.business_client_id]
             if not consumers:
                 continue
             selected_consumer = random.choice(consumers)
@@ -329,13 +333,14 @@ async def generate_campaign_ad_variants(
 ):
     """Enqueue ad jobs for consumers missing variants for this campaign/version.
 
-    When the approved plan JSON lists ``persona_groups``, only consumers whose **primary**
+    When the approved plan JSON lists non-empty ``persona_groups``, only consumers whose **primary**
     persona matches one of those groups (by name → Persona row) are included. If the plan lists
     groups but **no** names resolve to DB personas, returns ``None`` (no batch — avoids silently
-    enqueueing the entire tenant). When the plan has no usable ``persona_groups``, all tenant
-    consumers remain eligible (**legacy string briefs only**). For **structured** briefs, if
-    ``plan_message`` is non-empty but the fenced plan JSON cannot be parsed, returns ``None``
-    (fail closed — no full-tenant enqueue).
+    enqueueing every consumer). When there is no usable ``persona_groups`` list (absent, empty
+    after parse, or no plan JSON), **all** consumers in the database are eligible for missing
+    variants—same path for legacy string briefs and structured briefs once JSON parses. For
+    **structured** briefs, if ``plan_message`` is non-empty but the fenced plan JSON cannot be
+    parsed, returns ``None`` (fail closed — no enqueue of the full consumer table).
     """
     factory = _get_session_factory()
     db: Session = factory()
@@ -350,8 +355,10 @@ async def generate_campaign_ad_variants(
         plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
         if structured_brief and (plan_message or "").strip() and plan is None:
             logger.warning(
-                "Batch: structured brief has plan_message but plan JSON could not be parsed — "
-                "skipping enqueue (fix fenced ```json block in approved plan)",
+                "Batch: campaign_id=%s business_client_id=%s structured brief has plan_message but "
+                "plan JSON could not be parsed — skipping enqueue (fix fenced ```json block in approved plan)",
+                campaign_id,
+                campaign.business_client_id,
             )
             return None
         raw_groups = plan.get("persona_groups") if plan else None
@@ -359,15 +366,16 @@ async def generate_campaign_ad_variants(
         matched_persona_ids = resolve_persona_ids_from_plan(db, plan) if plan else set()
         if has_groups and not matched_persona_ids:
             logger.warning(
-                "Batch: plan lists persona_groups but none matched dbo.personas — "
-                "skipping enqueue (fix plan JSON names to match the persona catalog)",
+                "Batch: campaign_id=%s business_client_id=%s plan lists persona_groups but none "
+                "matched dbo.personas — skipping enqueue (fix plan JSON names to match the persona catalog)",
+                campaign_id,
+                campaign.business_client_id,
             )
             return None
 
         filter_by_persona = bool(has_groups and matched_persona_ids)
 
         consumers = get_all_consumers(db)
-        consumers = [c for c in consumers if c.business_client_id == campaign.business_client_id]
 
         need_to_generate = []
         for consumer in consumers:

@@ -394,6 +394,47 @@ async def test_execute_ad_job_json_image_name_uses_first_blob_for_download(
 
 
 @pytest.mark.asyncio
+async def test_generate_campaign_preview_uses_consumers_from_any_client():
+    """Preview picks consumers by persona across the DB, not scoped to the campaign's client."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```json\n"
+                '{"persona_groups":[{"name":"Trail Fans","variant_count":1}]}'
+                "\n```"
+            ),
+        },
+    })
+    mock_persona = MagicMock()
+    mock_persona.id = "persona-uuid-1"
+    mock_persona.name = "Trail Fans"
+    mock_consumer = MagicMock()
+    mock_consumer.id = 10
+    mock_consumer.business_client_id = 999  # not the campaign client
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.load_all_personas",
+            return_value=[mock_persona],
+        ),
+        patch(
+            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
+            return_value=[mock_consumer],
+        ),
+        patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock, return_value=99) as exec_patch,
+    ):
+        result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
+    assert result == [99]
+    exec_patch.assert_called_once_with(1, 1, 10, 1, is_preview=True)
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_generate_campaign_preview_returns_list_of_ad_variant_ids():
     """Plan-driven preview: match persona_groups from approved brief JSON; one variant per distinct consumer (capped)."""
     mock_db = MagicMock()
@@ -481,7 +522,8 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
     mock_campaign.brief = None
     mock_consumer = MagicMock()
     mock_consumer.id = 5
-    mock_consumer.business_client_id = 7
+    # Consumer may belong to any client; batch generation uses the full consumer table.
+    mock_consumer.business_client_id = 999
     mock_consumer.primary_persona_id = None
     mock_batch = MagicMock()
     batch_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
@@ -501,7 +543,7 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
 
 @pytest.mark.asyncio
 async def test_generate_campaign_ad_variants_returns_none_when_structured_plan_json_unparseable():
-    """Fail-closed: structured brief with non-empty plan_message but no ```json fence — no full-tenant batch."""
+    """Fail-closed: structured brief with non-empty plan_message but no ```json fence — no full-database batch."""
     mock_db = MagicMock()
     mock_factory = MagicMock(return_value=mock_db)
     mock_campaign = MagicMock()

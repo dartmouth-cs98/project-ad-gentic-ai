@@ -238,7 +238,7 @@ async def generate_campaign_preview(
     """Generate preview ad variants using the approved plan's persona groups when available.
 
     For each ``persona_groups[]`` entry we resolve the DB persona by name, take up to
-    ``variants_per_group`` distinct consumers for this tenant (preference snapshot wins over
+    ``variants_per_group`` distinct consumers from the database (preference snapshot wins over
     ``variant_count`` in the plan JSON). If the plan lists non-empty ``persona_groups`` but no
     variants can be produced (no DB match, no consumers, etc.), returns an **empty** list — no
     random fallback. Legacy behavior (up to 6 random personas, one consumer each) runs only when
@@ -268,7 +268,6 @@ async def generate_campaign_preview(
         if isinstance(groups, list) and groups:
             personas = load_all_personas(db)
             created_ad_variant_ids: list[int] = []
-            client_id = campaign.business_client_id
             for g in groups:
                 if not isinstance(g, dict):
                     continue
@@ -281,12 +280,10 @@ async def generate_campaign_preview(
                     )
                     continue
                 consumers = get_consumers_by_persona_id(db, persona.id)
-                consumers = [c for c in consumers if c.business_client_id == client_id]
                 if not consumers:
                     logger.warning(
-                        "Preview: no consumers for persona %s (client %s)",
+                        "Preview: no consumers for persona %s",
                         persona.name,
-                        client_id,
                     )
                     continue
                 n = variants_per_group_target(g, prefs)
@@ -311,7 +308,6 @@ async def generate_campaign_preview(
         created_ad_variant_ids = []
         for persona in selected_personas:
             consumers = get_consumers_by_persona_id(db, persona.id)
-            consumers = [c for c in consumers if c.business_client_id == campaign.business_client_id]
             if not consumers:
                 continue
             selected_consumer = random.choice(consumers)
@@ -332,10 +328,10 @@ async def generate_campaign_ad_variants(
     When the approved plan JSON lists ``persona_groups``, only consumers whose **primary**
     persona matches one of those groups (by name → Persona row) are included. If the plan lists
     groups but **no** names resolve to DB personas, returns ``None`` (no batch — avoids silently
-    enqueueing the entire tenant). When the plan has no usable ``persona_groups``, all tenant
-    consumers remain eligible (**legacy string briefs only**). For **structured** briefs, if
-    ``plan_message`` is non-empty but the fenced plan JSON cannot be parsed, returns ``None``
-    (fail closed — no full-tenant enqueue).
+    enqueueing the full consumer pool without a persona filter). When the plan has no usable
+    ``persona_groups``, all consumers in the database remain eligible (**legacy string briefs
+    only**). For **structured** briefs, if ``plan_message`` is non-empty but the fenced plan JSON
+    cannot be parsed, returns ``None`` (fail closed — no full-database enqueue).
     """
     factory = _get_session_factory()
     db: Session = factory()
@@ -367,7 +363,6 @@ async def generate_campaign_ad_variants(
         filter_by_persona = bool(has_groups and matched_persona_ids)
 
         consumers = get_all_consumers(db)
-        consumers = [c for c in consumers if c.business_client_id == campaign.business_client_id]
 
         need_to_generate = []
         for consumer in consumers:

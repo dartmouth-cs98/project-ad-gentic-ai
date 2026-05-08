@@ -578,7 +578,7 @@ async def test_generate_campaign_ad_variants_enqueues_consumers_from_all_busines
 
 @pytest.mark.asyncio
 async def test_generate_campaign_ad_variants_returns_none_when_structured_plan_json_unparseable():
-    """Fail-closed: structured brief with non-empty plan_message but no ```json fence — no full-tenant batch."""
+    """Fail-closed: structured brief with non-empty plan_message but no ```json fence — no full-database batch."""
     mock_db = MagicMock()
     mock_factory = MagicMock(return_value=mock_db)
     mock_campaign = MagicMock()

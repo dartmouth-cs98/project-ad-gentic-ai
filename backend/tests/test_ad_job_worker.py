@@ -434,6 +434,46 @@ async def test_generate_campaign_preview_returns_list_of_ad_variant_ids():
 
 
 @pytest.mark.asyncio
+async def test_generate_campaign_preview_uses_consumer_from_any_business_client():
+    """Preview resolves consumers by persona across all clients, not only the campaign's business_client."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```json\n"
+                '{"persona_groups":[{"name":"Trail Fans","variant_count":1}]}'
+                "\n```"
+            ),
+        },
+    })
+    mock_persona = MagicMock()
+    mock_persona.id = "persona-uuid-1"
+    mock_persona.name = "Trail Fans"
+    mock_consumer = MagicMock()
+    mock_consumer.id = 10
+    mock_consumer.business_client_id = 999
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.load_all_personas",
+            return_value=[mock_persona],
+        ),
+        patch(
+            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
+            return_value=[mock_consumer],
+        ),
+        patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock, return_value=99),
+    ):
+        result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
+    assert result == [99]
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_generate_campaign_preview_returns_empty_when_plan_groups_yield_no_variants():
     """Non-empty persona_groups but zero variants — fail-closed; no legacy random fallback."""
     mock_db = MagicMock()
@@ -496,6 +536,43 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
     ):
         result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
     assert result == batch_id
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_campaign_ad_variants_enqueues_consumers_from_all_business_clients():
+    """Full campaign batch includes every DB consumer missing a variant, not only the campaign's client."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    mock_campaign.brief = None
+    mock_consumer_a = MagicMock()
+    mock_consumer_a.id = 5
+    mock_consumer_a.business_client_id = 7
+    mock_consumer_a.primary_persona_id = None
+    mock_consumer_b = MagicMock()
+    mock_consumer_b.id = 6
+    mock_consumer_b.business_client_id = 99
+    mock_consumer_b.primary_persona_id = None
+    mock_batch = MagicMock()
+    batch_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    mock_batch.id = batch_id
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.get_all_consumers",
+            return_value=[mock_consumer_a, mock_consumer_b],
+        ),
+        patch("workers.ad_job_worker.worker.get_ad_variant_by_campaign_consumer_version", return_value=None),
+        patch("workers.ad_job_worker.worker.create_ad_job_batch", return_value=mock_batch),
+        patch("workers.ad_job_worker.worker.create_ad_job") as mock_create_job,
+    ):
+        result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
+    assert result == batch_id
+    mock_create_job.assert_called()
+    assert mock_create_job.call_count == 2
     mock_db.close.assert_called_once()
 
 

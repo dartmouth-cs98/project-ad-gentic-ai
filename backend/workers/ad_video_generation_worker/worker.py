@@ -53,9 +53,17 @@ def _sora_configured() -> bool:
     return bool(api_key) and api_key.upper() != "YOUR_API_KEY"
 
 
+def _resolve_veo_api_key() -> str:
+    """First non-empty Veo/Gemini API key (``GOOGLE_VEO_API_KEY`` > ``GOOGLE_API_KEY`` > ``GEMINI_API_KEY``)."""
+    for env in ("GOOGLE_VEO_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY"):
+        key = os.getenv(env, "").strip()
+        if key and key.upper() != "YOUR_API_KEY":
+            return key
+    return ""
+
+
 def _veo_configured() -> bool:
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    return bool(api_key) and not _using_vertex_genai()
+    return bool(_resolve_veo_api_key()) and not _using_vertex_genai()
 
 
 def resolve_video_provider(
@@ -185,18 +193,19 @@ async def generate_ad_video_google_veo(
     keep ``GOOGLE_GENAI_USE_VERTEXAI`` unset when using this helper.
     """
     _ = product_image_filename
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError(
-            "Google Veo env vars not configured (set GEMINI_API_KEY)."
-        )
     if _using_vertex_genai():
         raise RuntimeError(
             "generate_ad_video_google_veo targets the Gemini Developer API. "
             "Unset GOOGLE_GENAI_USE_VERTEXAI / GOOGLE_GENAI_USE_ENTERPRISE or use a Google AI Studio API key."
         )
 
-    model = DEFAULT_VEO_MODEL
+    api_key = _resolve_veo_api_key()
+    if not api_key:
+        raise RuntimeError(
+            "Google Veo env vars not configured (set GOOGLE_VEO_API_KEY, GOOGLE_API_KEY, or GEMINI_API_KEY)."
+        )
+
+    model = os.getenv("GOOGLE_VEO_MODEL", "").strip() or DEFAULT_VEO_MODEL
     seconds = allowed_video_seconds()
     prefix = video_prompt_audio_prefix(seconds)
     # Veo 3.1: durationSeconds must be 8 when using reference_images (Gemini API table).

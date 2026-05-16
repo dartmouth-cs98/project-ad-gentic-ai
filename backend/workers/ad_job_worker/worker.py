@@ -38,7 +38,7 @@ from utils.plan_execution import (
     pick_consumers_for_preview_group,
 )
 from workers.script_creation_worker.worker import generate_ad_script
-from workers.ad_video_generation_worker.worker import generate_ad_video
+from workers.ad_video_generation_worker.worker import generate_ad_video_for_script
 from workers.script_moderation_worker.worker import evaluate_script
 from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import BlobClient, ContentSettings
@@ -173,7 +173,7 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
         logger.info("Finished generating ad script")
 
         logger.info("Generating ad video")
-        ad_video_bytes = await generate_ad_video(
+        ad_video_bytes = await generate_ad_video_for_script(
             script, product_image_bytes, product_image_type, product_image_filename
         )
         logger.info("Finished generating ad video")

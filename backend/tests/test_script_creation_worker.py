@@ -234,6 +234,76 @@ async def test_generate_ad_script_returns_script_from_mock_client():
     assert "input" in call_kw
 
 
+@pytest.mark.asyncio
+async def test_generate_ad_script_logs_raw_response_when_output_has_no_content(caplog):
+    mock_response = MagicMock()
+    mock_response.status = "incomplete"
+    mock_response.output = [MagicMock(content=[])]
+    mock_response.model_dump.return_value = {
+        "status": "incomplete",
+        "output": [{"type": "message", "content": []}],
+    }
+
+    mock_client = MagicMock()
+    mock_client.responses.create = AsyncMock(return_value=mock_response)
+
+    with (
+        patch("workers.script_creation_worker.worker.AsyncOpenAI", return_value=mock_client),
+        patch.dict(
+            "os.environ",
+            {"SCRIPT_API_KEY": "test-key", "SCRIPT_MODEL": "test-model", "SCRIPT_BASE_URL": "https://api.test"},
+        ),
+        caplog.at_level("ERROR"),
+    ):
+        with pytest.raises(ValueError, match="no extractable text"):
+            await generate_ad_script(
+                product_name="Test Product",
+                product_description="Desc",
+                product_image_data_url="data:image/png;base64,abc",
+                consumer_traits_string="age: 25",
+                campaign_brief="Brief",
+            )
+
+    assert any("raw_response=" in record.message for record in caplog.records)
+    assert any("incomplete" in record.message for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_generate_ad_script_extracts_text_after_reasoning_block():
+    """Grok 4.x returns reasoning first, message second — parser must use the message."""
+    script_body = "Overview: POV ad.\n\n## Beat 1 — 0–2s (hook)"
+    reasoning = MagicMock()
+    reasoning.type = "reasoning"
+    reasoning.content = None
+    message = MagicMock()
+    message.type = "message"
+    message.content = [MagicMock(text=script_body, type="output_text")]
+
+    mock_response = MagicMock()
+    mock_response.output_text = None
+    mock_response.output = [reasoning, message]
+
+    mock_client = MagicMock()
+    mock_client.responses.create = AsyncMock(return_value=mock_response)
+
+    with (
+        patch("workers.script_creation_worker.worker.AsyncOpenAI", return_value=mock_client),
+        patch.dict(
+            "os.environ",
+            {"SCRIPT_API_KEY": "test-key", "SCRIPT_MODEL": "grok-4", "SCRIPT_BASE_URL": "https://api.test"},
+        ),
+    ):
+        result = await generate_ad_script(
+            product_name="Test Product",
+            product_description="Desc",
+            product_image_data_url="data:image/png;base64,abc",
+            consumer_traits_string="age: 25",
+            campaign_brief="Brief",
+        )
+
+    assert result == script_body
+
+
 # ---------------------------------------------------------------------------
 # Tests — batch_generate_ad_scripts (mocked xai_sdk Client)
 # ---------------------------------------------------------------------------

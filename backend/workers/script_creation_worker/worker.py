@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import os
 import json
+import logging
+import os
 
 from dotenv import load_dotenv
 
+from utils.responses_api_text import extract_responses_api_text
 from utils.video_timing import (
     AUDIO_END_GUARD,
     AUDIO_START_GUARD,
@@ -20,6 +22,30 @@ from xai_sdk import Client
 from xai_sdk.chat import system, user, image
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+_SCRIPT_API_RESPONSE_LOG_MAX_LEN = 12_000
+
+
+def _script_api_response_for_log(response: object) -> str:
+    """Serialize a Script API response for error logs (truncated, no secrets scrubbing)."""
+    try:
+        if hasattr(response, "model_dump"):
+            payload = response.model_dump(mode="json", exclude_none=True)
+            text = json.dumps(payload, default=str)
+        elif hasattr(response, "model_dump_json"):
+            text = response.model_dump_json(exclude_none=True)
+        else:
+            text = json.dumps({"repr": repr(response)}, default=str)
+    except Exception as exc:
+        text = json.dumps(
+            {"serialize_error": str(exc), "repr": repr(response)},
+            default=str,
+        )
+    if len(text) > _SCRIPT_API_RESPONSE_LOG_MAX_LEN:
+        return text[:_SCRIPT_API_RESPONSE_LOG_MAX_LEN] + "…[truncated]"
+    return text
 
 
 def _format_generation_preferences_block(prefs: GenerationPreferences | None) -> str:
@@ -211,13 +237,17 @@ async def generate_ad_script(
         max_output_tokens=2000
     )
 
-    # Responses API: output is a list of items; each item has content (list) with text.
-    if not response.output or len(response.output) == 0:
-        raise ValueError("Script API returned no output")
-    first_output = response.output[0]
-    if not getattr(first_output, "content", None) or len(first_output.content) == 0:
-        raise ValueError("Script API returned output with no content")
-    script = first_output.content[0].text
+    script = extract_responses_api_text(response)
+    if not script:
+        raw_response = _script_api_response_for_log(response)
+        status = getattr(response, "status", None)
+        logger.error(
+            "Script API returned no extractable text (model=%s, status=%s). raw_response=%s",
+            model,
+            status,
+            raw_response,
+        )
+        raise ValueError("Script API returned no extractable text")
     return script
 
 def batch_generate_ad_scripts(

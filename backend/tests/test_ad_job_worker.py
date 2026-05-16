@@ -191,7 +191,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Mock script text"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"mock video bytes"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"mock video bytes"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -205,7 +205,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
     assert result == 42
     mock_db.close.assert_called_once()
     # Script and video helpers should have been called
-    from workers.ad_job_worker.worker import generate_ad_script, generate_ad_video
+    from workers.ad_job_worker.worker import generate_ad_script, generate_ad_video_for_script
     # (patched, so we just check they were invoked via the fact that result is 42 and no exception)
 
 
@@ -231,7 +231,7 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", mock_gen_script),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"video"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"video"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -272,7 +272,7 @@ async def test_execute_ad_job_prefers_consumer_traits_description(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", mock_gen_script),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"video"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"video"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -289,7 +289,7 @@ async def test_execute_ad_job_prefers_consumer_traits_description(
 
 
 @pytest.mark.asyncio
-async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
+async def test_execute_ad_job_calls_generate_ad_video_for_script_with_script_and_image(
     mock_db,
     mock_session_factory,
     mock_ad_variant,
@@ -298,7 +298,7 @@ async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
     mock_product,
     mock_blob_client,
 ):
-    """execute_ad_job passes script and image bytes/type/filename to generate_ad_video."""
+    """execute_ad_job passes script and image bytes/type/filename to generate_ad_video_for_script."""
     mock_generate_video = AsyncMock(return_value=b"video")
     with (
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
@@ -310,7 +310,7 @@ async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Script"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", mock_generate_video),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", mock_generate_video),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -342,7 +342,7 @@ async def test_execute_ad_job_uses_image_name_fallback(mock_db, mock_session_fac
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="S"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"v"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"v"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -374,7 +374,7 @@ async def test_execute_ad_job_json_image_name_uses_first_blob_for_download(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="S"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"v"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"v"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
         await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)

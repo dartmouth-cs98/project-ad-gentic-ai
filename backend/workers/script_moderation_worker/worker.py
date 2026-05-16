@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
+from utils.responses_api_text import extract_responses_api_text
+
 load_dotenv()
 
 
@@ -77,10 +79,7 @@ async def evaluate_script(script: str) -> ModerationVerdict:
         max_output_tokens=800,
     )
 
-    if not response.output or len(response.output) == 0:
-        raise ValueError("Moderation API returned no output")
-    first_output = response.output[0]
-    if not getattr(first_output, "content", None) or len(first_output.content) == 0:
-        raise ValueError("Moderation API returned output with no content")
-    text = first_output.content[0].text
+    text = extract_responses_api_text(response)
+    if not text:
+        raise ValueError("Moderation API returned no extractable text")
     return _parse_verdict_json(text)

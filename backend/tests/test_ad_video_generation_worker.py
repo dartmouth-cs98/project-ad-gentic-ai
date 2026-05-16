@@ -110,8 +110,8 @@ Drone montage — ambient only.
 async def test_generate_ad_video_for_script_falls_back_when_preferred_missing():
     with (
         patch(
-            "workers.ad_video_generation_worker.worker.choose_video_provider",
-            return_value="veo",
+            "workers.ad_video_generation_worker.worker.choose_video_provider_with_reason",
+            return_value=MagicMock(provider="veo", confidence=1.0, reason="test", features={}, fallback_used=False),
         ),
         patch(
             "workers.ad_video_generation_worker.worker.generate_ad_video_google_veo",
@@ -353,7 +353,7 @@ async def test_generate_ad_video_google_veo_returns_bytes_from_file_download():
         assert cfg.aspect_ratio == "9:16"
         assert cfg.resolution == "720p"
         assert cfg.duration_seconds == 8
-        assert cfg.person_generation == "allow_adult"
+        assert cfg.person_generation == "allow_all"
         mock_client.aio.files.download.assert_awaited_once_with(file=video_obj)
 
 

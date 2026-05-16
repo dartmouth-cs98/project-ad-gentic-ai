@@ -10,7 +10,7 @@ from openai import AsyncOpenAI
 from utils.video_timing import allowed_video_seconds, video_prompt_audio_prefix
 from workers.ad_video_generation_worker.provider_selection import (
     VideoProvider,
-    choose_video_provider,
+    choose_video_provider_with_reason,
 )
 
 load_dotenv()
@@ -64,7 +64,7 @@ def resolve_video_provider(
     preferred: VideoProvider | None = None,
 ) -> VideoProvider:
     """Pick a provider from script content, then fall back if that backend is not configured."""
-    choice = preferred if preferred is not None else choose_video_provider(script)
+    choice = preferred if preferred is not None else choose_video_provider_with_reason(script).provider
     if choice == "veo" and _veo_configured():
         return "veo"
     if choice == "sora" and _sora_configured():
@@ -91,12 +91,16 @@ async def generate_ad_video_for_script(
     product_image_filename: str,
 ) -> bytes:
     """Generate ad video using Sora or Veo based on script content and configured API keys."""
-    preferred = choose_video_provider(script)
+    decision = choose_video_provider_with_reason(script)
+    preferred = decision.provider
     provider = resolve_video_provider(script, preferred=preferred)
     logger.info(
-        "Ad video provider: %s (content pick=%s)",
+        "Ad video provider: %s (content pick=%s, confidence=%.2f, fallback=%s, reason=%s)",
         provider,
         preferred,
+        decision.confidence,
+        decision.fallback_used,
+        decision.reason,
     )
     if provider == "veo":
         return await generate_ad_video_google_veo(

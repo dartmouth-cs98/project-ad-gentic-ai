@@ -7,6 +7,7 @@ Run from the backend directory:
 
 import json
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -28,6 +29,27 @@ from workers.ad_job_worker.worker import (
 from workers.script_moderation_worker.worker import ModerationVerdict
 
 _PASS_MODERATION = ModerationVerdict(passed=True, feedback="")
+
+
+@contextmanager
+def _mock_script_video_routing():
+    """Isolate ad-job tests from Grok classifier and VIDEO_* env requirements."""
+
+    async def _align(script: str, provider: str, **_: object):
+        return script, provider, 12
+
+    with (
+        patch(
+            "workers.ad_job_worker.worker.resolve_video_provider_for_script",
+            new_callable=AsyncMock,
+            return_value="sora",
+        ),
+        patch(
+            "workers.ad_job_worker.worker.align_script_with_video_provider",
+            side_effect=_align,
+        ),
+    ):
+        yield
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +204,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
 ):
     """execute_ad_job with all deps mocked returns the created ad_variant id."""
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -222,6 +245,7 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
     """execute_ad_job passes product name, description, consumer traits, and campaign brief to generate_ad_script."""
     mock_gen_script = AsyncMock(return_value="Script")
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -263,6 +287,7 @@ async def test_execute_ad_job_prefers_consumer_traits_description(
     mock_consumer.traits = '{"age": "99", "interest": "ignored"}'
     mock_gen_script = AsyncMock(return_value="Script")
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -301,6 +326,7 @@ async def test_execute_ad_job_calls_generate_ad_video_for_script_with_script_and
     """execute_ad_job passes script and image bytes/type/filename to generate_ad_video_for_script."""
     mock_generate_video = AsyncMock(return_value=b"video")
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -333,6 +359,7 @@ async def test_execute_ad_job_uses_image_name_fallback(mock_db, mock_session_fac
     product.image_name = "blob-name.png"
 
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -365,6 +392,7 @@ async def test_execute_ad_job_json_image_name_uses_first_blob_for_download(
     product.image_name = '["first.png", "second.png"]'
 
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),

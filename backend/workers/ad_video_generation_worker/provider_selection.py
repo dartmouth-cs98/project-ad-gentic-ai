@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -172,12 +173,24 @@ def _normalize_primary_failure_mode(raw: object) -> str:
     return mode
 
 
+def _extract_json_object(raw: str) -> str:
+    """Strip markdown fences and isolate a leading/trailing JSON object when Grok adds prose."""
+    text = raw.strip()
+    fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if fence:
+        text = fence.group(1).strip()
+    if text.startswith("{"):
+        return text
+    start = text.find("{")
+    end = text.rfind("}")
+    if start >= 0 and end > start:
+        return text[start : end + 1]
+    return text
+
+
 def parse_classifier_json(text: str) -> _GrokClassification:
     """Parse and validate strict JSON from the Grok classifier."""
-    raw = text.strip()
-    fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw)
-    if fence:
-        raw = fence.group(1).strip()
+    raw = _extract_json_object(text)
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -189,9 +202,11 @@ def parse_classifier_json(text: str) -> _GrokClassification:
         )
 
     provider_raw = data.get("provider")
+    if isinstance(provider_raw, str):
+        provider_raw = provider_raw.strip().lower()
     if provider_raw not in ("sora", "veo"):
         raise VideoProviderClassificationError(
-            f'invalid provider {provider_raw!r}; expected "sora" or "veo"'
+            f'invalid provider {data.get("provider")!r}; expected "sora" or "veo"'
         )
 
     confidence_raw = data.get("confidence")
@@ -200,7 +215,9 @@ def parse_classifier_json(text: str) -> _GrokClassification:
             f'"confidence" must be a number, got {type(confidence_raw).__name__}'
         )
     confidence = float(confidence_raw)
-    if confidence < 0.0:
+    if math.isnan(confidence):
+        confidence = 0.0
+    elif confidence < 0.0:
         confidence = 0.0
     elif confidence > 1.0:
         confidence = 1.0
@@ -283,7 +300,7 @@ def _classifier_failure_decision(reason: str) -> ProviderDecision:
 
 
 def choose_video_provider_with_reason(script: str) -> ProviderDecision:
-    """Classify the full script with Grok; safe Sora default only when classification fails."""
+    """Classify the full script with Grok; Sora preferred when classification fails."""
     if not script or not script.strip():
         return ProviderDecision(
             provider="sora",

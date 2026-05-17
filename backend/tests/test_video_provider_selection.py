@@ -300,6 +300,28 @@ def test_invalid_grok_json_defaults_to_sora():
     assert decision.confidence == 0.0
     assert decision.fallback_used is True
     assert "Grok classifier failed" in decision.reason
+    assert "defaulting to Sora" in decision.reason
+
+
+def test_parse_classifier_json_accepts_uppercase_provider():
+    payload = _payload(provider="veo", confidence=0.9, reason="ok")
+    payload["provider"] = "VEO"
+    result = parse_classifier_json(json.dumps(payload))
+    assert result.provider == "veo"
+
+
+def test_parse_classifier_json_treats_nan_confidence_as_zero():
+    payload = _payload(provider="sora", confidence=0.5, reason="ok")
+    raw = json.dumps(payload).replace("0.5", "NaN")
+    result = parse_classifier_json(raw)
+    assert result.confidence == 0.0
+
+
+def test_parse_classifier_json_extracts_object_from_preamble():
+    payload = _payload(provider="veo", confidence=0.8, reason="talking head")
+    text = f"Here is the classification:\n{json.dumps(payload)}"
+    result = parse_classifier_json(text)
+    assert result.provider == "veo"
 
 
 def test_parse_classifier_json_rejects_invalid_primary_failure_mode():

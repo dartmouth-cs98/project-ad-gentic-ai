@@ -15,9 +15,10 @@ sys.path.insert(0, str(_backend_dir))
 import pytest
 
 from workers.ad_video_generation_worker.provider_selection import ProviderDecision
+from utils.video_timing import allowed_video_seconds
 from workers.ad_video_generation_worker.worker import (
     DEFAULT_VEO_MODEL,
-    allowed_video_seconds,
+    VEO_DURATION_SECONDS,
     generate_ad_video,
     generate_ad_video_for_script,
     generate_ad_video_google_veo,
@@ -164,6 +165,105 @@ async def test_generate_ad_video_for_script_falls_back_when_preferred_missing():
     assert out == b"sora-fallback"
     mock_sora.assert_awaited_once()
     mock_veo.assert_not_called()
+
+
+def test_resolve_video_provider_raises_when_no_api_configured():
+    with patch.dict(
+        "os.environ",
+        {
+            "VIDEO_API_KEY": "",
+            "GEMINI_API_KEY": "",
+            "GOOGLE_API_KEY": "",
+            "GOOGLE_VEO_API_KEY": "",
+        },
+        clear=False,
+    ):
+        from workers.ad_video_generation_worker.worker import resolve_video_provider
+
+        with pytest.raises(RuntimeError, match="No video generation API configured"):
+            resolve_video_provider("script", preferred="sora")
+
+
+@pytest.mark.asyncio
+async def test_generate_ad_video_for_script_classifier_failure_prefers_sora_when_configured():
+    with (
+        patch(
+            "workers.ad_video_generation_worker.worker.choose_video_provider_with_reason",
+            return_value=ProviderDecision(
+                provider="sora",
+                confidence=0.0,
+                reason="Grok classifier failed (test); defaulting to Sora.",
+                primary_failure_mode="low_risk",
+                features={},
+                fallback_used=True,
+            ),
+        ),
+        patch(
+            "workers.ad_video_generation_worker.worker.generate_ad_video_google_veo",
+            new_callable=AsyncMock,
+        ) as mock_veo,
+        patch(
+            "workers.ad_video_generation_worker.worker.generate_ad_video",
+            new_callable=AsyncMock,
+            return_value=b"sora-bytes",
+        ) as mock_sora,
+        patch.dict(
+            "os.environ",
+            {"GEMINI_API_KEY": "g-key", "VIDEO_API_KEY": "v-key"},
+            clear=False,
+        ),
+    ):
+        out = await generate_ad_video_for_script(
+            script="any",
+            product_image_bytes=b"i",
+            product_image_type="image/png",
+            product_image_filename="x.png",
+        )
+
+    assert out == b"sora-bytes"
+    mock_sora.assert_awaited_once()
+    mock_veo.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_generate_ad_video_for_script_classifier_failure_uses_veo_when_sora_unavailable():
+    with (
+        patch(
+            "workers.ad_video_generation_worker.worker.choose_video_provider_with_reason",
+            return_value=ProviderDecision(
+                provider="sora",
+                confidence=0.0,
+                reason="Grok classifier failed (test); defaulting to Sora.",
+                primary_failure_mode="low_risk",
+                features={},
+                fallback_used=True,
+            ),
+        ),
+        patch(
+            "workers.ad_video_generation_worker.worker.generate_ad_video_google_veo",
+            new_callable=AsyncMock,
+            return_value=b"veo-bytes",
+        ) as mock_veo,
+        patch(
+            "workers.ad_video_generation_worker.worker.generate_ad_video",
+            new_callable=AsyncMock,
+        ) as mock_sora,
+        patch.dict(
+            "os.environ",
+            {"GEMINI_API_KEY": "g-key", "VIDEO_API_KEY": ""},
+            clear=False,
+        ),
+    ):
+        out = await generate_ad_video_for_script(
+            script="any",
+            product_image_bytes=b"i",
+            product_image_type="image/png",
+            product_image_filename="x.png",
+        )
+
+    assert out == b"veo-bytes"
+    mock_veo.assert_awaited_once()
+    mock_sora.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -374,7 +474,7 @@ async def test_generate_ad_video_google_veo_returns_bytes_from_file_download():
         mock_client.aio.models.generate_videos.assert_awaited_once()
         call_kw = mock_client.aio.models.generate_videos.await_args[1]
         assert call_kw["model"] == DEFAULT_VEO_MODEL
-        assert call_kw["prompt"] == video_prompt_audio_prefix(allowed_video_seconds()) + "Body"
+        assert call_kw["prompt"] == video_prompt_audio_prefix(VEO_DURATION_SECONDS) + "Body"
         cfg = call_kw["config"]
         assert len(cfg.reference_images) == 1
         ref = cfg.reference_images[0]

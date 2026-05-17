@@ -7,6 +7,13 @@ from google import genai
 from google.genai import types as genai_types
 from openai import AsyncOpenAI
 
+from utils.video_provider_config import (
+    require_video_api_configured,
+    resolve_veo_api_key,
+    sora_configured,
+    using_vertex_genai,
+    veo_configured,
+)
 from utils.video_timing import allowed_video_seconds, video_prompt_audio_prefix
 from workers.ad_video_generation_worker.provider_selection import (
     VideoProvider,
@@ -22,10 +29,12 @@ POLL_INTERVAL_SECONDS = 5
 MAX_POLL_ATTEMPTS = 120  # 10 minutes at 5s interval
 TERMINAL_FAILURE_STATUS = "failed"
 
-_VEO_VERTEX_ENV_MARKERS = ("true", "1", "yes")
+# Veo 3.1 requires 8s when using reference_images (Gemini API).
+VEO_DURATION_SECONDS = 8
 
 # Default matches Gemini API video docs (e.g. dialogue & reference-image examples).
 DEFAULT_VEO_MODEL = "veo-3.1-generate-preview"
+
 
 def _operation_generated_videos(operation: object) -> list | None:
     """Prefer ``operation.response`` (Gemini docs); fall back to ``operation.result`` (SDK)."""
@@ -41,31 +50,6 @@ def _operation_generated_videos(operation: object) -> list | None:
     return None
 
 
-def _using_vertex_genai() -> bool:
-    for env in ("GOOGLE_GENAI_USE_VERTEXAI", "GOOGLE_GENAI_USE_ENTERPRISE"):
-        if os.getenv(env, "").strip().lower() in _VEO_VERTEX_ENV_MARKERS:
-            return True
-    return False
-
-
-def _sora_configured() -> bool:
-    api_key = os.getenv("VIDEO_API_KEY", "").strip()
-    return bool(api_key) and api_key.upper() != "YOUR_API_KEY"
-
-
-def _resolve_veo_api_key() -> str:
-    """First non-empty Veo/Gemini API key (``GOOGLE_VEO_API_KEY`` > ``GOOGLE_API_KEY`` > ``GEMINI_API_KEY``)."""
-    for env in ("GOOGLE_VEO_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY"):
-        key = os.getenv(env, "").strip()
-        if key and key.upper() != "YOUR_API_KEY":
-            return key
-    return ""
-
-
-def _veo_configured() -> bool:
-    return bool(_resolve_veo_api_key()) and not _using_vertex_genai()
-
-
 def resolve_video_provider(
     script: str,
     *,
@@ -73,23 +57,24 @@ def resolve_video_provider(
 ) -> VideoProvider:
     """Pick a provider from script content, then fall back if that backend is not configured."""
     choice = preferred if preferred is not None else choose_video_provider_with_reason(script).provider
-    if choice == "veo" and _veo_configured():
+    if choice == "veo" and veo_configured():
         return "veo"
-    if choice == "sora" and _sora_configured():
+    if choice == "sora" and sora_configured():
         return "sora"
-    if _veo_configured():
+    if veo_configured():
         logger.warning(
-            "Preferred video provider %r unavailable; using Veo (GEMINI_API_KEY).",
+            "Preferred video provider %r unavailable; using Veo (GOOGLE_VEO_API_KEY / GOOGLE_API_KEY / GEMINI_API_KEY).",
             choice,
         )
         return "veo"
-    if _sora_configured():
+    if sora_configured():
         logger.warning(
             "Preferred video provider %r unavailable; using Sora (VIDEO_API_KEY).",
             choice,
         )
         return "sora"
-    return choice
+    require_video_api_configured()
+    return choice  # unreachable; satisfies type checker
 
 
 async def generate_ad_video_for_script(
@@ -99,14 +84,18 @@ async def generate_ad_video_for_script(
     product_image_filename: str,
 ) -> bytes:
     """Generate ad video using Sora or Veo based on script content and configured API keys."""
-    decision = choose_video_provider_with_reason(script)
-    preferred = decision.provider
-    provider = resolve_video_provider(script, preferred=preferred)
+    decision = await asyncio.to_thread(choose_video_provider_with_reason, script)
+    if decision.fallback_used:
+        content_pick = "sora"
+        provider = resolve_video_provider(script, preferred="sora")
+    else:
+        content_pick = decision.provider
+        provider = resolve_video_provider(script, preferred=decision.provider)
     logger.info(
         "Ad video provider: %s (content pick=%s, confidence=%.2f, "
-        "primary_failure_mode=%s, fallback=%s, reason=%s)",
+        "primary_failure_mode=%s, classifier_fallback=%s, reason=%s)",
         provider,
-        preferred,
+        content_pick,
         decision.confidence,
         decision.primary_failure_mode,
         decision.fallback_used,
@@ -195,29 +184,27 @@ async def generate_ad_video_google_veo(
     keep ``GOOGLE_GENAI_USE_VERTEXAI`` unset when using this helper.
     """
     _ = product_image_filename
-    if _using_vertex_genai():
+    if using_vertex_genai():
         raise RuntimeError(
             "generate_ad_video_google_veo targets the Gemini Developer API. "
             "Unset GOOGLE_GENAI_USE_VERTEXAI / GOOGLE_GENAI_USE_ENTERPRISE or use a Google AI Studio API key."
         )
 
-    api_key = _resolve_veo_api_key()
+    api_key = resolve_veo_api_key()
     if not api_key:
         raise RuntimeError(
             "Google Veo env vars not configured (set GOOGLE_VEO_API_KEY, GOOGLE_API_KEY, or GEMINI_API_KEY)."
         )
 
     model = os.getenv("GOOGLE_VEO_MODEL", "").strip() or DEFAULT_VEO_MODEL
-    seconds = allowed_video_seconds()
-    prefix = video_prompt_audio_prefix(seconds)
-    # Veo 3.1: durationSeconds must be 8 when using reference_images (Gemini API table).
-    if seconds != 8:
+    script_seconds = allowed_video_seconds()
+    if script_seconds != VEO_DURATION_SECONDS:
         logger.info(
-            "Using reference_images with Veo 3.1 requires duration_seconds=8 per Gemini API; "
-            "VIDEO_SECONDS=%s does not change the rendered length.",
-            seconds,
+            "Veo renders %ss with reference_images (VIDEO_SECONDS=%s applies to script/Sora only).",
+            VEO_DURATION_SECONDS,
+            script_seconds,
         )
-    duration_seconds = 8
+    prefix = video_prompt_audio_prefix(VEO_DURATION_SECONDS)
 
     client = genai.Client(api_key=api_key)
     product_image = genai_types.Image(
@@ -234,7 +221,7 @@ async def generate_ad_video_google_veo(
         prompt=prefix + script,
         config=genai_types.GenerateVideosConfig(
             number_of_videos=1,
-            duration_seconds=duration_seconds,
+            duration_seconds=VEO_DURATION_SECONDS,
             aspect_ratio="9:16",
             resolution="720p",
             reference_images=[reference_product_image],

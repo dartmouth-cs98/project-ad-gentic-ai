@@ -14,6 +14,7 @@ sys.path.insert(0, str(_backend_dir))
 
 import pytest
 
+from workers.ad_video_generation_worker.provider_selection import ProviderDecision
 from workers.ad_video_generation_worker.worker import (
     DEFAULT_VEO_MODEL,
     allowed_video_seconds,
@@ -37,6 +38,16 @@ async def test_generate_ad_video_for_script_routes_to_veo_for_dialogue_script():
         "## Beat 3\n- Line (approx. word count): Third beat keeps talking to camera for clarity.\n"
     )
     with (
+        patch(
+            "workers.ad_video_generation_worker.worker.choose_video_provider_with_reason",
+            return_value=ProviderDecision(
+                provider="veo",
+                confidence=0.9,
+                reason="test",
+                features={},
+                fallback_used=False,
+            ),
+        ),
         patch(
             "workers.ad_video_generation_worker.worker.generate_ad_video_google_veo",
             new_callable=AsyncMock,
@@ -80,6 +91,16 @@ Drone montage — ambient only.
 """
     with (
         patch(
+            "workers.ad_video_generation_worker.worker.choose_video_provider_with_reason",
+            return_value=ProviderDecision(
+                provider="sora",
+                confidence=0.9,
+                reason="test",
+                features={},
+                fallback_used=False,
+            ),
+        ),
+        patch(
             "workers.ad_video_generation_worker.worker.generate_ad_video_google_veo",
             new_callable=AsyncMock,
         ) as mock_veo,
@@ -111,7 +132,13 @@ async def test_generate_ad_video_for_script_falls_back_when_preferred_missing():
     with (
         patch(
             "workers.ad_video_generation_worker.worker.choose_video_provider_with_reason",
-            return_value=MagicMock(provider="veo", confidence=1.0, reason="test", features={}, fallback_used=False),
+            return_value=ProviderDecision(
+                provider="veo",
+                confidence=1.0,
+                reason="test",
+                features={},
+                fallback_used=False,
+            ),
         ),
         patch(
             "workers.ad_video_generation_worker.worker.generate_ad_video_google_veo",

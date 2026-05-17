@@ -37,6 +37,10 @@ from utils.plan_execution import (
     variants_per_group_target,
     pick_consumers_for_preview_group,
 )
+from workers.ad_job_worker.script_video import (
+    align_script_with_video_provider,
+    resolve_video_provider_for_script,
+)
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video_for_script
 from workers.script_moderation_worker.worker import evaluate_script
@@ -169,12 +173,47 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
                 generation_preferences=generation_preferences,
                 moderation_feedback=verdict.feedback,
             )
-        update_ad_variant(db, ad_variant_id, AdVariantUpdate(meta=json.dumps({"script": script})))
-        logger.info("Finished generating ad script")
+        provider = await resolve_video_provider_for_script(script)
+        script, provider, clip_seconds = await align_script_with_video_provider(
+            script,
+            provider,
+            product_name=product_name,
+            product_description=product_description or "",
+            product_image_data_url=product_image_data_url,
+            consumer_traits_string=consumer_traits_string,
+            campaign_brief=campaign_brief,
+            campaign_name=campaign.name or "",
+            campaign_goal=campaign.goal or "",
+            campaign_target_audience=campaign.target_audience or "",
+            campaign_product_context=campaign.product_context or "",
+            generation_preferences=generation_preferences,
+        )
+        update_ad_variant(
+            db,
+            ad_variant_id,
+            AdVariantUpdate(
+                meta=json.dumps(
+                    {
+                        "script": script,
+                        "video_provider": provider,
+                        "clip_seconds": clip_seconds,
+                    }
+                )
+            ),
+        )
+        logger.info(
+            "Finished generating ad script (provider=%s, clip_seconds=%s)",
+            provider,
+            clip_seconds,
+        )
 
         logger.info("Generating ad video")
         ad_video_bytes = await generate_ad_video_for_script(
-            script, product_image_bytes, product_image_type, product_image_filename
+            script,
+            product_image_bytes,
+            product_image_type,
+            product_image_filename,
+            provider=provider,
         )
         logger.info("Finished generating ad video")
         blob_client = BlobClient.from_connection_string(

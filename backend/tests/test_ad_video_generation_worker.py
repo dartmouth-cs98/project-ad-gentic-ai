@@ -16,9 +16,10 @@ import pytest
 
 from workers.ad_video_generation_worker.provider_selection import ProviderDecision
 from utils.video_timing import allowed_video_seconds
+from utils.video_timing import VEO_DURATION_SECONDS
 from workers.ad_video_generation_worker.worker import (
     DEFAULT_VEO_MODEL,
-    VEO_DURATION_SECONDS,
+    VEO_PERSON_GENERATION,
     generate_ad_video,
     generate_ad_video_for_script,
     generate_ad_video_google_veo,
@@ -483,7 +484,7 @@ async def test_generate_ad_video_google_veo_returns_bytes_from_file_download():
         assert cfg.aspect_ratio == "9:16"
         assert cfg.resolution == "720p"
         assert cfg.duration_seconds == 8
-        assert cfg.person_generation == "allow_all"
+        assert cfg.person_generation == VEO_PERSON_GENERATION
         mock_client.aio.files.download.assert_awaited_once_with(file=video_obj)
 
 

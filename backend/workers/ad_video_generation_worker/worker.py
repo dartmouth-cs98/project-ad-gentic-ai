@@ -14,7 +14,7 @@ from utils.video_provider_config import (
     using_vertex_genai,
     veo_configured,
 )
-from utils.video_timing import allowed_video_seconds, video_prompt_audio_prefix
+from utils.video_timing import VEO_DURATION_SECONDS, allowed_video_seconds, video_prompt_audio_prefix
 from workers.ad_video_generation_worker.provider_selection import (
     VideoProvider,
     choose_video_provider_with_reason,
@@ -29,8 +29,8 @@ POLL_INTERVAL_SECONDS = 5
 MAX_POLL_ATTEMPTS = 120  # 10 minutes at 5s interval
 TERMINAL_FAILURE_STATUS = "failed"
 
-# Veo 3.1 requires 8s when using reference_images (Gemini API).
-VEO_DURATION_SECONDS = 8
+# reference_images flows require allow_adult per Gemini API personGeneration table.
+VEO_PERSON_GENERATION = "allow_adult"
 
 # Default matches Gemini API video docs (e.g. dialogue & reference-image examples).
 DEFAULT_VEO_MODEL = "veo-3.1-generate-preview"
@@ -82,25 +82,34 @@ async def generate_ad_video_for_script(
     product_image_bytes: bytes,
     product_image_type: str,
     product_image_filename: str,
+    *,
+    provider: VideoProvider | None = None,
 ) -> bytes:
-    """Generate ad video using Sora or Veo based on script content and configured API keys."""
-    decision = await asyncio.to_thread(choose_video_provider_with_reason, script)
-    if decision.fallback_used:
-        content_pick = "sora"
-        provider = resolve_video_provider(script, preferred="sora")
+    """Generate ad video using Sora or Veo based on script content and configured API keys.
+
+    When ``provider`` is set (e.g. after ad-job script alignment), skip Grok classification.
+    """
+    if provider is None:
+        decision = await asyncio.to_thread(choose_video_provider_with_reason, script)
+        if decision.fallback_used:
+            content_pick = "sora"
+            provider = resolve_video_provider(script, preferred="sora")
+        else:
+            content_pick = decision.provider
+            provider = resolve_video_provider(script, preferred=decision.provider)
+        logger.info(
+            "Ad video provider: %s (content pick=%s, confidence=%.2f, "
+            "primary_failure_mode=%s, classifier_fallback=%s, reason=%s)",
+            provider,
+            content_pick,
+            decision.confidence,
+            decision.primary_failure_mode,
+            decision.fallback_used,
+            decision.reason,
+        )
     else:
-        content_pick = decision.provider
-        provider = resolve_video_provider(script, preferred=decision.provider)
-    logger.info(
-        "Ad video provider: %s (content pick=%s, confidence=%.2f, "
-        "primary_failure_mode=%s, classifier_fallback=%s, reason=%s)",
-        provider,
-        content_pick,
-        decision.confidence,
-        decision.primary_failure_mode,
-        decision.fallback_used,
-        decision.reason,
-    )
+        provider = resolve_video_provider(script, preferred=provider)
+        logger.info("Ad video provider: %s (pre-resolved)", provider)
     if provider == "veo":
         return await generate_ad_video_google_veo(
             script,
@@ -225,7 +234,7 @@ async def generate_ad_video_google_veo(
             aspect_ratio="9:16",
             resolution="720p",
             reference_images=[reference_product_image],
-            person_generation="allow_all",
+            person_generation=VEO_PERSON_GENERATION,
         ),
     )
 

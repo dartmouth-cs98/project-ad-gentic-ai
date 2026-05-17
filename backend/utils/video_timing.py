@@ -11,6 +11,9 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Veo 3.1 with reference_images is fixed at 8s (Gemini API); script beats must match when routing to Veo.
+VEO_DURATION_SECONDS = 8
+
 # Same margins as the video-model prefix (seconds of clip timeline).
 AUDIO_START_GUARD = 0.5
 AUDIO_END_GUARD = 0.65

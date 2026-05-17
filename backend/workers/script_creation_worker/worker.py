@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import os
 import json
+import logging
+import os
 
 from dotenv import load_dotenv
 
+from utils.responses_api_text import extract_responses_api_text
 from utils.video_timing import (
     AUDIO_END_GUARD,
     AUDIO_START_GUARD,
+    VEO_DURATION_SECONDS,
     allowed_video_seconds,
     dialogue_end_seconds,
     script_output_format_block,
@@ -20,6 +23,30 @@ from xai_sdk import Client
 from xai_sdk.chat import system, user, image
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+_SCRIPT_API_RESPONSE_LOG_MAX_LEN = 12_000
+
+
+def _script_api_response_for_log(response: object) -> str:
+    """Serialize a Script API response for error logs (truncated, no secrets scrubbing)."""
+    try:
+        if hasattr(response, "model_dump"):
+            payload = response.model_dump(mode="json", exclude_none=True)
+            text = json.dumps(payload, default=str)
+        elif hasattr(response, "model_dump_json"):
+            text = response.model_dump_json(exclude_none=True)
+        else:
+            text = json.dumps({"repr": repr(response)}, default=str)
+    except Exception as exc:
+        text = json.dumps(
+            {"serialize_error": str(exc), "repr": repr(response)},
+            default=str,
+        )
+    if len(text) > _SCRIPT_API_RESPONSE_LOG_MAX_LEN:
+        return text[:_SCRIPT_API_RESPONSE_LOG_MAX_LEN] + "…[truncated]"
+    return text
 
 
 def _format_generation_preferences_block(prefs: GenerationPreferences | None) -> str:
@@ -98,9 +125,10 @@ def _build_script_prompt(
     campaign_target_audience: str = "",
     campaign_product_context: str = "",
     generation_preferences: GenerationPreferences | None = None,
+    clip_seconds: int | None = None,
 ) -> str:
     """Build the ad script generation prompt with product and consumer context."""
-    total = allowed_video_seconds()
+    total = clip_seconds if clip_seconds is not None else allowed_video_seconds()
     t_end = dialogue_end_seconds(total)
     beat_ranges = script_requirement_beat_ranges(total)
     format_block = script_output_format_block(total)
@@ -155,6 +183,22 @@ IMPORTANT — a previous draft failed content review. Write a complete replaceme
 Output only the new script; do not include meta-commentary about the review."""
 
 
+def _veo_retime_suffix(source_script: str, *, from_seconds: int, to_seconds: int) -> str:
+    return f"""
+
+IMPORTANT — the finished video will be exactly {to_seconds} seconds (Google Veo with a product reference image).
+Below is a {from_seconds}-second draft script. Rewrite it as a complete {to_seconds}-second ad script using the mandatory {to_seconds}s beat template in your instructions.
+Preserve the same creative idea, product, and tone; compress dialogue and beats so all spoken lines fit the shorter timeline.
+Do not copy old beat timestamps verbatim.
+
+Draft script to adapt:
+---
+{source_script.strip()}
+---
+
+Output only the new {to_seconds}-second script."""
+
+
 async def generate_ad_script(
     product_name: str,
     product_description: str,
@@ -168,13 +212,15 @@ async def generate_ad_script(
     campaign_product_context: str = "",
     generation_preferences: GenerationPreferences | None = None,
     moderation_feedback: str = "",
+    clip_seconds: int | None = None,
+    prompt_suffix: str = "",
 ) -> str:
     api_key = os.getenv("SCRIPT_API_KEY", "").strip()
     model = os.getenv("SCRIPT_MODEL", "").strip()
     base_url = os.getenv("SCRIPT_BASE_URL", "").strip()
     script_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
-    total = allowed_video_seconds()
+    total = clip_seconds if clip_seconds is not None else allowed_video_seconds()
     prompt = _build_script_prompt(
         product_name,
         product_description,
@@ -185,9 +231,12 @@ async def generate_ad_script(
         campaign_target_audience=campaign_target_audience,
         campaign_product_context=campaign_product_context,
         generation_preferences=generation_preferences,
+        clip_seconds=total,
     )
     if moderation_feedback:
         prompt += _moderation_revision_suffix(moderation_feedback, total_seconds=total)
+    if prompt_suffix:
+        prompt += prompt_suffix
 
     response = await script_client.responses.create(
         model=model,
@@ -211,14 +260,57 @@ async def generate_ad_script(
         max_output_tokens=2000
     )
 
-    # Responses API: output is a list of items; each item has content (list) with text.
-    if not response.output or len(response.output) == 0:
-        raise ValueError("Script API returned no output")
-    first_output = response.output[0]
-    if not getattr(first_output, "content", None) or len(first_output.content) == 0:
-        raise ValueError("Script API returned output with no content")
-    script = first_output.content[0].text
+    script = extract_responses_api_text(response)
+    if not script:
+        raw_response = _script_api_response_for_log(response)
+        status = getattr(response, "status", None)
+        logger.error(
+            "Script API returned no extractable text (model=%s, status=%s). raw_response=%s",
+            model,
+            status,
+            raw_response,
+        )
+        raise ValueError("Script API returned no extractable text")
     return script
+
+
+async def retime_ad_script_for_veo(
+    source_script: str,
+    product_name: str,
+    product_description: str,
+    product_image_data_url: str,
+    consumer_traits_string: str,
+    campaign_brief: str = "",
+    *,
+    from_seconds: int | None = None,
+    campaign_name: str = "",
+    campaign_goal: str = "",
+    campaign_target_audience: str = "",
+    campaign_product_context: str = "",
+    generation_preferences: GenerationPreferences | None = None,
+) -> str:
+    """Rewrite a longer draft into an 8s beat template for Veo (reference_images cap)."""
+    original_seconds = from_seconds if from_seconds is not None else allowed_video_seconds()
+    suffix = _veo_retime_suffix(
+        source_script,
+        from_seconds=original_seconds,
+        to_seconds=VEO_DURATION_SECONDS,
+    )
+    return await generate_ad_script(
+        product_name,
+        product_description,
+        product_image_data_url,
+        consumer_traits_string,
+        campaign_brief,
+        campaign_name=campaign_name,
+        campaign_goal=campaign_goal,
+        campaign_target_audience=campaign_target_audience,
+        campaign_product_context=campaign_product_context,
+        generation_preferences=generation_preferences,
+        clip_seconds=VEO_DURATION_SECONDS,
+        prompt_suffix=suffix,
+    )
+
 
 def batch_generate_ad_scripts(
     product_name: str,

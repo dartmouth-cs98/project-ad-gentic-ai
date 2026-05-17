@@ -324,6 +324,14 @@ def test_parse_classifier_json_extracts_object_from_preamble():
     assert result.provider == "veo"
 
 
+def test_parse_classifier_json_extracts_object_when_json_has_trailing_prose():
+    payload = _payload(provider="veo", confidence=0.8, reason="talking head")
+    text = json.dumps(payload) + " Hope that helps with routing."
+    result = parse_classifier_json(text)
+    assert result.provider == "veo"
+    assert result.reason == "talking head"
+
+
 def test_parse_classifier_json_rejects_invalid_primary_failure_mode():
     payload = _payload(
         provider="veo",

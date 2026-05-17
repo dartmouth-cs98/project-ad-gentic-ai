@@ -174,18 +174,25 @@ def _normalize_primary_failure_mode(raw: object) -> str:
 
 
 def _extract_json_object(raw: str) -> str:
-    """Strip markdown fences and isolate a leading/trailing JSON object when Grok adds prose."""
+    """Strip markdown fences and isolate the first JSON object when Grok adds prose."""
     text = raw.strip()
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
     if fence:
         text = fence.group(1).strip()
-    if text.startswith("{"):
-        return text
+
     start = text.find("{")
-    end = text.rfind("}")
-    if start >= 0 and end > start:
-        return text[start : end + 1]
-    return text
+    if start < 0:
+        return text
+
+    decoder = json.JSONDecoder()
+    try:
+        _, end = decoder.raw_decode(text, idx=start)
+        return text[start:end]
+    except json.JSONDecodeError:
+        end = text.rfind("}")
+        if end > start:
+            return text[start : end + 1]
+        return text
 
 
 def parse_classifier_json(text: str) -> _GrokClassification:

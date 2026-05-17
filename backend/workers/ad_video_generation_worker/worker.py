@@ -103,10 +103,12 @@ async def generate_ad_video_for_script(
     preferred = decision.provider
     provider = resolve_video_provider(script, preferred=preferred)
     logger.info(
-        "Ad video provider: %s (content pick=%s, confidence=%.2f, fallback=%s, reason=%s)",
+        "Ad video provider: %s (content pick=%s, confidence=%.2f, "
+        "primary_failure_mode=%s, fallback=%s, reason=%s)",
         provider,
         preferred,
         decision.confidence,
+        decision.primary_failure_mode,
         decision.fallback_used,
         decision.reason,
     )

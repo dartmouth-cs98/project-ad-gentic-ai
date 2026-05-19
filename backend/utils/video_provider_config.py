@@ -8,6 +8,7 @@ from typing import Literal
 VideoProvider = Literal["sora", "veo"]
 
 _VEO_VERTEX_ENV_MARKERS = ("true", "1", "yes")
+_VEO_DISABLED_ENV_MARKERS = ("false", "0", "no")
 _PLACEHOLDER_KEYS = frozenset({"YOUR_API_KEY", ""})
 
 
@@ -32,12 +33,24 @@ def sora_configured() -> bool:
     return bool(api_key) and api_key.upper() not in _PLACEHOLDER_KEYS
 
 
+def veo_generation_enabled() -> bool:
+    """Whether Grok may route ads to Google Veo (``VEO_GENERATION_ENABLED``; default on)."""
+    raw = os.getenv("VEO_GENERATION_ENABLED", "true").strip().lower()
+    if raw in _VEO_DISABLED_ENV_MARKERS:
+        return False
+    return raw in _VEO_VERTEX_ENV_MARKERS
+
+
 def using_vertex_genai() -> bool:
     return _using_vertex_genai()
 
 
 def veo_configured() -> bool:
-    return bool(resolve_veo_api_key()) and not _using_vertex_genai()
+    return (
+        veo_generation_enabled()
+        and bool(resolve_veo_api_key())
+        and not _using_vertex_genai()
+    )
 
 
 def provider_from_configured_keys() -> VideoProvider | None:

@@ -1,9 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { useSidebar } from '../contexts/SidebarContext';
-import { Sidebar } from '../components/layout/Sidebar';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal';
 import { ChatPanel, ResultsPanel } from '../components/generate';
 import type { Phase, Version } from '../components/generate';
@@ -32,6 +30,7 @@ const WELCOME_NEW: ChatMessage = {
   version_ref: null,
   timestamp: new Date().toISOString(),
 };
+const SELECTED_CAMPAIGN_KEY_PREFIX = 'adgentic_generate_campaign_';
 
 function buildWelcomeBack(campaign: Campaign | undefined, versions: Version[]): ChatMessage {
   if (!campaign || versions.length === 0) return WELCOME_NEW;
@@ -83,9 +82,8 @@ function buildVersionsFromVariants(variants: AdVariant[]): Version[] {
 export function GenerateAdsPage() {
   const { profile } = useCompany();
   const { user } = useUser();
-  const { theme, toggleTheme } = useTheme();
-  const { collapsed: sidebarCollapsed, setCollapsed: setSidebarCollapsed } = useSidebar();
   const businessClientId = user?.client_id;
+  const campaignStorageKey = `${SELECTED_CAMPAIGN_KEY_PREFIX}${businessClientId ?? 'anonymous'}`;
 
   // ─── Data hooks ──────────────────────────────────────────────
   const { data: campaigns = [], isLoading: isCampaignsLoading } = useCampaigns(businessClientId);
@@ -191,25 +189,30 @@ export function GenerateAdsPage() {
   });
 
 
-// ─── Layout state ─────────────────────────────────────────────
+  // ─── Layout state ─────────────────────────────────────────────
   // Show split layout when generating, viewing results, OR when variants exist
   const showSplit = phase !== 'idle' || hasVariants;
 
-  // Auto-collapse sidebar the first time split view activates (variants present).
-  // We intentionally never auto-expand — the sidebar should stay in whatever
-  // state the user left it when switching campaigns or navigating away.
-  const didAutoCollapse = useRef(false);
   useEffect(() => {
-    if (showSplit && !didAutoCollapse.current) {
-      setSidebarCollapsed(true);
-      didAutoCollapse.current = true;
+    if (!campaigns.length) return;
+    const stored = localStorage.getItem(campaignStorageKey);
+    if (!stored) return;
+    const storedId = Number(stored);
+    if (!Number.isFinite(storedId)) return;
+    const exists = campaigns.some((campaign) => campaign.id === storedId);
+    if (!exists) {
+      localStorage.removeItem(campaignStorageKey);
+      return;
     }
-  }, [showSplit]);
+    setActiveCampaignId(storedId);
+    setChatStarted(true);
+  }, [campaigns, campaignStorageKey]);
 
   // ─── Campaign selection from empty state ─────────────────────
   const handleStartChat = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
     setChatStarted(true);
+    localStorage.setItem(campaignStorageKey, String(campaign.id));
   };
 
   // ─── Progress animation during generating ───────────────────
@@ -340,6 +343,7 @@ export function GenerateAdsPage() {
   const handleCampaignSelect = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
     setChatStarted(true);
+    localStorage.setItem(campaignStorageKey, String(campaign.id));
     setSelectedVariants(new Set());
     if (phase === 'generating') {
       setPhase('idle');
@@ -391,12 +395,12 @@ export function GenerateAdsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar />
+    <DashboardLayout contentClassName="p-0 overflow-hidden">
+      <div className="flex h-[calc(100vh-4rem)] bg-background overflow-hidden">
 
       {/* ── Empty State: pick a campaign before entering chat ── */}
       {!chatStarted && (
-        <div className={`flex flex-1 flex-col items-center justify-center transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} px-8`}>
+        <div className="flex flex-1 flex-col items-center justify-center px-8">
           <div className="w-full max-w-2xl">
 
             {/* Hero */}
@@ -411,7 +415,7 @@ export function GenerateAdsPage() {
               </div>
               <h1 className="text-2xl font-bold text-foreground mb-2">Generate your next ad</h1>
               <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-                Select a campaign to continue, or create a new one to start generating persona-targeted ad variants.
+                Select a campaign first to start generating persona-targeted ad variants.
               </p>
             </div>
 
@@ -470,12 +474,6 @@ export function GenerateAdsPage() {
                 <PlusIcon className="w-4 h-4" />
                 New Campaign
               </button>
-              <button
-                onClick={() => { setChatStarted(true); setInput("I'd like to create a new campaign. "); }}
-                className="px-5 py-3.5 border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                Continue without
-              </button>
             </div>
           </div>
         </div>
@@ -483,7 +481,7 @@ export function GenerateAdsPage() {
 
       {chatStarted && <div
         ref={splitContainerRef}
-        className={`flex flex-1 h-full transition-all duration-500 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}
+        className="flex flex-1 h-full transition-all duration-500"
       >
         {/* Chat Panel */}
         <ChatPanel
@@ -511,8 +509,6 @@ export function GenerateAdsPage() {
           variantCount={activeVersionVariants.length}
           className={showSplit ? 'flex-shrink-0' : 'flex-1'}
           style={showSplit ? { width: chatPanelWidth } : undefined}
-          theme={theme}
-          onToggleTheme={toggleTheme}
         />
 
         {/* Resize Handle */}
@@ -564,6 +560,7 @@ export function GenerateAdsPage() {
           onClose={() => setShowCreateCampaignModal(false)}
         />
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

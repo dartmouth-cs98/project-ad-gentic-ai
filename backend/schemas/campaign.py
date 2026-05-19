@@ -105,5 +105,7 @@ class CampaignResponse(BaseModel):
     brief: Optional[str] = None
     platforms: Optional[str] = None
     meta_campaign_id: Optional[str] = None
+    external_campaign_id: Optional[str] = None
+    external_platform: Optional[str] = None
 
     model_config = {"from_attributes": True}

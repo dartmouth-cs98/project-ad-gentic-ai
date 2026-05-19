@@ -18,12 +18,12 @@ from crud.campaign import (
     update_campaign,
     delete_campaign,
 )
-from services.meta.campaign_publisher import publish_campaign, MetaPublishError
-from services.meta.connection_loader import (
+from services.ad_platforms.meta.campaign_publisher import publish_campaign, MetaPublishError
+from services.ad_platforms.meta.connection_loader import (
     load_publish_connection,
     ConnectionValidationError,
 )
-from services.meta.persona_grouping import group_approved_variants_by_persona
+from services.ad_platforms.meta.persona_grouping import group_approved_variants_by_persona
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -150,6 +150,8 @@ def run_campaign(
         # so retries don't keep recreating campaigns.
         if exc.meta_campaign_id and exc.meta_campaign_id != campaign.meta_campaign_id:
             campaign.meta_campaign_id = exc.meta_campaign_id
+            campaign.external_campaign_id = exc.meta_campaign_id
+            campaign.external_platform = "meta"
             campaign.updated_at = datetime.now(timezone.utc)
             db.commit()
         logger.exception(
@@ -170,6 +172,8 @@ def run_campaign(
         )
 
     campaign.meta_campaign_id = meta_campaign_id
+    campaign.external_campaign_id = meta_campaign_id
+    campaign.external_platform = "meta"
     campaign.status = "active"
     campaign.updated_at = datetime.now(timezone.utc)
     db.commit()

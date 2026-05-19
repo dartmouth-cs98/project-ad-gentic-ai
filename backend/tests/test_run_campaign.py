@@ -21,8 +21,8 @@ from database import Base, get_db
 from dependencies import get_current_client_id
 from main import app
 from models.campaign import Campaign
-from services.meta.campaign_publisher import MetaPublishError
-from services.meta.connection_loader import (
+from services.ad_platforms.meta.campaign_publisher import MetaPublishError
+from services.ad_platforms.meta.connection_loader import (
     ConnectionValidationError,
     ValidatedMetaConnection,
 )
@@ -280,3 +280,46 @@ def test_run_resumes_from_existing_meta_campaign_id(client, db_session, monkeypa
     resp = client.patch(f"/campaigns/{campaign.id}/run")
     assert resp.status_code == 200
     assert captured["existing_meta_campaign_id"] == "meta_resume_me"
+
+
+# ---------------------------------------------------------------------------
+# Generic external_campaign_id / external_platform dual-write — PR 1 migration
+# ---------------------------------------------------------------------------
+# These columns coexist with meta_campaign_id during the transition to a
+# multi-platform schema. Once TikTok lands and the legacy column is dropped,
+# only the assertions on meta_campaign_id need to go — the rest stay.
+
+
+def test_run_dual_writes_external_columns_on_success(client, db_session, monkeypatch):
+    campaign = _seed_campaign(db_session)
+    _patch_helpers(monkeypatch, publish_result="meta_new_888")
+
+    resp = client.patch(f"/campaigns/{campaign.id}/run")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta_campaign_id"] == "meta_new_888"
+    assert body["external_campaign_id"] == "meta_new_888"
+    assert body["external_platform"] == "meta"
+
+    db_session.refresh(campaign)
+    assert campaign.meta_campaign_id == "meta_new_888"
+    assert campaign.external_campaign_id == "meta_new_888"
+    assert campaign.external_platform == "meta"
+
+
+def test_run_dual_writes_external_columns_on_partial_failure(client, db_session, monkeypatch):
+    campaign = _seed_campaign(db_session)
+    _patch_helpers(
+        monkeypatch,
+        publish_error=MetaPublishError(
+            "Ad set creation failed mid-publish", meta_campaign_id="meta_partial_777"
+        ),
+    )
+
+    resp = client.patch(f"/campaigns/{campaign.id}/run")
+    assert resp.status_code == 502
+
+    db_session.refresh(campaign)
+    assert campaign.meta_campaign_id == "meta_partial_777"
+    assert campaign.external_campaign_id == "meta_partial_777"
+    assert campaign.external_platform == "meta"

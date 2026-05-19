@@ -17,7 +17,7 @@ import httpx
 from sqlalchemy.orm import Session
 
 from models.campaign_metric import CampaignMetric
-from services.meta.auth import decrypt_token
+from services.ad_platforms._base.encryption import decrypt_token
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,8 @@ def _apply(
 ) -> None:
     """Write one day's Meta API values into a CampaignMetric ORM row."""
     metric.meta_campaign_id = meta_campaign_id
+    metric.external_campaign_id = meta_campaign_id
+    metric.external_platform = "meta"
     metric.impressions = int(row.get("impressions") or 0)
     metric.reach = int(row.get("reach") or 0)
     metric.clicks = int(row.get("clicks") or 0)

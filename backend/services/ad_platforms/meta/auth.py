@@ -1,8 +1,11 @@
-"""Meta OAuth helpers: token encryption, URL building, code exchange.
+"""Meta OAuth helpers: URL building, code exchange, account discovery.
 
 Uses the Facebook Login flow (not Instagram Login) because we need
 ads_management for paid campaign publishing, and instagram_basic so
 /me/accounts returns the Page's linked Instagram business account.
+
+Token encryption lives in :mod:`services.ad_platforms._base.encryption` and is
+shared with other platform adapters (same FERNET_SECRET_KEY for all platforms).
 """
 
 import os
@@ -10,7 +13,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
-from cryptography.fernet import Fernet
 
 META_GRAPH_VERSION = "v21.0"
 META_GRAPH_BASE = f"https://graph.facebook.com/{META_GRAPH_VERSION}"
@@ -24,21 +26,6 @@ META_SCOPES = ",".join([
     "pages_show_list",
     "business_management",
 ])
-
-
-def _fernet() -> Fernet:
-    key = os.environ.get("FERNET_SECRET_KEY")
-    if not key:
-        raise RuntimeError("FERNET_SECRET_KEY env var not set")
-    return Fernet(key.encode())
-
-
-def encrypt_token(token: str) -> str:
-    return _fernet().encrypt(token.encode()).decode()
-
-
-def decrypt_token(encrypted: str) -> str:
-    return _fernet().decrypt(encrypted.encode()).decode()
 
 
 def build_oauth_url(state: str) -> str:

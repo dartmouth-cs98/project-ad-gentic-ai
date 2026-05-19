@@ -13,6 +13,7 @@ from typing import Literal
 from openai import OpenAI
 
 from utils.responses_api_text import extract_responses_api_text
+from utils.video_provider_config import veo_generation_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -308,6 +309,16 @@ def _classifier_failure_decision(reason: str) -> ProviderDecision:
 
 def choose_video_provider_with_reason(script: str) -> ProviderDecision:
     """Classify the full script with Grok; Sora preferred when classification fails."""
+    if not veo_generation_enabled():
+        return ProviderDecision(
+            provider="sora",
+            confidence=1.0,
+            reason="Veo generation disabled (VEO_GENERATION_ENABLED); using Sora.",
+            primary_failure_mode="low_risk",
+            features=_empty_features(),
+            fallback_used=False,
+        )
+
     if not script or not script.strip():
         return ProviderDecision(
             provider="sora",

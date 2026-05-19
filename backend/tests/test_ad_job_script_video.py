@@ -28,7 +28,15 @@ async def test_align_script_retimes_for_veo_when_video_seconds_is_twelve():
             "workers.ad_job_worker.script_video.evaluate_script",
             new_callable=AsyncMock,
         ) as mock_eval,
-        patch.dict("os.environ", {"VIDEO_SECONDS": "12", "GEMINI_API_KEY": "g-key"}, clear=False),
+        patch.dict(
+            "os.environ",
+            {
+                "VIDEO_SECONDS": "12",
+                "GEMINI_API_KEY": "g-key",
+                "VEO_GENERATION_ENABLED": "true",
+            },
+            clear=False,
+        ),
     ):
         mock_eval.return_value.passed = True
 

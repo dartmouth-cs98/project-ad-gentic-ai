@@ -62,7 +62,11 @@ async def test_generate_ad_video_for_script_routes_to_veo_for_dialogue_script():
         ) as mock_sora,
         patch.dict(
             "os.environ",
-            {"GEMINI_API_KEY": "g-key", "VIDEO_API_KEY": "v-key"},
+            {
+                "GEMINI_API_KEY": "g-key",
+                "VIDEO_API_KEY": "v-key",
+                "VEO_GENERATION_ENABLED": "true",
+            },
             clear=False,
         ),
     ):
@@ -251,7 +255,11 @@ async def test_generate_ad_video_for_script_classifier_failure_uses_veo_when_sor
         ) as mock_sora,
         patch.dict(
             "os.environ",
-            {"GEMINI_API_KEY": "g-key", "VIDEO_API_KEY": ""},
+            {
+                "GEMINI_API_KEY": "g-key",
+                "VIDEO_API_KEY": "",
+                "VEO_GENERATION_ENABLED": "true",
+            },
             clear=False,
         ),
     ):

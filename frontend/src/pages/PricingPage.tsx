@@ -25,7 +25,7 @@ export function PricingPage() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
           <Link to="/" className="hover:opacity-75 transition-opacity"><Logo size="md" /></Link>
 
@@ -40,11 +40,11 @@ export function PricingPage() {
 
           <div className="flex items-center gap-3">
             <Link to="/sign-in"
-              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">
+              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded transition-colors">
               Sign In
             </Link>
             <Link to="/sign-up"
-              className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              className="hidden md:block px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors">
               Get Started
             </Link>
             <button onClick={toggleTheme}
@@ -69,8 +69,8 @@ export function PricingPage() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 pt-3 border-t border-border">
-              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded-lg hover:bg-muted transition-colors">Sign In</Link>
-              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</Link>
+              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded hover:bg-muted transition-colors">Sign In</Link>
+              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors">Get Started</Link>
             </div>
           </div>
         )}
@@ -78,27 +78,29 @@ export function PricingPage() {
 
       {/* Hero */}
       <section className="py-20 px-6 border-b border-border relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 -z-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 60% 0%, rgba(129,140,248,0.07) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 20% 80%, rgba(245,158,11,0.06) 0%, transparent 65%)' }} />
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight leading-[1.05]">
-            Simple, <span className="text-blue-600">transparent</span> pricing
+            Simple,{' '}
+            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>transparent</em>{' '}
+            pricing
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10">
             Start free, upgrade when you're ready to scale.
           </p>
 
           {/* Toggle */}
-          <div className="inline-flex items-center bg-card border border-border rounded-xl p-1">
+          <div className="inline-flex items-center bg-card border border-border rounded p-1">
             <button
               onClick={() => setIsAnnual(false)}
-              className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors ${!isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+              className={`px-5 py-2 text-sm font-medium rounded transition-colors ${!isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
               Monthly
             </button>
             <button
               onClick={() => setIsAnnual(true)}
-              className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
+              className={`px-5 py-2 text-sm font-medium rounded transition-colors flex items-center gap-2 ${isAnnual ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>
               Annual
-              <span className={`text-xs font-semibold ${isAnnual ? 'text-blue-400' : 'text-blue-600'}`}>Save 20%</span>
+              <span className={`text-xs font-semibold ${isAnnual ? 'text-amber-500' : 'text-amber-600'}`}>Save 20%</span>
             </button>
           </div>
         </div>
@@ -109,7 +111,7 @@ export function PricingPage() {
         <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
 
           {/* Basic */}
-          <div className="bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-colors flex flex-col">
+          <div className="bg-card border border-border rounded p-7 hover:border-foreground/20 transition-colors flex flex-col">
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-2">Basic</h3>
               <div className="flex items-baseline gap-1">
@@ -128,20 +130,20 @@ export function PricingPage() {
                 'Basic analytics',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <CheckIcon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <CheckIcon className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
             <Link to="/sign-up"
-              className="w-full inline-flex items-center justify-center px-6 py-3 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-border rounded text-sm hover:bg-muted transition-colors">
               Get Started
             </Link>
           </div>
 
           {/* Premium */}
-          <div className="bg-card border border-border rounded-xl p-7 flex flex-col ring-2 ring-blue-600 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
+          <div className="bg-card border border-border rounded p-7 flex flex-col ring-2 ring-primary relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded">
               Most Popular
             </div>
             <div className="mb-8">
@@ -166,19 +168,19 @@ export function PricingPage() {
                 'Custom brand voice',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <CheckIcon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <CheckIcon className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
             <Link to="/sign-up"
-              className="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+              className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors">
               Start Free Trial
             </Link>
           </div>
 
           {/* Enterprise */}
-          <div className="bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-colors flex flex-col">
+          <div className="bg-card border border-border rounded p-7 hover:border-foreground/20 transition-colors flex flex-col">
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-2">Enterprise</h3>
               <div className="flex items-baseline gap-1">
@@ -197,13 +199,13 @@ export function PricingPage() {
                 'White-label options',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <CheckIcon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <CheckIcon className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
             <Link to="/team#contact"
-              className="w-full inline-flex items-center justify-center px-6 py-3 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-border rounded text-sm hover:bg-muted transition-colors">
               Contact Sales
             </Link>
           </div>
@@ -240,7 +242,7 @@ export function PricingPage() {
                 a: 'We offer a 30-day money-back guarantee if you are not satisfied with our service.',
               },
             ].map((faq, i) => (
-              <div key={i} className="border border-border rounded-xl overflow-hidden">
+              <div key={i} className="border border-border rounded overflow-hidden">
                 <button
                   onClick={() => toggleFaq(i)}
                   className="w-full flex items-center justify-between p-5 text-left bg-card hover:bg-muted transition-colors">

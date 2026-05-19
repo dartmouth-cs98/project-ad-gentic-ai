@@ -57,7 +57,7 @@ export function TeamPage() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
           <Link to="/" className="hover:opacity-75 transition-opacity"><Logo size="md" /></Link>
 
@@ -72,11 +72,11 @@ export function TeamPage() {
 
           <div className="flex items-center gap-3">
             <Link to="/sign-in"
-              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">
+              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded transition-colors">
               Sign In
             </Link>
             <Link to="/sign-up"
-              className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              className="hidden md:block px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors">
               Get Started
             </Link>
             <button onClick={toggleTheme}
@@ -101,8 +101,8 @@ export function TeamPage() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 pt-3 border-t border-border">
-              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded-lg hover:bg-muted transition-colors">Sign In</Link>
-              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</Link>
+              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded hover:bg-muted transition-colors">Sign In</Link>
+              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors">Get Started</Link>
             </div>
           </div>
         )}
@@ -110,12 +110,12 @@ export function TeamPage() {
 
       {/* Hero */}
       <section className="py-24 px-6 border-b border-border relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 -z-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 60% 0%, rgba(129,140,248,0.07) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 20% 80%, rgba(245,158,11,0.06) 0%, transparent 65%)' }} />
         <div className="max-w-4xl mx-auto relative z-10">
-          <p className="text-xs text-blue-600 font-semibold uppercase tracking-widest mb-5">The team</p>
+          <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-5">The team</p>
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.05]">
             We're building the<br />
-            <span className="text-blue-600">next great</span> advertising platform.
+            <em className="font-serif italic not-italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>next great</em> advertising platform.
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
             Five builders who got tired of watching brands waste budgets on ads that miss. We think advertising can be smarter, more honest, and actually effective — so we're making it happen.
@@ -129,12 +129,12 @@ export function TeamPage() {
           {/* Top row: 3 cards */}
           <div className="grid sm:grid-cols-3 gap-5 mb-5">
             {team.slice(0, 3).map(({ name, initials, role, bio, color }) => (
-              <div key={name} className="group bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-all">
-                <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm mb-6`}>
+              <div key={name} className="group bg-card border border-border rounded p-7 hover:border-foreground/20 transition-all">
+                <div className={`w-12 h-12 rounded ${color} flex items-center justify-center text-white font-bold text-sm mb-6`}>
                   {initials}
                 </div>
                 <h3 className="text-lg font-semibold mb-0.5">{name}</h3>
-                <p className="text-xs text-blue-600 font-medium mb-4 uppercase tracking-wide">{role}</p>
+                <p className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wide">{role}</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">{bio}</p>
               </div>
             ))}
@@ -142,12 +142,12 @@ export function TeamPage() {
           {/* Bottom row: 2 cards centered */}
           <div className="grid sm:grid-cols-2 gap-5 max-w-[calc(66.666%+10px)] mx-auto">
             {team.slice(3).map(({ name, initials, role, bio, color }) => (
-              <div key={name} className="group bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-all">
-                <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white font-bold text-sm mb-6`}>
+              <div key={name} className="group bg-card border border-border rounded p-7 hover:border-foreground/20 transition-all">
+                <div className={`w-12 h-12 rounded ${color} flex items-center justify-center text-white font-bold text-sm mb-6`}>
                   {initials}
                 </div>
                 <h3 className="text-lg font-semibold mb-0.5">{name}</h3>
-                <p className="text-xs text-blue-600 font-medium mb-4 uppercase tracking-wide">{role}</p>
+                <p className="text-xs text-muted-foreground font-medium mb-4 uppercase tracking-wide">{role}</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">{bio}</p>
               </div>
             ))}
@@ -159,15 +159,15 @@ export function TeamPage() {
       <section className="py-24 px-6 border-b border-border bg-muted/20">
         <div className="max-w-5xl mx-auto grid lg:grid-cols-[1fr_2fr] gap-16 items-start">
           <div>
-            <p className="text-xs text-blue-600 font-semibold uppercase tracking-widest mb-4">Our mission</p>
-            <div className="w-8 h-px bg-blue-600 mb-6" />
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Our mission</p>
+            <div className="w-8 h-px bg-border mb-6" />
             <p className="text-sm text-muted-foreground leading-relaxed">
               We started Ad-gentic because we watched brands burn money on campaigns that didn't understand their audience. The tools existed to do better — they just weren't being used right. We're fixing that.
             </p>
           </div>
           <blockquote className="text-3xl sm:text-4xl font-bold tracking-tight leading-snug">
             "Advertising should work for everyone — not just the brands with the{' '}
-            <span className="text-blue-600">biggest budgets.</span>"
+            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>biggest budgets.</em>"
           </blockquote>
         </div>
       </section>
@@ -175,8 +175,8 @@ export function TeamPage() {
       {/* Values */}
       <section className="py-20 px-6 border-b border-border">
         <div className="max-w-5xl mx-auto">
-          <p className="text-xs text-blue-600 font-semibold uppercase tracking-widest mb-12">What we believe</p>
-          <div className="grid sm:grid-cols-3 gap-px border border-border rounded-xl overflow-hidden bg-border">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-12">What we believe</p>
+          <div className="grid sm:grid-cols-3 gap-px border border-border rounded overflow-hidden bg-border">
             {[
               {
                 num: '01',
@@ -215,7 +215,7 @@ export function TeamPage() {
           </div>
           <div className="lg:col-span-5">
             <Link to="/sign-up"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors">
               Get in touch
               <ArrowRight className="w-4 h-4" />
             </Link>

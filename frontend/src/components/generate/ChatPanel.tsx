@@ -31,6 +31,8 @@ interface ChatPanelProps {
   // Plan actions
   onApprovePlan?: (message: ChatMessage) => void;
   onDeclinePlan?: (message: ChatMessage) => void;
+  // Passed through to PlanCard so it can show the auto-approve status badge
+  expressMode?: boolean;
   // Selection
   selectedVariantCount: number;
   onClearSelection: () => void;
@@ -61,6 +63,7 @@ export function ChatPanel({
   onSend,
   onApprovePlan,
   onDeclinePlan,
+  expressMode,
   selectedVariantCount,
   onClearSelection,
   isAiLoading,
@@ -109,6 +112,7 @@ export function ChatPanel({
         userName={userName}
         onApprovePlan={onApprovePlan}
         onDeclinePlan={onDeclinePlan}
+        expressMode={expressMode}
       />
 
       <ChatInput

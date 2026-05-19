@@ -4,11 +4,11 @@ import { Logo } from '../components/ui/Logo';
 import { Sun, Moon, ArrowRight, Menu, X, Target, BarChart3, Zap } from 'lucide-react';
 
 export function LandingPage() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'light';
     setTheme(savedTheme);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
   }, []);
@@ -32,16 +32,22 @@ export function LandingPage() {
   const features = [
     {
       icon: Zap,
+      iconBg: 'bg-amber-100 dark:bg-amber-500/15',
+      iconColor: 'text-amber-600 dark:text-amber-400',
       title: 'AI-Powered Creation',
       description: 'Generate high-performing ad variations in seconds. Let intelligent automation handle the heavy lifting while you focus on strategy.',
     },
     {
       icon: BarChart3,
+      iconBg: 'bg-violet-100 dark:bg-violet-500/15',
+      iconColor: 'text-violet-600 dark:text-violet-400',
       title: 'Data-Driven Performance',
       description: 'Real-time analytics and insights that show exactly what drives results. Make decisions based on data, not guesswork.',
     },
     {
       icon: Target,
+      iconBg: 'bg-emerald-100 dark:bg-emerald-500/15',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
       title: 'Scale With Precision',
       description: 'Create hundreds of targeted variations instantly. Reach the right audience with the right message at the right time.',
     },
@@ -51,7 +57,7 @@ export function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
           <Logo size="md" />
 
@@ -86,7 +92,7 @@ export function LandingPage() {
             </Link>
             <Link
               to="/sign-up"
-              className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="hidden md:block px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               Get Started
             </Link>
@@ -136,7 +142,7 @@ export function LandingPage() {
               <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded-lg hover:bg-muted transition-colors">
                 Sign In
               </Link>
-              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
                 Get Started
               </Link>
             </div>
@@ -145,10 +151,20 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="py-28 px-6 border-b border-border">
-        <div className="max-w-3xl mx-auto text-center">
+      <section className="relative py-28 px-6 border-b border-border overflow-hidden">
+        {/* Subtle radial glow behind hero text */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-0"
+          style={{
+            background: 'radial-gradient(ellipse 70% 50% at 50% -10%, rgba(245,158,11,0.07) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 60%, rgba(129,140,248,0.05) 0%, transparent 60%)',
+          }}
+        />
+
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-semibold mb-6 leading-tight tracking-tight">
-            Advertising that actually drives results
+            Advertising that{' '}
+            <em className="font-serif italic">actually</em>{' '}
+            drives results
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
@@ -159,7 +175,7 @@ export function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-20">
             <Link
               to="/sign-up"
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               Start Free Trial
               <ArrowRight className="w-4 h-4" />
@@ -180,7 +196,17 @@ export function LandingPage() {
               { value: '3.2x', label: 'Average ROI Increase' },
             ].map((stat, i) => (
               <div key={i} className="bg-background py-8">
-                <div className="text-3xl font-semibold mb-1">{stat.value}</div>
+                <div
+                  className="text-3xl font-semibold mb-1"
+                  style={{
+                    background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {stat.value}
+                </div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
               </div>
             ))}
@@ -192,6 +218,7 @@ export function LandingPage() {
       <section className="py-24 px-6 border-b border-border" id="features">
         <div className="max-w-6xl mx-auto">
           <div className="mb-16">
+            <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-3">Features</p>
             <h2 className="text-3xl font-semibold mb-3">Everything you need to scale</h2>
             <p className="text-muted-foreground max-w-md">Powerful tools designed for modern advertising teams.</p>
           </div>
@@ -199,6 +226,9 @@ export function LandingPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((feature, i) => (
               <div key={i} className="bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-colors">
+                <div className={`inline-flex items-center justify-center w-9 h-9 rounded-lg mb-4 ${feature.iconBg}`}>
+                  <feature.icon className={`w-4 h-4 ${feature.iconColor}`} />
+                </div>
                 <h3 className="text-base font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
@@ -208,15 +238,21 @@ export function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-6 border-b border-border">
-        <div className="max-w-2xl mx-auto text-center">
+      <section className="relative py-24 px-6 border-b border-border overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 -z-0"
+          style={{
+            background: 'radial-gradient(ellipse 60% 80% at 50% 100%, rgba(245,158,11,0.06) 0%, transparent 70%)',
+          }}
+        />
+        <div className="relative z-10 max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-semibold mb-4">Ready to transform your advertising?</h2>
           <p className="text-muted-foreground mb-8">
             Join hundreds of companies using AI to create more effective campaigns, faster.
           </p>
           <Link
             to="/sign-up"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             Get Started Free
             <ArrowRight className="w-4 h-4" />

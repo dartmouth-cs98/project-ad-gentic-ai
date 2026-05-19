@@ -23,7 +23,7 @@ export function ResetPasswordPage() {
           <Logo size="md" />
         </Link>
 
-        <div className="bg-card border border-border rounded-xl p-8">
+        <div className="bg-card border border-border rounded p-8">
           <h1 className="text-xl font-semibold text-center mb-1">
             {step === 'request' ? 'Reset your password' : 'Enter reset code'}
           </h1>
@@ -43,7 +43,7 @@ export function ResetPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                className="w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
               />
               <button
                 onClick={async () => {
@@ -65,7 +65,7 @@ export function ResetPasswordPage() {
                   }
                 }}
                 disabled={loading}
-                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Sending...</> : 'Send reset code'}
               </button>
@@ -77,7 +77,7 @@ export function ResetPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                className="w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
               />
               <OtpInput value={code} onChange={setCode} />
               <input
@@ -85,7 +85,7 @@ export function ResetPasswordPage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="New password"
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                className="w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
               />
               <button
                 onClick={async () => {
@@ -107,7 +107,7 @@ export function ResetPasswordPage() {
                   }
                 }}
                 disabled={loading}
-                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Resetting...</> : 'Reset password'}
               </button>
@@ -116,7 +116,7 @@ export function ResetPasswordPage() {
 
           <button
             onClick={() => navigate('/sign-in')}
-            className="w-full mt-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+            className="w-full mt-4 py-2.5 border border-border rounded text-sm font-medium hover:bg-muted transition-colors"
           >
             Back to sign in
           </button>

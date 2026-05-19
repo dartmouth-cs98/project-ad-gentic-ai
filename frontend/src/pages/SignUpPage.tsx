@@ -131,22 +131,22 @@ export function SignUpPage() {
         {step === 'form' ? (
           <>
             {authState === 'success' ? (
-              <div className="bg-card border border-border rounded-xl p-8 text-center">
+              <div className="bg-card border border-border rounded p-8 text-center">
                 <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircleIcon className="w-7 h-7 text-blue-600" />
+                  <CheckCircleIcon className="w-7 h-7 text-primary" />
                 </div>
                 <h2 className="text-lg font-semibold mb-1">Check your inbox</h2>
                 <p className="text-sm text-muted-foreground">{loadingMessage}</p>
               </div>
             ) : (
-              <div className="bg-card border border-border rounded-xl p-8">
+              <div className="bg-card border border-border rounded p-8">
                 <h1 className="text-xl font-semibold text-center mb-1">Create your account</h1>
                 <p className="text-sm text-muted-foreground text-center mb-6">
                   Start generating high-converting ads today
                 </p>
 
                 {authError && (
-                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-500">
                     {authError}
                   </div>
                 )}
@@ -155,7 +155,7 @@ export function SignUpPage() {
                 <button
                   onClick={handleGoogleSignUp}
                   disabled={authState === 'loading'}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 mb-5"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border rounded text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 mb-5"
                 >
                   {authState === 'loading' ? (
                     <Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -188,7 +188,7 @@ export function SignUpPage() {
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       disabled={authState === 'loading'}
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+                      className="w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
                     />
                     {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
                   </div>
@@ -202,7 +202,7 @@ export function SignUpPage() {
                         value={form.password}
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
                         disabled={authState === 'loading'}
-                        className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+                        className="w-full px-3 py-2 pr-10 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
                       />
                       <button
                         type="button"
@@ -238,7 +238,7 @@ export function SignUpPage() {
                         value={form.confirmPassword}
                         onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                         disabled={authState === 'loading'}
-                        className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+                        className="w-full px-3 py-2 pr-10 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
                       />
                       <button
                         type="button"
@@ -261,7 +261,7 @@ export function SignUpPage() {
                   <button
                     type="submit"
                     disabled={authState === 'loading'}
-                    className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {authState === 'loading' ? (
                       <><Loader2Icon className="w-4 h-4 animate-spin" /> Creating Account...</>
@@ -279,9 +279,9 @@ export function SignUpPage() {
             )}
           </>
         ) : (
-          <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <div className="bg-card border border-border rounded p-8 text-center">
             <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircleIcon className="w-7 h-7 text-blue-600" />
+              <CheckCircleIcon className="w-7 h-7 text-primary" />
             </div>
             <h1 className="text-xl font-semibold mb-2">Verify your email</h1>
             <p className="text-sm text-muted-foreground mb-4">
@@ -302,7 +302,7 @@ export function SignUpPage() {
                 void handleVerifyCode();
               }}
               disabled={verifyState === 'loading'}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
+              className="w-full py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
             >
               {verifyState === 'loading' ? (
                 <><Loader2Icon className="w-4 h-4 animate-spin" /> Verifying...</>
@@ -330,7 +330,7 @@ export function SignUpPage() {
                 }
               }}
               disabled={resendState === 'loading'}
-              className="w-full py-2.5 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
+              className="w-full py-2.5 border border-border rounded text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
             >
               {resendState === 'loading' ? (
                 <><Loader2Icon className="w-4 h-4 animate-spin" /> Sending...</>

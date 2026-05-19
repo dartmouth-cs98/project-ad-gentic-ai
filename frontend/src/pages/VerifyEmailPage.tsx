@@ -54,10 +54,10 @@ export function VerifyEmailPage() {
           <Logo size="md" />
         </Link>
 
-        <div className="bg-card border border-border rounded-xl p-8 text-center">
+        <div className="bg-card border border-border rounded p-8 text-center">
           <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
             {state === 'loading' ? (
-              <Loader2Icon className="w-7 h-7 text-blue-600 animate-spin" />
+              <Loader2Icon className="w-7 h-7 text-primary animate-spin" />
             ) : (
               <CheckCircleIcon className={`w-7 h-7 ${state === 'success' ? 'text-emerald-600' : 'text-red-500'}`} />
             )}
@@ -75,7 +75,7 @@ export function VerifyEmailPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@company.com"
-            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 mb-3"
+            className="w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 mb-3"
           />
           <div className="mb-3">
             <OtpInput value={code} onChange={setCode} />
@@ -88,7 +88,7 @@ export function VerifyEmailPage() {
             onClick={() => {
               void handleVerifyCode();
             }}
-            className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors mb-3"
+            className="w-full py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors mb-3"
           >
             Verify code
           </button>
@@ -105,7 +105,7 @@ export function VerifyEmailPage() {
                 setMessage(err instanceof Error ? err.message : 'Failed to resend verification code.');
               }
             }}
-            className="w-full py-2.5 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mb-3"
+            className="w-full py-2.5 border border-border rounded text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mb-3"
           >
             Resend code
           </button>

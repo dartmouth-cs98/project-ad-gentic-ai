@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { CheckIcon, LoaderIcon, AlertCircleIcon, VideoIcon, FileTextIcon } from 'lucide-react';
 import type { AdVariant, AdVariantScript } from '../../types';
 
@@ -22,7 +23,7 @@ function parseScript(meta: string | null): AdVariantScript {
   }
 }
 
-export function AdVariantCard({ variant, isSelected, onToggle }: AdVariantCardProps) {
+export const AdVariantCard = memo(function AdVariantCard({ variant, isSelected, onToggle }: AdVariantCardProps) {
   const id = String(variant.id);
   const config = statusConfig[variant.status] ?? statusConfig.Generating;
   const StatusIcon = config.icon;
@@ -122,4 +123,4 @@ export function AdVariantCard({ variant, isSelected, onToggle }: AdVariantCardPr
       </div>
     </div>
   );
-}
+});

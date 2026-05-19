@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Button } from '../components/ui/Button';
@@ -253,6 +253,17 @@ export function CampaignDetailPage() {
   const [activeTab, setActiveTab] = useState<'variants' | 'analytics' | 'settings'>('variants');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Update the browser tab title with the campaign name so the address bar
+  // (e.g. Arc's breadcrumb bar) shows the name instead of the raw numeric ID
+  useEffect(() => {
+    if (campaign?.name) {
+      document.title = `${campaign.name} — Ad-gentic AI`;
+    }
+    return () => {
+      document.title = 'Ad-gentic AI';
+    };
+  }, [campaign?.name]);
 
   const tabs = [
     { key: 'variants' as const, label: 'Ad Variants' },

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useCreateCampaign } from '../../hooks/useCampaigns';
 import { useProducts } from '../../hooks/useProducts';
-import type { Product } from '../../types';
+import type { Product, Campaign } from '../../types';
 import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
 
 const regions = [
@@ -156,9 +156,11 @@ interface CreateCampaignModalProps {
   /** Positive business client id; parent must not render the modal until this is set. */
   businessClientId: number;
   onClose: () => void;
+  /** Optional: called with the created Campaign so the parent can navigate into the generate flow. */
+  onCreated?: (campaign: Campaign) => void;
 }
 
-export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaignModalProps) {
+export function CreateCampaignModal({ businessClientId, onClose, onCreated }: CreateCampaignModalProps) {
   const createMutation = useCreateCampaign();
   const autofillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -210,7 +212,14 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
         goal: newCampaign.goal === 'other' ? customGoal || 'other' : newCampaign.goal || null,
         platforms: JSON.stringify(newCampaign.platforms),
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: (campaign) => {
+          // Close the modal first, then hand the new campaign to the parent
+          // so it can optionally jump straight into the generate flow
+          onClose();
+          onCreated?.(campaign);
+        },
+      },
     );
   };
 

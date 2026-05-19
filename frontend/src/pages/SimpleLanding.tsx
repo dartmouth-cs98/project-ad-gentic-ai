@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/ui/Logo';
-import { Sun, Moon, ArrowRight, Menu, X, Target, Brain, Zap, Sparkles } from 'lucide-react';
+import { Sun, Moon, ArrowRight, Menu, X, CheckIcon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+
+const gradientText: React.CSSProperties = {
+  background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+};
 
 export function SimpleLanding() {
   const { theme, toggleTheme } = useTheme();
@@ -42,7 +49,7 @@ export function SimpleLanding() {
     <div className="min-h-screen bg-background text-foreground">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-8">
           <Link to="/" className="hover:opacity-75 transition-opacity"><Logo size="md" /></Link>
 
@@ -57,20 +64,20 @@ export function SimpleLanding() {
 
           <div className="flex items-center gap-3">
             <Link to="/sign-in"
-              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">
+              className="hidden md:block px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded transition-colors">
               Sign In
             </Link>
             <Link to="/sign-up"
-              className="hidden md:block px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              className="hidden md:block px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors">
               Get Started
             </Link>
             <button onClick={toggleTheme}
-              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
+              className="p-2 bg-muted rounded hover:bg-border transition-colors"
               aria-label="Toggle theme">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 bg-muted rounded-lg hover:bg-border transition-colors">
+              className="lg:hidden p-2 bg-muted rounded hover:bg-border transition-colors">
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
           </div>
@@ -86,8 +93,8 @@ export function SimpleLanding() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 pt-3 border-t border-border">
-              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded-lg hover:bg-muted transition-colors">Sign In</Link>
-              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Get Started</Link>
+              <Link to="/sign-in" className="px-4 py-2 text-sm text-center border border-border rounded hover:bg-muted transition-colors">Sign In</Link>
+              <Link to="/sign-up" className="px-4 py-2 text-sm text-center bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors">Get Started</Link>
             </div>
           </div>
         )}
@@ -95,8 +102,12 @@ export function SimpleLanding() {
 
       {/* Hero */}
       <section className="py-20 px-6 border-b border-border relative overflow-hidden">
-        {/* Subtle blue glow behind content */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div
+          className="pointer-events-none absolute inset-0 -z-0"
+          style={{
+            background: 'radial-gradient(ellipse 60% 60% at 80% 20%, rgba(129,140,248,0.07) 0%, transparent 70%), radial-gradient(ellipse 50% 50% at 20% 80%, rgba(245,158,11,0.06) 0%, transparent 65%)',
+          }}
+        />
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -104,7 +115,9 @@ export function SimpleLanding() {
             {/* Left */}
             <div>
               <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-[1.05] tracking-tight">
-                Ads that actually <span className="text-blue-600">drive results.</span>
+                Ads that{' '}
+                <em className="font-serif italic" style={gradientText}>actually</em>{' '}
+                drive results.
               </h1>
               <p className="text-lg text-muted-foreground max-w-md mb-10 leading-relaxed">
                 Create, test, and scale high-performing ad campaigns with AI-powered automation.
@@ -112,68 +125,115 @@ export function SimpleLanding() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-12">
                 <Link to="/sign-up"
-                  className="flex items-center justify-center gap-2 px-7 py-3.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                  className="flex items-center justify-center gap-2 px-7 py-3.5 bg-primary text-primary-foreground rounded font-medium hover:bg-primary/90 transition-colors">
                   Start Free Trial
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link to="/how-it-works"
-                  className="flex items-center justify-center gap-2 px-7 py-3.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors">
+                  className="flex items-center justify-center gap-2 px-7 py-3.5 border border-border rounded text-sm hover:bg-muted transition-colors">
                   See How It Works
                 </Link>
               </div>
 
-              {/* Stats panel */}
-              <div className="grid grid-cols-3 gap-px border border-border rounded-xl overflow-hidden bg-border">
+              {/* Stats — flat row with dividers */}
+              <div className="flex divide-x divide-border border-t border-b border-border">
                 {[
                   { value: '10,000+', label: 'Campaigns' },
                   { value: '98%', label: 'Satisfaction' },
                   { value: '3.2x', label: 'Avg ROI' },
                 ].map((stat, i) => (
-                  <div key={i} className="bg-background py-5 text-center">
-                    <div className="text-2xl font-bold mb-0.5">{stat.value}</div>
+                  <div key={i} className="flex-1 py-5 text-center">
+                    <div className="text-2xl font-bold mb-0.5" style={gradientText}>{stat.value}</div>
                     <div className="text-xs text-muted-foreground">{stat.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right — neural analysis panel */}
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-semibold">Neural Analysis</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs text-muted-foreground">Live</span>
-                </div>
-              </div>
-              <div className="space-y-5">
-                {[
-                  { name: 'The Skeptic', match: 94 },
-                  { name: 'Impulse Buyer', match: 87 },
-                  { name: 'The Researcher', match: 91 },
-                ].map((persona) => (
-                  <div key={persona.name}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">{persona.name}</span>
-                      <span className="text-sm font-semibold">{persona.match}%</span>
+            {/* Right — pipeline flow card */}
+            <div className="bg-card border border-border rounded p-6 shadow-sm">
+              <div className="flex flex-col">
+
+                {/* Step 01 — Input */}
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-2 h-2 rounded-full bg-amber-500 mt-1 shrink-0" />
+                    <div className="w-px flex-1 bg-border mt-1.5" />
+                  </div>
+                  <div className="pb-6 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400 font-semibold">01</span>
+                      <span className="text-xs font-semibold">Input Brief</span>
                     </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full transition-all duration-1000"
-                        style={{ width: `${persona.match}%` }} />
+                    <div className="flex flex-col gap-1.5">
+                      {[
+                        { label: 'product', value: 'HydroFlask 32oz' },
+                        { label: 'audience', value: 'Health-conscious, 25–34' },
+                        { label: 'goal', value: 'Drive purchases' },
+                      ].map((row) => (
+                        <div key={row.label} className="flex items-baseline gap-3">
+                          <span className="font-mono text-[10px] text-muted-foreground w-16 shrink-0">{row.label}</span>
+                          <span className="text-xs font-medium truncate">{row.value}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-6 pt-6 border-t border-border">
-                <div className="text-xs text-muted-foreground mb-3">Generated Output</div>
-                <div className="bg-blue-500/5 rounded-lg border border-blue-500/20 p-4">
-                  <p className="text-sm text-foreground leading-relaxed">
-                    "Lab-tested. BPA-free. 24hr insulation certified. Join 12,847 verified users."
-                  </p>
                 </div>
+
+                {/* Step 02 — Processing */}
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-2 h-2 rounded-full bg-violet-500 mt-1 shrink-0" />
+                    <div className="w-px flex-1 bg-border mt-1.5" />
+                  </div>
+                  <div className="pb-6 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-mono text-[10px] text-violet-600 dark:text-violet-400 font-semibold">02</span>
+                      <span className="text-xs font-semibold">Processing</span>
+                      <span className="ml-auto font-mono text-[10px] text-muted-foreground">2.1s</span>
+                    </div>
+                    <p className="font-mono text-[10px] text-muted-foreground leading-relaxed">
+                      Persona match · Tone calibration · Platform format · 3 variants
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 03 — Output */}
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">03</span>
+                      <span className="text-xs font-semibold">Output</span>
+                      <span className="ml-auto font-mono text-[10px] text-emerald-600 dark:text-emerald-400">top performer</span>
+                    </div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-xs font-medium text-violet-700 dark:text-violet-300 border-l-2 border-violet-400 dark:border-violet-500 pl-2">The Skeptic</span>
+                      <span className="text-xs text-muted-foreground">· Meta</span>
+                    </div>
+                    <p className="text-sm leading-relaxed text-foreground mb-4">
+                      "Lab-tested. BPA-free. 24hr insulation certified.{' '}
+                      <span className="font-medium">Join 12,847 verified users</span>{' '}
+                      who never compromise on quality."
+                    </p>
+                    <div className="flex divide-x divide-border border-t border-b border-border">
+                      {[
+                        { label: 'CTR', value: '4.8%', delta: '+156%' },
+                        { label: 'Conv Rate', value: '12.3%', delta: '+43%' },
+                        { label: 'Reach', value: '47K', delta: '+2.1×' },
+                      ].map((m) => (
+                        <div key={m.label} className="flex-1 px-3 py-3 text-center">
+                          <div className="text-sm font-semibold">{m.value}</div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">{m.label}</div>
+                          <div className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">{m.delta}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -185,7 +245,7 @@ export function SimpleLanding() {
         <div className="flex animate-marquee whitespace-nowrap">
           {[...marqueeWords, ...marqueeWords, ...marqueeWords].map((word, i) => (
             <span key={i} className="mx-8 text-[10px] tracking-widest uppercase text-muted-foreground flex items-center gap-3">
-              <span className="w-1 h-1 rounded-full bg-blue-400" />
+              <span className="text-muted-foreground/40">/</span>
               {word}
             </span>
           ))}
@@ -203,20 +263,21 @@ export function SimpleLanding() {
       <section className="py-24 px-6 border-b border-border" id="features">
         <div className="max-w-6xl mx-auto">
           <div className="mb-16">
+            <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-3">Features</p>
             <h2 className="text-3xl font-semibold mb-3">Everything you need to scale</h2>
             <p className="text-muted-foreground max-w-md">Powerful tools designed for modern advertising teams.</p>
           </div>
 
-          <div className="space-y-4">
+          <div className="divide-y divide-border border-t border-b border-border">
             {features.map((feature, i) => (
-              <div key={i} className="bg-card border border-border rounded-xl p-7 hover:border-foreground/20 transition-colors grid md:grid-cols-[1fr_auto] gap-8 items-center">
+              <div key={i} className="py-7 grid md:grid-cols-[1fr_auto] gap-8 items-center hover:bg-muted/20 transition-colors px-2">
                 <div>
-                  <span className="text-xs text-muted-foreground block mb-2">{feature.num}</span>
+                  <span className="font-mono text-xs text-muted-foreground block mb-2">{feature.num}</span>
                   <h3 className="text-base font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </div>
                 <div className="hidden md:block text-right border-l border-border pl-8 min-w-[140px]">
-                  <div className="text-4xl font-bold text-foreground">{feature.stat}</div>
+                  <div className="text-4xl font-bold" style={gradientText}>{feature.stat}</div>
                   <div className="text-xs text-muted-foreground mt-1 max-w-[120px] ml-auto">{feature.statLabel}</div>
                 </div>
               </div>
@@ -237,7 +298,7 @@ export function SimpleLanding() {
           </div>
           <p className="text-xl md:text-2xl leading-snug mb-6">
             "We replaced our entire creative workflow and{' '}
-            <span className="text-blue-500">tripled our output</span>{' '}
+            <em className="font-serif italic" style={{ ...gradientText, fontStyle: 'italic' }}>tripled our output</em>{' '}
             in the first month."
           </p>
           <p className="text-sm text-muted-foreground">— Sarah Chen, Head of Growth at Nomad</p>
@@ -248,8 +309,14 @@ export function SimpleLanding() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-6 border-b border-border">
-        <div className="max-w-6xl mx-auto">
+      <section className="relative py-24 px-6 border-b border-border overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 -z-0"
+          style={{
+            background: 'radial-gradient(ellipse 60% 80% at 50% 100%, rgba(245,158,11,0.06) 0%, transparent 70%)',
+          }}
+        />
+        <div className="relative z-10 max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-7">
               <h2 className="text-3xl font-semibold mb-4">Ready to transform your advertising?</h2>
@@ -257,31 +324,26 @@ export function SimpleLanding() {
                 Join hundreds of companies using AI to create more effective campaigns, faster.
               </p>
               <Link to="/sign-up"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors">
                 Get Started Free
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
-            <div className="lg:col-span-5 flex flex-col gap-3">
+            <div className="lg:col-span-5 divide-y divide-border border-t border-b border-border">
               {[
-                { icon: Sparkles, label: 'No credit card required', sub: 'Start building in 30 seconds' },
-                { icon: Zap, label: 'Free 14-day trial', sub: 'Full access to every feature' },
-                { icon: Target, label: 'Cancel anytime', sub: 'No lock-in, no hidden fees' },
-              ].map((item, i) => {
-                const Icon = item.icon;
-                return (
-                  <div key={i} className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-foreground/20 transition-colors">
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 text-blue-500" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium block">{item.label}</span>
-                      <span className="text-xs text-muted-foreground">{item.sub}</span>
-                    </div>
+                { label: 'No credit card required', sub: 'Start building in 30 seconds' },
+                { label: 'Free 14-day trial', sub: 'Full access to every feature' },
+                { label: 'Cancel anytime', sub: 'No lock-in, no hidden fees' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-4 py-4 pl-4 border-l-2 border-emerald-400 dark:border-emerald-500">
+                  <CheckIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <div>
+                    <span className="text-sm font-medium block">{item.label}</span>
+                    <span className="text-xs text-muted-foreground">{item.sub}</span>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         </div>

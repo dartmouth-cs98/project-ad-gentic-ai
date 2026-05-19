@@ -73,22 +73,22 @@ export function SignInPage() {
         </Link>
 
         {authState === 'success' ? (
-          <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <div className="bg-card border border-border rounded p-8 text-center">
             <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircleIcon className="w-7 h-7 text-blue-600" />
+              <CheckCircleIcon className="w-7 h-7 text-primary" />
             </div>
             <h2 className="text-lg font-semibold mb-1">Signed in</h2>
             <p className="text-sm text-muted-foreground">{loadingMessage}</p>
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-xl p-8">
+          <div className="bg-card border border-border rounded p-8">
             <h1 className="text-xl font-semibold text-center mb-1">Welcome back</h1>
             <p className="text-sm text-muted-foreground text-center mb-6">
               Enter your credentials to access your account
             </p>
 
             {authError && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-500">
                 {authError}
                 {authError.toLowerCase().includes('not verified') && (
                   <>
@@ -99,7 +99,7 @@ export function SignInPage() {
                         const query = email ? `?email=${encodeURIComponent(email)}` : '';
                         navigate(`/verify-email${query}`);
                       }}
-                      className="mt-3 w-full py-2 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/10 transition-colors"
+                      className="mt-3 w-full py-2 border border-red-500/30 rounded text-xs font-medium hover:bg-red-500/10 transition-colors"
                     >
                       Enter verification code
                     </button>
@@ -119,7 +119,7 @@ export function SignInPage() {
                         }
                       }}
                       disabled={resendState === 'loading'}
-                      className="mt-2 w-full py-2 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                      className="mt-2 w-full py-2 border border-red-500/30 rounded text-xs font-medium hover:bg-red-500/10 transition-colors disabled:opacity-50"
                     >
                       {resendState === 'loading' ? 'Sending...' : 'Resend verification code'}
                     </button>
@@ -136,7 +136,7 @@ export function SignInPage() {
               type="button"
               onClick={() => { setAuthState('loading'); setLoadingMessage('Signing you in...'); googleLogin(); }}
               disabled={authState === 'loading'}
-              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 mb-5"
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border rounded text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 mb-5"
             >
               {authState === 'loading' ? (
                 <Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -169,7 +169,7 @@ export function SignInPage() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   disabled={authState === 'loading'}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
                 />
                 {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
               </div>
@@ -188,7 +188,7 @@ export function SignInPage() {
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     disabled={authState === 'loading'}
-                    className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+                    className="w-full px-3 py-2 pr-10 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
                   />
                   <button
                     type="button"
@@ -204,7 +204,7 @@ export function SignInPage() {
               <button
                 type="submit"
                 disabled={authState === 'loading'}
-                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {authState === 'loading' ? (
                   <><Loader2Icon className="w-4 h-4 animate-spin" /> Signing In...</>

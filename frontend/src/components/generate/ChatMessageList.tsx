@@ -8,6 +8,8 @@ interface ChatMessageListProps {
   userName: string;
   onApprovePlan?: (message: ChatMessage) => void;
   onDeclinePlan?: (message: ChatMessage) => void;
+  // When true the parent is auto-approving plans; PlanCard shows status instead of buttons
+  expressMode?: boolean;
 }
 
 export function ChatMessageList({
@@ -16,6 +18,7 @@ export function ChatMessageList({
   userName,
   onApprovePlan,
   onDeclinePlan,
+  expressMode,
 }: ChatMessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +48,7 @@ export function ChatMessageList({
                 onApprove={() => onApprovePlan?.(msg)}
                 onDecline={() => onDeclinePlan?.(msg)}
                 resolved={isPlanResolved(msg)}
+                expressMode={expressMode}
               />
             </div>
           );

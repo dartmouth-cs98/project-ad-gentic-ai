@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ZapIcon } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ interface PlanCardProps {
   onApprove: () => void;
   onDecline: () => void;
   resolved?: boolean;
+  // When true the parent will auto-approve; show a status badge instead of buttons
+  expressMode?: boolean;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -49,7 +52,7 @@ function parsePlanContent(content: string): { intro: string; plan: AdPlan | null
 
 // ─── Component ──────────────────────────────────────────────────
 
-export function PlanCard({ content, onApprove, onDecline, resolved }: PlanCardProps) {
+export function PlanCard({ content, onApprove, onDecline, resolved, expressMode }: PlanCardProps) {
   const { intro, plan } = useMemo(() => parsePlanContent(content), [content]);
 
   if (!plan) {
@@ -104,9 +107,9 @@ export function PlanCard({ content, onApprove, onDecline, resolved }: PlanCardPr
               {plan.persona_groups.map((group, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <span className="font-medium text-foreground">{group.name}</span>
-                  <span className="text-border">&middot;</span>
+                  <span className="text-muted-foreground/50">&middot;</span>
                   <span className="text-muted-foreground">{group.age_range}</span>
-                  <span className="text-border">&middot;</span>
+                  <span className="text-muted-foreground/50">&middot;</span>
                   <span className="text-muted-foreground">{group.variant_count} variants</span>
                 </div>
               ))}
@@ -119,22 +122,30 @@ export function PlanCard({ content, onApprove, onDecline, resolved }: PlanCardPr
           </p>
         </div>
 
-        {/* Action buttons */}
+        {/* Action buttons — hidden once resolved or when express mode handles approval automatically */}
         {!resolved && (
-          <div className="px-4 py-3 border-t border-blue-600/10 bg-blue-600/5 flex items-center gap-2">
-            <button
-              onClick={onApprove}
-              className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Approve Plan
-            </button>
-            <button
-              onClick={onDecline}
-              className="px-3 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
-            >
-              Decline
-            </button>
-          </div>
+          expressMode ? (
+            // Express mode: show a status badge instead of manual approve/decline buttons
+            <div className="px-4 py-3 border-t border-violet-500/10 bg-violet-500/5 flex items-center gap-2">
+              <ZapIcon className="w-3.5 h-3.5 text-violet-400 animate-pulse flex-shrink-0" />
+              <p className="text-xs text-violet-400 font-medium">Express Mode — auto-approving plan...</p>
+            </div>
+          ) : (
+            <div className="px-4 py-3 border-t border-blue-600/10 bg-blue-600/5 flex items-center gap-2">
+              <button
+                onClick={onApprove}
+                className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Approve Plan
+              </button>
+              <button
+                onClick={onDecline}
+                className="px-3 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+              >
+                Decline
+              </button>
+            </div>
+          )
         )}
       </div>
     </div>

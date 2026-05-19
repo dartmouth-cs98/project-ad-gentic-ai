@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { useNavigate } from 'react-router-dom';
 import {
   PlusIcon,
   SearchIcon,
@@ -13,6 +14,7 @@ import {
   ExternalLinkIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ZapIcon,
 } from 'lucide-react';
 
 import { useUser } from '../contexts/UserContext';
@@ -37,6 +39,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
   onDeleteImage: (p: Product, blobName: string) => void;
   onDelete: (p: Product) => void;
 }) {
+  const navigate = useNavigate();
   const [imgIdx, setImgIdx] = useState(0);
   const hasImages = product.image_urls.length > 0;
   const currentUrl = hasImages ? product.image_urls[Math.min(imgIdx, product.image_urls.length - 1)] : null;
@@ -147,6 +150,17 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
             <span className="text-xs text-muted-foreground px-2 py-1">Max images reached</span>
           )}
           <div className="flex-1" />
+
+          {/* Shortcut: jump to /generate with this product pre-selected in the stepper */}
+          <button
+            onClick={() => navigate(`/generate?productId=${product.id}`)}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-blue-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+            title="Create a campaign for this product"
+          >
+            <ZapIcon className="w-3 h-3" />
+            Campaign
+          </button>
+
           <button
             onClick={() => onDelete(product)}
             className="p-1 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"

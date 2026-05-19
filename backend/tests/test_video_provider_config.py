@@ -11,9 +11,9 @@ from utils.video_provider_config import (
 )
 
 
-def test_veo_generation_enabled_defaults_true():
-    with patch.dict("os.environ", {}, clear=True):
-        assert veo_generation_enabled() is True
+def test_veo_generation_enabled_defaults_true(monkeypatch):
+    monkeypatch.delenv("VEO_GENERATION_ENABLED", raising=False)
+    assert veo_generation_enabled() is True
 
 
 @pytest.mark.parametrize("value", ("false", "0", "no", "FALSE"))

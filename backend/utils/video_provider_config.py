@@ -35,7 +35,7 @@ def sora_configured() -> bool:
 
 def veo_generation_enabled() -> bool:
     """Whether Grok may route ads to Google Veo (``VEO_GENERATION_ENABLED``; default on)."""
-    raw = os.getenv("VEO_GENERATION_ENABLED", "false").strip().lower()
+    raw = os.getenv("VEO_GENERATION_ENABLED", "true").strip().lower()
     if raw in _VEO_DISABLED_ENV_MARKERS:
         return False
     return raw in _VEO_VERTEX_ENV_MARKERS

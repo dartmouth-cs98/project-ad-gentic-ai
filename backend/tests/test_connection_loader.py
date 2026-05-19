@@ -18,7 +18,7 @@ os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost")
 
 from database import Base
 from models.social_connection import SocialConnection
-from services.meta.connection_loader import (
+from services.ad_platforms.meta.connection_loader import (
     ConnectionValidationError,
     load_publish_connection,
 )

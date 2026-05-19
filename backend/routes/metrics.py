@@ -18,7 +18,7 @@ from models.campaign import Campaign
 from models.social_connection import SocialConnection
 from routes.auth import get_current_client_id
 from schemas.campaign_metric import CampaignMetricResponse, MetricsSummary
-from services.meta.insights import fetch_and_cache_metrics, is_stale, load_cached_metrics
+from services.ad_platforms.meta.insights import fetch_and_cache_metrics, is_stale, load_cached_metrics
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

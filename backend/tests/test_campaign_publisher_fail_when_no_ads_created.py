@@ -11,15 +11,26 @@ sys.path.insert(0, str(_backend_dir))
 
 os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost")
 
-from services.meta.campaign_publisher import MetaPublishError, publish_campaign
+from services.ad_platforms._base.errors import PublishError
+from services.ad_platforms.meta.campaign_publisher import MetaPublishError, publish_campaign
+
+
+def test_meta_publish_error_inherits_from_publish_error_base():
+    """Routes catch PublishError generically, but Meta-specific code still sees MetaPublishError."""
+    err = MetaPublishError("boom", meta_campaign_id="meta_abc")
+    assert isinstance(err, PublishError)
+    # Both names are populated during the transition so legacy callers and
+    # generic platform code see the same value.
+    assert err.meta_campaign_id == "meta_abc"
+    assert err.external_campaign_id == "meta_abc"
 
 
 def test_publish_campaign_raises_when_all_variant_ads_fail(monkeypatch):
     """If every per-variant ad creation fails, publish_campaign should raise so /run can retry."""
 
-    monkeypatch.setattr("services.meta.campaign_publisher.decrypt_token", lambda _enc: "token")
+    monkeypatch.setattr("services.ad_platforms.meta.campaign_publisher.decrypt_token", lambda _enc: "token")
     # Ensure we take the "resume" branch (avoid hitting real Meta in CI).
-    monkeypatch.setattr("services.meta.campaign_publisher._meta_campaign_exists", lambda *_a, **_k: True)
+    monkeypatch.setattr("services.ad_platforms.meta.campaign_publisher._meta_campaign_exists", lambda *_a, **_k: True)
 
     def _fake_post(path: str, token: str, payload: dict, *, timeout: float = 30.0) -> dict:
         # publish_campaign only needs /adsets for this test (we pass existing_meta_campaign_id).
@@ -28,13 +39,13 @@ def test_publish_campaign_raises_when_all_variant_ads_fail(monkeypatch):
             return {"id": "adset_1"}
         raise AssertionError(f"Unexpected _post call: {path}")
 
-    monkeypatch.setattr("services.meta.campaign_publisher._post", _fake_post)
+    monkeypatch.setattr("services.ad_platforms.meta.campaign_publisher._post", _fake_post)
 
     def _fail_create_ad_for_variant(**_kwargs):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(
-        "services.meta.campaign_publisher._create_ad_for_variant", _fail_create_ad_for_variant
+        "services.ad_platforms.meta.campaign_publisher._create_ad_for_variant", _fail_create_ad_for_variant
     )
 
     persona_groups = [
@@ -65,13 +76,13 @@ def test_publish_campaign_raises_when_all_variant_ads_fail(monkeypatch):
 
 def test_publish_campaign_recreates_campaign_when_existing_id_is_stale(monkeypatch):
     """If stored meta_campaign_id is invalid/inaccessible, publish_campaign should create a new one."""
-    monkeypatch.setattr("services.meta.campaign_publisher.decrypt_token", lambda _enc: "token")
+    monkeypatch.setattr("services.ad_platforms.meta.campaign_publisher.decrypt_token", lambda _enc: "token")
 
     # Pretend the stored campaign id is invalid (Meta returns 400).
     class _Resp:
         status_code = 400
 
-    monkeypatch.setattr("services.meta.campaign_publisher.httpx.get", lambda *a, **k: _Resp())
+    monkeypatch.setattr("services.ad_platforms.meta.campaign_publisher.httpx.get", lambda *a, **k: _Resp())
 
     calls = {"campaigns": 0, "adsets": 0}
 
@@ -87,8 +98,8 @@ def test_publish_campaign_recreates_campaign_when_existing_id_is_stale(monkeypat
             return {"id": "adset_1"}
         raise AssertionError(f"Unexpected _post call: {path}")
 
-    monkeypatch.setattr("services.meta.campaign_publisher._post", _fake_post)
-    monkeypatch.setattr("services.meta.campaign_publisher._create_ad_for_variant", lambda **_k: None)
+    monkeypatch.setattr("services.ad_platforms.meta.campaign_publisher._post", _fake_post)
+    monkeypatch.setattr("services.ad_platforms.meta.campaign_publisher._create_ad_for_variant", lambda **_k: None)
 
     persona_groups = [
         {

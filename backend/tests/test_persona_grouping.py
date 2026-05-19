@@ -19,7 +19,7 @@ from models.ad_variant import AdVariant
 from models.business_client import BusinessClient
 from models.consumer import Consumer
 from models.persona import Persona
-from services.meta.persona_grouping import (
+from services.ad_platforms.meta.persona_grouping import (
     UNCATEGORIZED_NAME,
     group_approved_variants_by_persona,
 )

@@ -20,10 +20,10 @@ from database import get_db
 from models.social_connection import SocialConnection
 from routes.auth import get_current_client_id
 from schemas.social_connection import ConnectStatusResponse
-from services.meta.auth import (
+from services.ad_platforms._base.encryption import encrypt_token
+from services.ad_platforms.meta.auth import (
     build_oauth_url,
     exchange_code_for_long_lived_token,
-    encrypt_token,
     fetch_platform_account_info,
     token_expiry_dt,
 )

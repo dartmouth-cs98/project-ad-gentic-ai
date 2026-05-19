@@ -7,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from models.ad_variant import AdVariant
+from models.consumer import Consumer
+from models.persona import Persona
 from schemas.ad_variant import AdVariantCreate, AdVariantUpdate
 
 
@@ -86,3 +88,36 @@ def delete_ad_variant(db: Session, ad_variant_id: int) -> bool:
     db.delete(ad_variant)
     db.commit()
     return True
+
+
+def attach_personas(db: Session, variants: list[AdVariant]) -> None:
+    """Set ``persona_id`` and ``persona_name`` instance attributes on each variant.
+
+    Resolves the chain ``AdVariant.consumer_id → Consumer.primary_persona_id →
+    Persona`` in a single batched query (one SELECT regardless of list size).
+    Variants with no consumer or whose consumer has no primary persona get
+    ``persona_id = persona_name = None``.
+
+    Mutates the variants in-place; consumed by the response serializer via
+    ``model_validate(..., from_attributes=True)``.
+    """
+    for v in variants:
+        v.persona_id = None
+        v.persona_name = None
+
+    consumer_ids = {v.consumer_id for v in variants if v.consumer_id is not None}
+    if not consumer_ids:
+        return
+
+    rows = db.execute(
+        select(Consumer.id, Persona.id, Persona.name)
+        .outerjoin(Persona, Consumer.primary_persona_id == Persona.id)
+        .where(Consumer.id.in_(consumer_ids))
+    ).all()
+    persona_by_consumer = {cid: (pid, pname) for cid, pid, pname in rows}
+
+    for v in variants:
+        if v.consumer_id in persona_by_consumer:
+            pid, pname = persona_by_consumer[v.consumer_id]
+            v.persona_id = pid
+            v.persona_name = pname

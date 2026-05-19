@@ -24,3 +24,4 @@ Repo-root [AGENTS.md](../../AGENTS.md) is the contributor quick map (run, test, 
 | [persistence.md](./persistence.md) | SQLAlchemy models / tables overview |
 | [ci-and-tooling.md](./ci-and-tooling.md) | GitHub Actions, local commands |
 | [integrations.md](./integrations.md) | External APIs and SDK touchpoints |
+| [generation-preferences.md](./generation-preferences.md) | Ad Studio preference snapshot JSON (brief + script pipeline) |

@@ -5,7 +5,9 @@ Run from the backend directory:
     cd backend && pip install -r requirements.txt && python -m pytest tests/test_ad_job_worker.py -v
 """
 
+import json
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -27,6 +29,27 @@ from workers.ad_job_worker.worker import (
 from workers.script_moderation_worker.worker import ModerationVerdict
 
 _PASS_MODERATION = ModerationVerdict(passed=True, feedback="")
+
+
+@contextmanager
+def _mock_script_video_routing():
+    """Isolate ad-job tests from Grok classifier and VIDEO_* env requirements."""
+
+    async def _align(script: str, provider: str, **_: object):
+        return script, provider, 12
+
+    with (
+        patch(
+            "workers.ad_job_worker.worker.resolve_video_provider_for_script",
+            new_callable=AsyncMock,
+            return_value="sora",
+        ),
+        patch(
+            "workers.ad_job_worker.worker.align_script_with_video_provider",
+            side_effect=_align,
+        ),
+    ):
+        yield
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +204,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
 ):
     """execute_ad_job with all deps mocked returns the created ad_variant id."""
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -190,7 +214,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Mock script text"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"mock video bytes"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"mock video bytes"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -204,7 +228,7 @@ async def test_execute_ad_job_returns_ad_variant_id(
     assert result == 42
     mock_db.close.assert_called_once()
     # Script and video helpers should have been called
-    from workers.ad_job_worker.worker import generate_ad_script, generate_ad_video
+    from workers.ad_job_worker.worker import generate_ad_script, generate_ad_video_for_script
     # (patched, so we just check they were invoked via the fact that result is 42 and no exception)
 
 
@@ -221,6 +245,7 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
     """execute_ad_job passes product name, description, consumer traits, and campaign brief to generate_ad_script."""
     mock_gen_script = AsyncMock(return_value="Script")
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -230,7 +255,7 @@ async def test_execute_ad_job_calls_generate_ad_script_with_expected_args(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", mock_gen_script),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"video"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"video"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -262,6 +287,7 @@ async def test_execute_ad_job_prefers_consumer_traits_description(
     mock_consumer.traits = '{"age": "99", "interest": "ignored"}'
     mock_gen_script = AsyncMock(return_value="Script")
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -271,7 +297,7 @@ async def test_execute_ad_job_prefers_consumer_traits_description(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", mock_gen_script),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"video"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"video"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -288,7 +314,7 @@ async def test_execute_ad_job_prefers_consumer_traits_description(
 
 
 @pytest.mark.asyncio
-async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
+async def test_execute_ad_job_calls_generate_ad_video_for_script_with_script_and_image(
     mock_db,
     mock_session_factory,
     mock_ad_variant,
@@ -297,9 +323,10 @@ async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
     mock_product,
     mock_blob_client,
 ):
-    """execute_ad_job passes script and image bytes/type/filename to generate_ad_video."""
+    """execute_ad_job passes script and image bytes/type/filename to generate_ad_video_for_script."""
     mock_generate_video = AsyncMock(return_value=b"video")
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -309,7 +336,7 @@ async def test_execute_ad_job_calls_generate_ad_video_with_script_and_image(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Script"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", mock_generate_video),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", mock_generate_video),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -332,6 +359,7 @@ async def test_execute_ad_job_uses_image_name_fallback(mock_db, mock_session_fac
     product.image_name = "blob-name.png"
 
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -341,7 +369,7 @@ async def test_execute_ad_job_uses_image_name_fallback(mock_db, mock_session_fac
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="S"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"v"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"v"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
 
@@ -364,6 +392,7 @@ async def test_execute_ad_job_json_image_name_uses_first_blob_for_download(
     product.image_name = '["first.png", "second.png"]'
 
     with (
+        _mock_script_video_routing(),
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
         patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
         patch("workers.ad_job_worker.worker.update_ad_variant"),
@@ -373,7 +402,7 @@ async def test_execute_ad_job_json_image_name_uses_first_blob_for_download(
         patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
         patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
         patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="S"),
-        patch("workers.ad_job_worker.worker.generate_ad_video", new_callable=AsyncMock, return_value=b"v"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"v"),
     ):
         blob_cls.from_connection_string.return_value = mock_blob_client
         await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)
@@ -394,19 +423,37 @@ async def test_execute_ad_job_json_image_name_uses_first_blob_for_download(
 
 @pytest.mark.asyncio
 async def test_generate_campaign_preview_returns_list_of_ad_variant_ids():
-    """generate_campaign_preview returns a list of ad variant IDs (one per persona with consumers)."""
+    """Plan-driven preview: match persona_groups from approved brief JSON; one variant per distinct consumer (capped)."""
     mock_db = MagicMock()
     mock_factory = MagicMock(return_value=mock_db)
     mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```json\n"
+                '{"persona_groups":[{"name":"Trail Fans","variant_count":3}]}'
+                "\n```"
+            ),
+        },
+    })
     mock_persona = MagicMock()
     mock_persona.id = "persona-uuid-1"
+    mock_persona.name = "Trail Fans"
     mock_consumer = MagicMock()
     mock_consumer.id = 10
+    mock_consumer.business_client_id = 42
     with (
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
         patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
-        patch("workers.ad_job_worker.worker.get_personas", return_value=[mock_persona]),
-        patch("workers.ad_job_worker.worker.get_consumers_by_persona_id", return_value=[mock_consumer]),
+        patch(
+            "workers.ad_job_worker.worker.load_all_personas",
+            return_value=[mock_persona],
+        ),
+        patch(
+            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
+            return_value=[mock_consumer],
+        ),
         patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock, return_value=99),
     ):
         result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
@@ -415,17 +462,101 @@ async def test_generate_campaign_preview_returns_list_of_ad_variant_ids():
 
 
 @pytest.mark.asyncio
+async def test_generate_campaign_preview_uses_consumer_from_any_business_client():
+    """Preview resolves consumers by persona across all clients, not only the campaign's business_client."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```json\n"
+                '{"persona_groups":[{"name":"Trail Fans","variant_count":1}]}'
+                "\n```"
+            ),
+        },
+    })
+    mock_persona = MagicMock()
+    mock_persona.id = "persona-uuid-1"
+    mock_persona.name = "Trail Fans"
+    mock_consumer = MagicMock()
+    mock_consumer.id = 10
+    mock_consumer.business_client_id = 999
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.load_all_personas",
+            return_value=[mock_persona],
+        ),
+        patch(
+            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
+            return_value=[mock_consumer],
+        ),
+        patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock, return_value=99),
+    ):
+        result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
+    assert result == [99]
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_campaign_preview_returns_empty_when_plan_groups_yield_no_variants():
+    """Non-empty persona_groups but zero variants — fail-closed; no legacy random fallback."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```json\n"
+                '{"persona_groups":[{"name":"Trail Fans","variant_count":3}]}'
+                "\n```"
+            ),
+        },
+    })
+    mock_persona = MagicMock()
+    mock_persona.id = "persona-uuid-1"
+    mock_persona.name = "Trail Fans"
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.load_all_personas",
+            return_value=[mock_persona],
+        ),
+        patch(
+            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
+            return_value=[],
+        ),
+        patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock) as mock_exec,
+    ):
+        result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
+    assert result == []
+    mock_exec.assert_not_called()
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_consumers_to_generate():
     """generate_campaign_ad_variants creates a batch and jobs, returns batch ID."""
     mock_db = MagicMock()
     mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    mock_campaign.brief = None
     mock_consumer = MagicMock()
     mock_consumer.id = 5
+    mock_consumer.business_client_id = 7
+    mock_consumer.primary_persona_id = None
     mock_batch = MagicMock()
     batch_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     mock_batch.id = batch_id
     with (
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
         patch("workers.ad_job_worker.worker.get_all_consumers", return_value=[mock_consumer]),
         patch("workers.ad_job_worker.worker.get_ad_variant_by_campaign_consumer_version", return_value=None),
         patch("workers.ad_job_worker.worker.create_ad_job_batch", return_value=mock_batch),
@@ -437,14 +568,146 @@ async def test_generate_campaign_ad_variants_returns_batch_id_when_there_are_con
 
 
 @pytest.mark.asyncio
+async def test_generate_campaign_ad_variants_enqueues_consumers_from_all_business_clients():
+    """Full campaign batch includes every DB consumer missing a variant, not only the campaign's client."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    mock_campaign.brief = None
+    mock_consumer_a = MagicMock()
+    mock_consumer_a.id = 5
+    mock_consumer_a.business_client_id = 7
+    mock_consumer_a.primary_persona_id = None
+    mock_consumer_b = MagicMock()
+    mock_consumer_b.id = 6
+    mock_consumer_b.business_client_id = 99
+    mock_consumer_b.primary_persona_id = None
+    mock_batch = MagicMock()
+    batch_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    mock_batch.id = batch_id
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.get_all_consumers",
+            return_value=[mock_consumer_a, mock_consumer_b],
+        ),
+        patch("workers.ad_job_worker.worker.get_ad_variant_by_campaign_consumer_version", return_value=None),
+        patch("workers.ad_job_worker.worker.create_ad_job_batch", return_value=mock_batch),
+        patch("workers.ad_job_worker.worker.create_ad_job") as mock_create_job,
+    ):
+        result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
+    assert result == batch_id
+    mock_create_job.assert_called()
+    assert mock_create_job.call_count == 2
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_campaign_ad_variants_returns_none_when_structured_plan_json_unparseable():
+    """Fail-closed: structured brief with non-empty plan_message but no ```json fence — no full-database batch."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    # Generic markdown fence (not ```json) — parse_plan_json_from_message returns None
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```\n"
+                '{"persona_groups":[{"name":"Trail Fans"}]}'
+                "\n```"
+            ),
+        },
+    })
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_all_consumers") as mock_consumers,
+        patch("workers.ad_job_worker.worker.create_ad_job_batch") as mock_batch,
+        patch("workers.ad_job_worker.worker.create_ad_job") as mock_job,
+    ):
+        result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
+    assert result is None
+    mock_consumers.assert_not_called()
+    mock_batch.assert_not_called()
+    mock_job.assert_not_called()
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_campaign_preview_returns_empty_when_structured_plan_json_unparseable():
+    """Structured brief but fenced block is not ```json — fail closed, no legacy random preview."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+    mock_campaign.brief = json.dumps({
+        "1": {
+            "plan_message": (
+                "```\n"
+                '{"persona_groups":[{"name":"Trail Fans","variant_count":3}]}'
+                "\n```"
+            ),
+        },
+    })
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.load_all_personas") as mock_personas,
+        patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock) as mock_exec,
+    ):
+        result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
+    assert result == []
+    mock_personas.assert_not_called()
+    mock_exec.assert_not_called()
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_campaign_ad_variants_returns_none_when_plan_groups_unmatched():
+    """Fail-closed: plan lists persona_groups but none match dbo.personas — no batch, no fallback."""
+    mock_db = MagicMock()
+    mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    mock_campaign.brief = '{"1": {"plan_message": "```json\\n{}\\n```"}}'
+    with (
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch(
+            "workers.ad_job_worker.worker.parse_plan_json_from_message",
+            return_value={"persona_groups": [{"name": "Unknown Persona"}]},
+        ),
+        patch(
+            "workers.ad_job_worker.worker.resolve_persona_ids_from_plan",
+            return_value=set(),
+        ),
+        patch("workers.ad_job_worker.worker.create_ad_job_batch") as mock_batch,
+        patch("workers.ad_job_worker.worker.create_ad_job") as mock_job,
+    ):
+        result = await generate_campaign_ad_variants(campaign_id=1, product_id=1, version_number=1)
+    assert result is None
+    mock_batch.assert_not_called()
+    mock_job.assert_not_called()
+    mock_db.close.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_generate_campaign_ad_variants_returns_none_when_no_consumers_need_generation():
     """generate_campaign_ad_variants returns None when every consumer already has an ad variant."""
     mock_db = MagicMock()
     mock_factory = MagicMock(return_value=mock_db)
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 7
+    mock_campaign.brief = None
     mock_consumer = MagicMock()
+    mock_consumer.business_client_id = 7
     mock_existing = MagicMock()
     with (
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
         patch("workers.ad_job_worker.worker.get_all_consumers", return_value=[mock_consumer]),
         patch("workers.ad_job_worker.worker.get_ad_variant_by_campaign_consumer_version", return_value=mock_existing),
     ):

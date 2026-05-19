@@ -3,6 +3,8 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { FilmIcon, FileTextIcon, CheckCircle2Icon, XIcon } from 'lucide-react';
 import type { AdVariant } from '../../types';
+import { useGroupedVariants } from '../../hooks/useGroupedVariants';
+import { VariantGroupSection } from '../shared/VariantGroupSection';
 
 function parseScript(meta: string | null): string | null {
   if (!meta) return null;
@@ -21,6 +23,7 @@ interface AdVariantsGridProps {
 }
 
 export function AdVariantsGrid({ variants, onApprove, onUnapprove }: AdVariantsGridProps) {
+  const groups = useGroupedVariants(variants);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const toggleSelect = (id: number) => {
@@ -104,107 +107,138 @@ export function AdVariantsGrid({ variants, onApprove, onUnapprove }: AdVariantsG
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {variants.map((variant) => {
-          const script = parseScript(variant.meta);
-          const isSelected = selectedIds.has(variant.id);
-
+      {/* Grouped grid */}
+      <div className="space-y-6">
+        {groups.map((group) => {
+          const approvedCount = group.variants.filter((v) => v.is_approved).length;
           return (
-            <Card
-              key={variant.id}
-              variant="elevated"
-              padding="none"
-              className={`overflow-hidden cursor-pointer transition-all ${
-                isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-border'
-              }`}
-              onClick={() => toggleSelect(variant.id)}
+            <VariantGroupSection
+              key={group.key}
+              name={group.name}
+              isGeneral={group.isGeneral}
+              approvedCount={approvedCount}
+              totalCount={group.variants.length}
             >
-              <div className="relative w-full aspect-video bg-black">
-                {variant.media_url ? (
-                  <video
-                    src={variant.media_url}
-                    className="w-full h-full object-contain object-center bg-black"
-                    controls
-                    preload="metadata"
-                    onClick={(e) => e.stopPropagation()}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {group.variants.map((variant) => (
+                  <VariantCard
+                    key={variant.id}
+                    variant={variant}
+                    isSelected={selectedIds.has(variant.id)}
+                    onToggle={toggleSelect}
+                    onApprove={onApprove}
+                    onUnapprove={onUnapprove}
                   />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400">
-                    <FilmIcon className="w-8 h-8" />
-                    <p className="text-sm">No video URL available</p>
-                  </div>
-                )}
-
-                {/* Approval badge */}
-                <div className="absolute top-3 left-3">
-                  <Badge variant={variant.is_approved ? 'success' : 'warning'}>
-                    {variant.is_approved ? 'Approved' : 'Pending Approval'}
-                  </Badge>
-                </div>
-
-                {/* Selection checkbox */}
-                <div
-                  className="absolute top-3 right-3 z-10"
-                  onClick={(e) => { e.stopPropagation(); toggleSelect(variant.id); }}
-                >
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    isSelected
-                      ? 'bg-blue-500 border-blue-500'
-                      : 'bg-black/40 border-white/60 hover:border-white'
-                  }`}>
-                    {isSelected && <CheckCircle2Icon className="w-3 h-3 text-white" />}
-                  </div>
-                </div>
+                ))}
               </div>
-
-              <div className="p-4 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Variant #{variant.id}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">v{variant.version_number}</span>
-                    {/* Inline approve/unapprove toggle */}
-                    {variant.is_approved && onUnapprove ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onUnapprove(variant.id); }}
-                        className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-                      >
-                        Unapprove
-                      </button>
-                    ) : !variant.is_approved && onApprove ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onApprove(variant.id); }}
-                        className="text-xs text-emerald-600 hover:text-emerald-700 underline underline-offset-2 transition-colors"
-                      >
-                        Approve
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted-foreground">
-                  Generated {new Date(variant.created_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </div>
-
-                {script && (
-                  <div className="flex items-start gap-2 rounded-lg bg-muted/50 border border-border p-3">
-                    <FileTextIcon className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <p className="text-xs leading-relaxed text-muted-foreground line-clamp-3">
-                      {script}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </Card>
+            </VariantGroupSection>
           );
         })}
       </div>
     </div>
+  );
+}
+
+interface VariantCardProps {
+  variant: AdVariant;
+  isSelected: boolean;
+  onToggle: (id: number) => void;
+  onApprove?: (id: number) => void;
+  onUnapprove?: (id: number) => void;
+}
+
+function VariantCard({ variant, isSelected, onToggle, onApprove, onUnapprove }: VariantCardProps) {
+  const script = parseScript(variant.meta);
+
+  return (
+    <Card
+      variant="elevated"
+      padding="none"
+      className={`overflow-hidden cursor-pointer transition-all ${
+        isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-border'
+      }`}
+      onClick={() => onToggle(variant.id)}
+    >
+      <div className="relative w-full aspect-video bg-black">
+        {variant.media_url ? (
+          <video
+            src={variant.media_url}
+            className="w-full h-full object-contain object-center bg-black"
+            controls
+            preload="metadata"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400">
+            <FilmIcon className="w-8 h-8" />
+            <p className="text-sm">No video URL available</p>
+          </div>
+        )}
+
+        {/* Approval badge */}
+        <div className="absolute top-3 left-3">
+          <Badge variant={variant.is_approved ? 'success' : 'warning'}>
+            {variant.is_approved ? 'Approved' : 'Pending Approval'}
+          </Badge>
+        </div>
+
+        {/* Selection checkbox */}
+        <div
+          className="absolute top-3 right-3 z-10"
+          onClick={(e) => { e.stopPropagation(); onToggle(variant.id); }}
+        >
+          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+            isSelected
+              ? 'bg-blue-500 border-blue-500'
+              : 'bg-black/40 border-white/60 hover:border-white'
+          }`}>
+            {isSelected && <CheckCircle2Icon className="w-3 h-3 text-white" />}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">
+            Variant #{variant.id}
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">v{variant.version_number}</span>
+            {variant.is_approved && onUnapprove ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); onUnapprove(variant.id); }}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+              >
+                Unapprove
+              </button>
+            ) : !variant.is_approved && onApprove ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); onApprove(variant.id); }}
+                className="text-xs text-emerald-600 hover:text-emerald-700 underline underline-offset-2 transition-colors"
+              >
+                Approve
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          Generated {new Date(variant.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
+        </div>
+
+        {script && (
+          <div className="flex items-start gap-2 rounded-lg bg-muted/50 border border-border p-3">
+            <FileTextIcon className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <p className="text-xs leading-relaxed text-muted-foreground line-clamp-3">
+              {script}
+            </p>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }

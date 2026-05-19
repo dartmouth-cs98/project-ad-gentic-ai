@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from schemas.persona import PersonaBrief
 
@@ -11,12 +11,18 @@ from schemas.persona import PersonaBrief
 # ---------- Request schemas ----------
 
 class ConsumerCreate(BaseModel):
-    """Schema for creating a new consumer. All fields are required."""
-    email: str
-    phone: str
-    first_name: str
-    last_name: str
-    traits: dict
+    """Schema for creating a new consumer."""
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    traits: Optional[dict] = None
+
+    @model_validator(mode="after")
+    def validate_identifier(self):
+        if not (self.email and self.email.strip()) and not (self.phone and self.phone.strip()):
+            raise ValueError("At least one of email or phone is required.")
+        return self
 
 
 class AssignPersonasRequest(BaseModel):

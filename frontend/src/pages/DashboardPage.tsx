@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sidebar } from '../components/layout/Sidebar';
-import { useSidebar } from '../contexts/SidebarContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import {
   SparklesIcon,
   TrendingUpIcon,
@@ -12,8 +10,6 @@ import {
   CheckIcon,
   Loader2Icon,
   XIcon,
-  Sun,
-  Moon,
 } from 'lucide-react';
 
 const recentActivity = [
@@ -53,8 +49,6 @@ const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-
 const labelClass = 'block text-sm font-medium mb-1.5';
 
 export function DashboardPage() {
-  const { collapsed } = useSidebar();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const authFlow = localStorage.getItem('adgentic_auth_flow');
   const isReturningUser = authFlow === 'signin';
@@ -102,9 +96,7 @@ const togglePlatform = (platformId: string) => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 p-8`}>
+    <DashboardLayout>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -135,13 +127,6 @@ const togglePlatform = (platformId: string) => {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
             >
               New Campaign
-            </button>
-            <button
-              onClick={toggleTheme}
-              className="p-2 bg-muted rounded-lg hover:bg-border transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -281,8 +266,6 @@ const togglePlatform = (platformId: string) => {
             </div>
           </>
         )}
-      </main>
-
       {/* Create Campaign Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -382,6 +365,6 @@ const togglePlatform = (platformId: string) => {
           </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }

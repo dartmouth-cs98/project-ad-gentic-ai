@@ -147,7 +147,7 @@ async def test_evaluate_script_raises_when_no_output():
             {"SCRIPT_API_KEY": "k", "SCRIPT_MODEL": "m", "SCRIPT_BASE_URL": "https://x"},
         ),
     ):
-        with pytest.raises(ValueError, match="no output"):
+        with pytest.raises(ValueError, match="no extractable text"):
             await evaluate_script("script")
 
 
@@ -166,7 +166,7 @@ async def test_evaluate_script_raises_when_output_has_no_content():
             {"SCRIPT_API_KEY": "k", "SCRIPT_MODEL": "m", "SCRIPT_BASE_URL": "https://x"},
         ),
     ):
-        with pytest.raises(ValueError, match="no content"):
+        with pytest.raises(ValueError, match="no extractable text"):
             await evaluate_script("script")
 
 

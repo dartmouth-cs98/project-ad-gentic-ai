@@ -41,6 +41,7 @@ async def get_chat_completion(
     filter_context: dict | None = None,
     campaign_context: dict | None = None,
     previous_plan: str | None = None,
+    personas_catalog: str | None = None,
 ) -> dict:
     """Call the Grok API with conversation history and return the response.
 
@@ -57,6 +58,7 @@ async def get_chat_completion(
         filter_context=filter_context,
         campaign_context=campaign_context,
         previous_plan=previous_plan,
+        personas_catalog=personas_catalog,
     )
 
     response = await client.chat.completions.create(

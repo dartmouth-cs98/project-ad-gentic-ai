@@ -64,7 +64,7 @@ def test_list_ad_variants_signs_media_url(monkeypatch):
             ],
         )
         monkeypatch.setattr(
-            "routes.ad_variants.generate_blob_sas",
+            "services.storage.ad_video_media_url.generate_blob_sas",
             lambda **kwargs: "sig=abc123",
         )
 
@@ -108,7 +108,7 @@ def test_list_ad_variants_appends_sas_to_existing_query(monkeypatch):
             ],
         )
         monkeypatch.setattr(
-            "routes.ad_variants.generate_blob_sas",
+            "services.storage.ad_video_media_url.generate_blob_sas",
             lambda **kwargs: "sig=abc123",
         )
 
@@ -131,7 +131,7 @@ def test_read_ad_variant_leaves_non_azure_media_url_unchanged(monkeypatch):
         raw_url = "https://cdn.example.com/video.mp4"
         monkeypatch.setattr("routes.ad_variants.get_ad_variant", lambda *args, **kwargs: _variant(raw_url))
         monkeypatch.setattr(
-            "routes.ad_variants.generate_blob_sas",
+            "services.storage.ad_video_media_url.generate_blob_sas",
             lambda **kwargs: "sig=abc123",
         )
 
@@ -139,6 +139,58 @@ def test_read_ad_variant_leaves_non_azure_media_url_unchanged(monkeypatch):
         assert res.status_code == 200
         body = res.json()
         assert body["media_url"] == raw_url
+    finally:
+        client.close()
+        _clear_overrides()
+
+
+def test_list_ad_variants_includes_persona_fields(monkeypatch):
+    """The list response should expose persona_id / persona_name resolved by attach_personas."""
+    client = _client()
+    try:
+        monkeypatch.setattr(
+            "routes.ad_variants.get_ad_variants",
+            lambda *args, **kwargs: [_variant(None)],
+        )
+
+        def _fake_attach(_db, variants):
+            for v in variants:
+                v.persona_id = "persona-123"
+                v.persona_name = "Busy Parent"
+
+        monkeypatch.setattr("routes.ad_variants.attach_personas", _fake_attach)
+
+        res = client.get("/ad-variants/?campaign_id=7")
+        assert res.status_code == 200
+        body = res.json()
+        assert body[0]["persona_id"] == "persona-123"
+        assert body[0]["persona_name"] == "Busy Parent"
+    finally:
+        client.close()
+        _clear_overrides()
+
+
+def test_read_ad_variant_includes_persona_fields_null_when_missing(monkeypatch):
+    """When the variant has no consumer/persona, both fields serialize as null."""
+    client = _client()
+    try:
+        monkeypatch.setattr(
+            "routes.ad_variants.get_ad_variant",
+            lambda *args, **kwargs: _variant(None),
+        )
+
+        def _fake_attach(_db, variants):
+            for v in variants:
+                v.persona_id = None
+                v.persona_name = None
+
+        monkeypatch.setattr("routes.ad_variants.attach_personas", _fake_attach)
+
+        res = client.get("/ad-variants/10")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["persona_id"] is None
+        assert body["persona_name"] is None
     finally:
         client.close()
         _clear_overrides()

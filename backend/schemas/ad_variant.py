@@ -51,5 +51,9 @@ class AdVariantResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     published_at: Optional[datetime] = None
+    # Resolved via Consumer.primary_persona_id → Persona. Both null when the
+    # variant has no consumer or the consumer has no assigned persona.
+    persona_id: Optional[str] = None
+    persona_name: Optional[str] = None
 
     model_config = {"from_attributes": True}

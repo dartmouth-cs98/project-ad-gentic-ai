@@ -3,9 +3,9 @@
 Flow:
 1. Frontend sends user message + campaign_id + optional filter context
 2. Backend persists the user message
-3. Backend sends conversation history to Grok
-4. Backend persists the AI response
-5. Returns the AI response to the frontend
+3. Backend loads global personas from DB and formats a catalog for the strategist
+4. Backend sends conversation history + catalog to the chat model
+5. Backend persists the AI response and returns it
 """
 
 from typing import Optional
@@ -17,7 +17,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 from dependencies import get_current_client_id
 from crud.chat_message import get_chat_messages, create_chat_message
+from utils.plan_execution import load_all_personas
 from schemas.chat_message import ChatMessageCreate, ChatMessageResponse
+from services.chat_ai.prompts import format_personas_catalog_for_prompt
 from services.chat_ai.service import get_chat_completion
 
 router = APIRouter()
@@ -79,13 +81,19 @@ async def chat_completion(
         for msg in history
     ]
 
-    # 3. Call the AI
+    # 3. Load global persona library for plan JSON (persona_groups names must match DB)
+    personas = load_all_personas(db)
+    personas_catalog = format_personas_catalog_for_prompt(personas)
+    personas_catalog_arg = personas_catalog if personas_catalog.strip() else None
+
+    # 4. Call the AI
     try:
         ai_result = await get_chat_completion(
             conversation_history=history_dicts,
             filter_context=body.filter_context,
             campaign_context=body.campaign_context,
             previous_plan=body.previous_plan,
+            personas_catalog=personas_catalog_arg,
         )
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -95,7 +103,7 @@ async def chat_completion(
             detail=f"AI service error: {str(e)}",
         )
 
-    # 4. Persist the AI response
+    # 5. Persist the AI response
     assistant_msg = create_chat_message(
         db,
         business_client_id=client_id,

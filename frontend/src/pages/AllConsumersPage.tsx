@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sidebar } from '../components/layout/Sidebar';
-import { useSidebar } from '../contexts/SidebarContext';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import {
@@ -21,7 +20,6 @@ import { usePersonas } from '../hooks/usePersonas';
 import type { Consumer } from '../types';
 
 export function AllConsumersPage() {
-    const { collapsed } = useSidebar();
     const { data: consumers = [], isLoading: loading, error: consumersError, refetch } = useConsumers(0, 1000, true);
     const { data: personas = [] } = usePersonas(true);
     const assignPersonas = useAssignPersonas();
@@ -38,6 +36,7 @@ export function AllConsumersPage() {
         errors: string[];
     } | null>(null);
     const [assignError, setAssignError] = useState<string | null>(null);
+    const [selectedConsumer, setSelectedConsumer] = useState<Consumer | null>(null);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -132,18 +131,13 @@ export function AllConsumersPage() {
         );
     };
 
-    const renderTraits = (consumer: Consumer) => {
-        const traits = consumer.traits;
-        if (!traits || Object.keys(traits).length === 0) {
-            return <span className="text-muted-foreground italic text-xs">No traits defined</span>;
-        }
-
+    const renderTraitsPreview = (traits: Record<string, unknown>) => {
         const keys = Object.keys(traits);
         const displayKeys = keys.slice(0, 2);
         const remainingCount = keys.length - displayKeys.length;
 
         return (
-            <div className="relative group/traits">
+            <div>
                 <div className="flex flex-wrap gap-1.5 items-center cursor-help">
                     {displayKeys.map((key) => (
                         <span
@@ -162,41 +156,21 @@ export function AllConsumersPage() {
                         </span>
                     )}
                 </div>
-
-                {/* Hover Popover */}
-                <div className="absolute bottom-full left-0 mb-2 w-64 p-4 bg-card rounded-xl shadow-2xl border border-border z-50 opacity-0 invisible group-hover/traits:opacity-100 group-hover/traits:visible transition-all duration-200 pointer-events-none">
-                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-                        <TagIcon className="w-4 h-4 text-blue-500" />
-                        <h4 className="text-sm font-bold text-foreground">All Traits</h4>
-                    </div>
-                    <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-2">
-                        {Object.entries(traits).map(([key, val]) => (
-                            <div key={key} className="flex flex-col gap-0.5">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">{formatKey(key)}</span>
-                                <span className="text-xs text-foreground font-medium">
-                                    {Array.isArray(val) ? (
-                                        <div className="flex flex-wrap gap-1 mt-0.5">
-                                            {val.map((v, i) => (
-                                                <span key={i} className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{v}</span>
-                                            ))}
-                                        </div>
-                                    ) : String(val)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-card border-r border-b border-border rotate-45" />
-                </div>
             </div>
         );
     };
 
-    return (
-        <div className="flex min-h-screen bg-background">
-            <Sidebar />
+    const renderTraits = (consumer: Consumer) => {
+        const traits = consumer.traits;
+        if (!traits || Object.keys(traits).length === 0) {
+            return <span className="text-muted-foreground italic text-xs">No traits defined</span>;
+        }
+        return renderTraitsPreview(traits);
+    };
 
-            <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
-                <div className="max-w-7xl mx-auto">
+    return (
+        <DashboardLayout>
+            <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
                         <div>
@@ -384,7 +358,7 @@ export function AllConsumersPage() {
                     {/* Consumers Table */}
                     {!loading && !error && (
                         <Card variant="elevated" padding="none">
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto overflow-y-visible">
                                 <table className="w-full">
                                     <thead className="bg-background border-b border-border">
                                         <tr>
@@ -452,7 +426,15 @@ export function AllConsumersPage() {
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        {renderTraits(consumer)}
+                                                        <div className="space-y-2">
+                                                            {renderTraits(consumer)}
+                                                            <button
+                                                                onClick={() => setSelectedConsumer(consumer)}
+                                                                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                                            >
+                                                                View details
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         {renderPersonas(consumer)}
@@ -471,8 +453,94 @@ export function AllConsumersPage() {
                             </div>
                         </Card>
                     )}
+            </div>
+
+            {selectedConsumer && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+                        onClick={() => setSelectedConsumer(null)}
+                    />
+                    <div className="relative w-full max-w-2xl bg-card border border-border rounded-xl max-h-[85vh] overflow-y-auto shadow-lg">
+                        <div className="px-5 py-4 border-b border-border">
+                            <div className="flex items-start justify-between pr-8">
+                                <div>
+                                    <h2 className="text-base font-semibold text-foreground">
+                                        {selectedConsumer.first_name} {selectedConsumer.last_name}
+                                    </h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Consumer ID: {selectedConsumer.id}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedConsumer(null)}
+                                className="absolute top-3.5 right-3.5 p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                                aria-label="Close details"
+                            >
+                                <XIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-4">
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <div className="rounded-lg border border-border p-2.5">
+                                    <p className="text-xs text-muted-foreground mb-1">Email</p>
+                                    <p className="text-sm font-medium">{selectedConsumer.email || '—'}</p>
+                                </div>
+                                <div className="rounded-lg border border-border p-2.5">
+                                    <p className="text-xs text-muted-foreground mb-1">Phone</p>
+                                    <p className="text-sm font-medium">{selectedConsumer.phone || '—'}</p>
+                                </div>
+                                <div className="rounded-lg border border-border p-2.5 col-span-2">
+                                    <p className="text-xs text-muted-foreground mb-1">Added</p>
+                                    <p className="text-sm font-medium">{formatDate(selectedConsumer.created_at)}</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-semibold mb-1.5">Personas</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedConsumer.primary_persona && (
+                                        <span className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-100">
+                                            Primary: {selectedConsumer.primary_persona.name}
+                                        </span>
+                                    )}
+                                    {selectedConsumer.secondary_persona && (
+                                        <span className="px-2 py-0.5 rounded text-xs bg-muted text-foreground border border-border">
+                                            Secondary: {selectedConsumer.secondary_persona.name}
+                                        </span>
+                                    )}
+                                    {!selectedConsumer.primary_persona && !selectedConsumer.secondary_persona && (
+                                        <span className="text-sm text-muted-foreground">No personas assigned</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-2">
+                                    <TagIcon className="w-4 h-4 text-blue-500" />
+                                    All Traits
+                                </h3>
+                                {selectedConsumer.traits && Object.keys(selectedConsumer.traits).length > 0 ? (
+                                    <div className="rounded-lg border border-border divide-y divide-border">
+                                        {Object.entries(selectedConsumer.traits).map(([key, val]) => (
+                                            <div key={key} className="px-3 py-2">
+                                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                                                    {formatKey(key)}
+                                                </p>
+                                                <p className="text-sm text-foreground">
+                                                    {Array.isArray(val) ? val.join(', ') : String(val)}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No traits defined</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </main>
-        </div>
+            )}
+        </DashboardLayout>
     );
 }

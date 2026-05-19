@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Sidebar } from '../components/layout/Sidebar';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
 import {
   PlusIcon,
   SearchIcon,
@@ -13,13 +13,9 @@ import {
   ExternalLinkIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  Sun,
-  Moon,
 } from 'lucide-react';
 
 import { useUser } from '../contexts/UserContext';
-import { useSidebar } from '../contexts/SidebarContext';
-import { useTheme } from '../contexts/ThemeContext';
 import {
   useProducts,
   useCreateProduct,
@@ -268,8 +264,6 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
 // ---------- Main Page ----------
 
 export function ProductsPage() {
-  const { collapsed } = useSidebar();
-  const { theme, toggleTheme } = useTheme();
   const { user } = useUser();
   const businessClientId = user?.client_id;
 
@@ -314,10 +308,7 @@ export function ProductsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <Sidebar />
-
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
+    <DashboardLayout>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -331,9 +322,6 @@ export function ProductsPage() {
             >
               <PlusIcon className="w-4 h-4" />
               Add Product
-            </button>
-            <button onClick={toggleTheme} className="p-2 bg-muted rounded-lg hover:bg-border transition-colors" aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -429,7 +417,6 @@ export function ProductsPage() {
             onConfirm={handleConfirmDelete}
           />
         )}
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

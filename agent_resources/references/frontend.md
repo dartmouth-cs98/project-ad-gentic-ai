@@ -10,6 +10,8 @@ Browser URL shape: `https://host/#/<path>` (hash segment, not server path).
 | `/old-landing` | `LandingPage` |
 | `/sign-up` | `SignUpPage` |
 | `/sign-in` | `SignInPage` |
+| `/verify-email` | `VerifyEmailPage` |
+| `/reset-password` | `ResetPasswordPage` |
 | `/onboarding` | `OnboardingPage` |
 | `/dashboard` | `DashboardPage` |
 | `/workspace` | `DashboardPage` |
@@ -18,7 +20,8 @@ Browser URL shape: `https://host/#/<path>` (hash segment, not server path).
 | `/generate` | `GenerateAdsPage` |
 | `/products` | `ProductsPage` |
 | `/customer-data` | `CustomerDataPage` |
-| `/all-consumers` | `AllConsumersPage` |
+| `/customer-data/all-consumers` | `AllConsumersPage` |
+| `/all-consumers` | Redirect → `/customer-data/all-consumers` |
 | `/profile` | `ProfilePage` |
 | `/settings` | `SettingsPage` |
 | `/features` | `FeaturesPage` |
@@ -45,17 +48,20 @@ Same rules as [FRONTEND.md](../FRONTEND.md) (data-fetching section).
 
 ## React Query cache keys
 
-| Export | Key shape (conceptual) |
-|--------|-------------------------|
-| `PROFILE_KEY` | `['auth','profile']` |
-| `CAMPAIGNS_KEY` | `['campaigns', businessClientId?, status?]` / detail `['campaigns', campaignId]` |
-| `PRODUCTS_KEY` | `['products', businessClientId]` |
-| `CONSUMERS_KEY` | `['consumers', skip, limit]` |
-| `PERSONAS_KEY` | `['personas']` |
-| `CHAT_MESSAGES_KEY` | `['chatMessages', campaignId]` |
-| `AD_VARIANTS_KEY` | `['ad-variants', campaignId, status?, isPreview?]` / preview variant |
+Canonical shapes live in **`src/api/queryKeys.ts`** (`queryKeys.auth.profile`, `queryKeys.consumers.list(skip, limit)`, etc.). Hooks re-export shortcuts:
 
-Invalidation often uses **prefix** `CAMPAIGNS_KEY` or `AD_VARIANTS_KEY` only—see hook files under `frontend/src/hooks/`.
+| Export | Typical key |
+|--------|----------------|
+| `PROFILE_KEY` | `queryKeys.auth.profile` → `['auth','profile']` |
+| `CAMPAIGNS_KEY` | `['campaigns']` |
+| `PRODUCTS_KEY` | `['products']` |
+| `CONSUMERS_KEY` | `queryKeys.consumers.all` → `['consumers']`; lists use `queryKeys.consumers.list(skip, limit)` |
+| `PERSONAS_KEY` | `queryKeys.personas.all` → `['personas']` |
+| `CHAT_MESSAGES_KEY` | `['chatMessages']` (often extended with `campaignId` in hook usage) |
+| `AD_VARIANTS_KEY` | `['ad-variants']` |
+| `useSocialConnection` | `['social','status']` (internal to hook) |
+
+Invalidation often uses **prefix** queries—see `frontend/src/hooks/*.ts`.
 
 ## `localStorage` keys (`api/config.ts`)
 

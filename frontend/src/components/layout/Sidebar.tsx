@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { Logo } from '../ui/Logo';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useUser } from '../../contexts/UserContext';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
@@ -16,8 +15,6 @@ import {
   LogOutIcon,
   DatabaseIcon,
   SettingsIcon,
-  Sun,
-  Moon,
 } from 'lucide-react';
 
 const navItems = [
@@ -48,7 +45,6 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
     setTimeout(() => { logout(); navigate('/sign-in'); }, 1000);
   };
 
-  const { theme, toggleTheme } = useTheme();
   const collapsed = controlledCollapsed ?? sidebar.collapsed;
   const setCollapsed = (value: boolean) => {
     if (controlledCollapsed !== undefined) {
@@ -93,7 +89,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
           const isActive =
             location.pathname === item.path ||
             (item.path === '/campaigns' && location.pathname.startsWith('/campaign')) ||
-            (item.path === '/customer-data' && location.pathname === '/all-consumers');
+            (item.path === '/customer-data' && location.pathname.startsWith('/customer-data/all-consumers'));
           const Icon = item.icon;
           return (
             <Link
@@ -113,7 +109,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
         })}
       </nav>
 
-      {/* Settings + Theme */}
+      {/* Settings */}
       <div className="px-2 pb-2 space-y-0.5">
         <Link
           to="/settings"
@@ -127,14 +123,6 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
           <SettingsIcon className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span className="text-sm font-medium">Settings</span>}
         </Link>
-        <button
-          onClick={toggleTheme}
-          title={collapsed ? (theme === 'dark' ? 'Light mode' : 'Dark mode') : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full text-muted-foreground hover:text-foreground hover:bg-muted ${collapsed ? 'justify-center' : ''}`}
-        >
-          {theme === 'dark' ? <Sun className="w-4 h-4 flex-shrink-0" /> : <Moon className="w-4 h-4 flex-shrink-0" />}
-          {!collapsed && <span className="text-sm font-medium">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
-        </button>
       </div>
 
       {/* Upgrade CTA */}

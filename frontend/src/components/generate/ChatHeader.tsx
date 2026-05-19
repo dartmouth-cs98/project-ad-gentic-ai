@@ -1,4 +1,4 @@
-import { SlidersHorizontalIcon, Sun, Moon } from 'lucide-react';
+import { SlidersHorizontalIcon } from 'lucide-react';
 import { CampaignSelector } from './CampaignSelector';
 import { VersionPopover } from './VersionPopover';
 import type { Campaign } from '../../types';
@@ -20,8 +20,6 @@ interface ChatHeaderProps {
   showFilterPanel: boolean;
   onToggleFilterPanel: () => void;
   variantCount: number;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
 }
 
 export function ChatHeader({
@@ -38,8 +36,6 @@ export function ChatHeader({
   showFilterPanel,
   onToggleFilterPanel,
   variantCount,
-  theme,
-  onToggleTheme,
 }: ChatHeaderProps) {
   const activeFilterCount = countActiveFilters(filterState);
   const totalVariants = variantCount;
@@ -108,14 +104,6 @@ export function ChatHeader({
             </>
           )}
 
-          {/* Theme toggle */}
-          <button
-            onClick={onToggleTheme}
-            className="p-1.5 border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          </button>
         </div>
       </div>
 

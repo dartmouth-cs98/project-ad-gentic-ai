@@ -38,7 +38,7 @@ The backend is a **single deployable** (one `main.py`, one uvicorn process) with
 5. Handler runs: validates with **`schemas`**, calls **`crud`** / **`services`**.
 6. Response: Pydantic **`response_model`** or plain dict; **`HTTPException`** becomes JSON error with **`detail`**.
 
-**Background work:** The **`lifespan`** context starts **`run_poller()`** as an **`asyncio` task**; it is **not** tied to a single HTTP request.
+**Background work:** The **`lifespan`** context runs **`_ensure_auth_columns_exist()`** on SQL Server (best-effort DDL for `business_clients` auth columns), then starts **`run_poller()`** as an **`asyncio`** task; the poller is **not** tied to a single HTTP request.
 
 ---
 
@@ -86,8 +86,11 @@ There is **no Celery/Redis** queue in this repo: **the database is the queue**.
 |-------------|--------|------------------|
 | **Azure Blob** | Product images, ad videos, SAS helpers in routes | **`AZURE_STORAGE_CONNECTION_STRING`** |
 | **Azure SQL / ODBC** | **`database.py`** | **`DB_CONNECTION_STRING`**, **`DB_PASSWORD`**, or **`USE_AZURE_AD`** + **`DB_ODBC_CONNECTION_STRING`** |
-| **OpenAI-compatible** | Chat, moderation, video worker, shared **`AsyncOpenAI`** | **`OPENAI_API_KEY`**, **`SCRIPT_*`**, **`VIDEO_API_KEY`** |
-| **xAI SDK** | Script creation | **`xai_sdk`** + env used in **`script_creation_worker`** |
+| **OpenAI-compatible** | Chat, moderation, video worker, script **`AsyncOpenAI`** path, shared clients | **`OPENAI_API_KEY`**, **`SCRIPT_*`**, **`VIDEO_API_KEY`** |
+| **xAI SDK** | Batch script creation (`batch_generate_ad_scripts`) | **`xai_sdk`** + **`SCRIPT_*`** in **`script_creation_worker`** |
+| **Meta Graph / OAuth** | Social connect, insights, publish helpers | **`META_*`**, **`FERNET_SECRET_KEY`**, `services/meta/` |
+| **Resend** | Email verification and password reset | **`RESEND_*`** |
+| **Google** | **`POST /auth/google`** | **`GOOGLE_CLIENT_SECRET`** |
 
 Client singletons: **`get_openai_client`** is **`lru_cache`**’d; tests can **`cache_clear()`**.
 
@@ -96,7 +99,7 @@ Client singletons: **`get_openai_client`** is **`lru_cache`**’d; tests can **`
 ## Auth / authz model
 
 - **Authentication:** **JWT** in **`dependencies.py`**: Bearer token, **`sub`** = client id, **7-day** expiry from **`create_access_token`** (`routes/auth.py`).
-- **Signup/signin:** **`passlib`** bcrypt; tokens returned to client.
+- **Signup/signin:** **`passlib`** bcrypt; **`POST /auth/signup`** returns **202** and triggers email verification; **`POST /auth/google`** for Google. Password reset and email verification endpoints live under **`/auth`** (see [references/backend-api.md](./references/backend-api.md)).
 - **Authorization:** **Inconsistent by module**—treat this as a **known structural gap**:
   - **Strong:** **`consumers`**, **`products`**, **`chat_*`**, **`personas`** list (JWT required; consumers/products scoped by **`client_id`**).
   - **Weak:** **`campaigns`** CRUD uses **`business_client_id` query param** on list and **no JWT** on several endpoints—**any caller who knows an id can read/update** unless network layer restricts access. **New work** should align campaigns (and similar) with **`get_current_client_id`** and **ownership checks** in **`crud`** or route.
@@ -118,7 +121,7 @@ There is **no** global exception handler in `main.py` for logging/masking—**ad
 
 ## API conventions
 
-- **Prefixes:** Set in **`main.py`** (`/auth`, `/campaigns`, …). **OpenAPI** at **`/docs`**.
+- **Prefixes:** Set in **`main.py`** (`/auth`, `/campaigns`, `/social-auth`, …). **OpenAPI** at **`/docs`**.
 - **REST style:** **GET list/detail**, **POST create**, **PUT update**, **DELETE** with **204** where appropriate.
 - **Worker routes:** Under **`/ad-job-worker`**, **`/ad-post-worker`** (hello + generation endpoints).
 - **Response models:** Prefer **`response_model=…`** for stable JSON shapes.

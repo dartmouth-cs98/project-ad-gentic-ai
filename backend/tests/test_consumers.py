@@ -229,14 +229,58 @@ class TestUploadCsv:
         assert resp.status_code == 400
         assert "csv" in resp.json()["detail"].lower()
 
-    def test_upload_rejects_missing_columns(self, client: TestClient):
-        csv_bytes = _make_csv(["email,phone", "a@b.com,555-0001"])
+    def test_upload_accepts_phone_only_identifier_column(self, client: TestClient):
+        csv_bytes = _make_csv(["phone", "555-0001"])
+        resp = client.post(
+            "/consumers/upload-csv",
+            files={"file": ("phone_only.csv", io.BytesIO(csv_bytes), "text/csv")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["created"] == 1
+        assert body["errors"] == []
+
+    def test_upload_rejects_missing_identifier_columns(self, client: TestClient):
+        csv_bytes = _make_csv(["first_name,last_name", "A,B"])
         resp = client.post(
             "/consumers/upload-csv",
             files={"file": ("bad.csv", io.BytesIO(csv_bytes), "text/csv")},
         )
         assert resp.status_code == 400
-        assert "columns" in resp.json()["detail"].lower()
+        assert "email or phone" in resp.json()["detail"].lower()
+
+    def test_upload_rejects_missing_contact_values_per_row(self, client: TestClient):
+        csv_bytes = _make_csv(["email,phone", "a@b.com,555-0001"])
+        resp = client.post(
+            "/consumers/upload-csv",
+            files={"file": ("good.csv", io.BytesIO(csv_bytes), "text/csv")},
+        )
+        assert resp.status_code == 200
+
+        csv_bytes = _make_csv(["email,phone", ","])
+        resp = client.post(
+            "/consumers/upload-csv",
+            files={"file": ("missing_row_contact.csv", io.BytesIO(csv_bytes), "text/csv")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["created"] == 0
+        assert len(body["errors"]) == 1
+        assert "missing email and phone" in body["errors"][0].lower()
+
+    def test_upload_handles_short_rows_without_traits_column(self, client: TestClient):
+        csv_bytes = _make_csv([
+            "email,phone,age,city",
+            "shortrow@example.com,555-0001,30",
+        ])
+        resp = client.post(
+            "/consumers/upload-csv",
+            files={"file": ("short_row.csv", io.BytesIO(csv_bytes), "text/csv")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["created"] == 1
+        assert body["errors"] == []
 
     def test_upload_rejects_empty_csv(self, client: TestClient):
         csv_bytes = _make_csv([VALID_CSV_HEADER])
@@ -314,6 +358,32 @@ class TestListConsumers:
         resp = client.get("/consumers/?skip=2&limit=10")
         assert resp.status_code == 200
         assert len(resp.json()) == 3
+
+
+# ---------------------------------------------------------------------------
+# Tests — Create Consumer
+# ---------------------------------------------------------------------------
+
+
+class TestCreateConsumer:
+    """POST /consumers/"""
+
+    def test_create_allows_phone_only(self, client: TestClient):
+        resp = client.post(
+            "/consumers/",
+            json={"phone": "555-0001"},
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["phone"] == "555-0001"
+        assert body["email"] is None
+
+    def test_create_rejects_missing_email_and_phone(self, client: TestClient):
+        resp = client.post(
+            "/consumers/",
+            json={"first_name": "OnlyName"},
+        )
+        assert resp.status_code == 422
 
 
 # ---------------------------------------------------------------------------

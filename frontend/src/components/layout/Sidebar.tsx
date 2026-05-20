@@ -19,8 +19,8 @@ import {
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboardIcon },
-  { path: '/campaigns', label: 'Campaigns', icon: FolderIcon },
   { path: '/products', label: 'Products', icon: PackageIcon },
+  { path: '/campaigns', label: 'Campaigns', icon: FolderIcon },
   { path: '/generate', label: 'Generate Ads', icon: SparklesIcon },
   { path: '/customer-data', label: 'Customer Data', icon: DatabaseIcon },
 ];
@@ -60,24 +60,23 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
     >
       {/* Logo / Company */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-        {!collapsed && (
-          <div className="flex items-center gap-2 min-w-0">
-            <Logo size="sm" />
+        <div className={`flex items-center gap-2 min-w-0 ${collapsed ? 'mx-auto' : ''}`}>
+          <Logo size="md" showText={false} />
+          <div className={`flex items-center gap-2 transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100 pl-1'}`}>
+            <span
+                className="font-serif italic font-bold tracking-tight text-lg whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', padding: '0 3px', margin: '0 -3px' }}
+              >Ad-gentic</span>
             {profile.plan !== 'basic' && (
-              <span className="px-1.5 py-0.5 bg-blue-600 text-[10px] font-bold rounded text-white capitalize flex-shrink-0">
+              <span className="px-1.5 py-0.5 bg-primary text-[10px] font-bold rounded text-primary-foreground capitalize flex-shrink-0">
                 {profile.plan === 'enterprise' ? 'ENT' : 'PRO'}
               </span>
             )}
           </div>
-        )}
-        {collapsed && (
-          <div className="mx-auto">
-            <Logo size="sm" showText={false} />
-          </div>
-        )}
+        </div>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className={`p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground ${collapsed ? 'absolute -right-3 top-5 bg-card border border-border' : ''}`}
+          className={`p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground ${collapsed ? 'absolute -right-3 top-5 bg-card border border-border' : ''}`}
         >
           <ChevronLeftIcon className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
         </button>
@@ -96,7 +95,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
               key={item.path}
               to={item.path}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded transition-colors ${
                 isActive
                   ? 'bg-muted text-foreground'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -114,7 +113,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
         <Link
           to="/settings"
           title={collapsed ? 'Settings' : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+          className={`flex items-center gap-3 px-3 py-2.5 rounded transition-colors ${
             location.pathname === '/settings'
               ? 'bg-muted text-foreground'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -128,11 +127,11 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
       {/* Upgrade CTA */}
       {!collapsed && profile.plan === 'basic' && (
         <div className="px-3 pb-3">
-          <div className="bg-muted border border-border rounded-lg p-3 text-center">
+          <div className="bg-muted border border-border rounded p-3 text-center">
             <p className="text-sm font-medium mb-0.5">Upgrade to Pro</p>
             <p className="text-xs text-muted-foreground mb-3">Unlock unlimited generations</p>
             <Link to="/settings?tab=plans">
-              <button className="w-full py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors">
+              <button className="w-full py-1.5 bg-primary text-white text-xs font-medium rounded-md hover:bg-primary/90 transition-colors">
                 Upgrade Now
               </button>
             </Link>
@@ -163,7 +162,7 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
                 onClick={() => setConfirmOpen(true)}
                 disabled={signingOut}
                 title="Sign out"
-                className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
                 <LogOutIcon className={`w-4 h-4 ${signingOut ? 'animate-spin' : ''}`} />
               </button>

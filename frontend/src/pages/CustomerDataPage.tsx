@@ -63,12 +63,12 @@ function renderTraits(traits: Record<string, unknown> | null) {
           </span>
         ))}
         {remainingCount > 0 && (
-          <span className="text-[9px] text-blue-500 font-medium self-center ml-0.5 whitespace-nowrap bg-blue-600/10 px-1 rounded border border-blue-600/20">
+          <span className="text-[9px] text-muted-foreground font-medium self-center ml-0.5 whitespace-nowrap bg-muted px-1 rounded border border-border">
             +{remainingCount}
           </span>
         )}
       </div>
-      <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-foreground text-background rounded-lg shadow-xl z-50 opacity-0 invisible group-hover/traits:opacity-100 group-hover/traits:visible transition-all duration-200 pointer-events-none text-[10px]">
+      <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-foreground text-background rounded shadow-xl z-50 opacity-0 invisible group-hover/traits:opacity-100 group-hover/traits:visible transition-all duration-200 pointer-events-none text-[10px]">
         <div className="space-y-1.5">
           {Object.entries(traits).map(([key, val]) => (
             <div key={key} className="flex flex-col">
@@ -306,7 +306,7 @@ export function CustomerDataPage() {
               <button
                 onClick={handleClickUpload}
                 disabled={uploadPhase === 'uploading' || uploadPhase === 'assigning'}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload New Data
               </button>
@@ -321,7 +321,7 @@ export function CustomerDataPage() {
               { label: 'Top Persona', value: isLoading ? '—' : (topPersona?.persona.name ?? 'None'), sub: topPersona ? `${topPersona.pct}% of audience` : 'No assignments yet' },
               { label: 'Last Upload', value: consumersLoading ? '—' : (lastUploadInfo ? formatRelativeDate(lastUploadInfo.date) : 'Never'), sub: lastUploadInfo?.filename ?? '—' },
             ].map(({ label, value, sub }) => (
-              <div key={label} className="bg-card border border-border rounded-xl p-4">
+              <div key={label} className="bg-card border border-border rounded p-4">
                 <p className="text-xs text-muted-foreground mb-2">{label}</p>
                 <p className="text-2xl font-semibold truncate">{value}</p>
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</p>
@@ -331,7 +331,7 @@ export function CustomerDataPage() {
 
           <div className="grid grid-cols-3 gap-8">
             {/* Persona Distribution */}
-            <div className="col-span-1 bg-card border border-border rounded-xl p-5">
+            <div className="col-span-1 bg-card border border-border rounded p-5">
               <h3 className="font-semibold mb-0.5">Persona Distribution</h3>
               <p className="text-xs text-muted-foreground mb-6">Click a persona to view detailed profile</p>
 
@@ -379,7 +379,7 @@ export function CustomerDataPage() {
                       <button
                         key={persona.id}
                         onClick={() => setSelectedPersonaDetail({ persona, colorIdx: i })}
-                        className="w-full flex items-center justify-between text-sm p-2 -mx-2 rounded-lg hover:bg-muted transition-colors group"
+                        className="w-full flex items-center justify-between text-sm p-2 -mx-2 rounded hover:bg-muted transition-colors group"
                       >
                         <div className="flex items-center gap-2">
                           <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${color.dot}`} />
@@ -400,7 +400,7 @@ export function CustomerDataPage() {
 
             {/* Upload + Recent Consumers */}
             <div className="col-span-2 space-y-6">
-              <div className="bg-card border border-border rounded-xl p-5">
+              <div className="bg-card border border-border rounded p-5">
                 <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
 
                 {/* Drop Zone */}
@@ -408,14 +408,14 @@ export function CustomerDataPage() {
                   const isProcessing = uploadPhase === 'uploading' || uploadPhase === 'assigning';
                   return (
                     <div
-                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all mb-6 ${
+                      className={`border-2 border-dashed rounded p-6 text-center transition-all mb-6 ${
                         isProcessing
-                          ? 'border-blue-600/30 bg-blue-600/5 cursor-default'
+                          ? 'border-border bg-muted/30 cursor-default'
                           : uploadPhase === 'complete'
                             ? 'border-emerald-500/30 bg-emerald-500/5 cursor-pointer'
                             : isDragging
-                              ? 'border-blue-600 bg-blue-600/5 cursor-pointer'
-                              : 'border-border hover:border-blue-600/50 hover:bg-muted/50 cursor-pointer'
+                              ? 'border-foreground/40 bg-muted/30 cursor-pointer'
+                              : 'border-border hover:border-foreground/30 hover:bg-muted/50 cursor-pointer'
                       }`}
                       onDragOver={isProcessing ? undefined : handleDragOver}
                       onDragLeave={isProcessing ? undefined : () => setIsDragging(false)}
@@ -436,7 +436,7 @@ export function CustomerDataPage() {
                             {uploadError || 'There were errors processing the file.'}
                           </p>
                           {uploadResult && uploadResult.errors.length > 0 && (
-                            <div className="mt-3 text-left bg-red-500/10 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-y-auto">
+                            <div className="mt-3 text-left bg-red-500/10 border border-red-500/20 rounded p-3 max-h-32 overflow-y-auto">
                               {uploadResult.errors.map((err, i) => (
                                 <p key={i} className="text-xs text-red-500 mb-1">{err}</p>
                               ))}
@@ -467,7 +467,7 @@ export function CustomerDataPage() {
                                   key={name}
                                   className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
                                     required
-                                      ? 'bg-blue-600/10 text-blue-600 border-blue-600/20'
+                                      ? 'bg-primary/10 text-primary border-primary/20'
                                       : 'bg-muted text-muted-foreground border-border'
                                   }`}
                                 >
@@ -482,7 +482,7 @@ export function CustomerDataPage() {
                           <div className="mt-4">
                             <button
                               onClick={downloadTemplate}
-                              className="text-xs text-blue-500 hover:text-blue-600 hover:underline font-medium"
+                              className="text-xs text-muted-foreground hover:text-foreground hover:underline font-medium"
                             >
                               Download template →
                             </button>
@@ -496,7 +496,7 @@ export function CustomerDataPage() {
                 {/* Recent Consumers */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Recent Consumers</h3>
-                  <Link to="/customer-data/all-consumers" className="text-sm text-blue-500 hover:underline font-medium">
+                  <Link to="/customer-data/all-consumers" className="text-sm text-muted-foreground hover:text-foreground font-medium">
                     View All →
                   </Link>
                 </div>
@@ -508,7 +508,7 @@ export function CustomerDataPage() {
                   ) : consumersError ? (
                     <div className="text-center py-6">
                       <p className="text-sm text-red-500">{consumersError}</p>
-                      <button onClick={() => refetch()} className="mt-2 px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors">Retry</button>
+                      <button onClick={() => refetch()} className="mt-2 px-3 py-1.5 border border-border rounded text-sm hover:bg-muted transition-colors">Retry</button>
                     </div>
                   ) : recentConsumers.length === 0 ? (
                     <div className="text-center py-8">
@@ -517,7 +517,7 @@ export function CustomerDataPage() {
                     </div>
                   ) : (
                     recentConsumers.map((consumer: Consumer) => (
-                      <div key={consumer.id} className="flex items-center justify-between p-3 bg-card rounded-xl border border-border">
+                      <div key={consumer.id} className="flex items-center justify-between p-3 bg-card rounded border border-border">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-muted rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium text-foreground border border-border">
                             {consumer.first_name?.charAt(0) ?? '?'}
@@ -532,7 +532,7 @@ export function CustomerDataPage() {
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <span className="text-xs text-muted-foreground">{formatRelativeDate(consumer.created_at)}</span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">Active</span>
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-xs font-medium">Active</span>
                         </div>
                       </div>
                     ))
@@ -552,15 +552,15 @@ export function CustomerDataPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setSelectedPersonaDetail(null)} />
-            <div className="relative bg-card border border-border rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+            <div className="relative bg-card border border-border rounded w-full max-w-2xl max-h-[85vh] overflow-y-auto">
 
               {/* Modal Header */}
-              <div className={`${color.bg} px-6 pt-6 pb-5 rounded-t-xl relative border-b border-border`}>
-                <button onClick={() => setSelectedPersonaDetail(null)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-lg leading-none">
+              <div className={`${color.bg} px-6 pt-6 pb-5 rounded-t relative border-b border-border`}>
+                <button onClick={() => setSelectedPersonaDetail(null)} className="absolute top-4 right-4 p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground text-lg leading-none">
                   ×
                 </button>
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${color.bg} border border-border flex items-center justify-center text-lg font-semibold ${color.text}`}>
+                  <div className={`w-12 h-12 rounded ${color.bg} border border-border flex items-center justify-center text-lg font-semibold ${color.text}`}>
                     {persona.name.charAt(0)}
                   </div>
                   <div>
@@ -582,7 +582,7 @@ export function CustomerDataPage() {
                     <h3 className="text-sm font-semibold mb-3">Key Motivators</h3>
                     <div className="flex flex-wrap gap-2">
                       {persona.key_motivators.map((m) => (
-                        <span key={m} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${color.bg} ${color.text} border border-current/10`}>
+                        <span key={m} className={`px-3 py-1.5 rounded text-xs font-medium ${color.bg} ${color.text} border border-current/10`}>
                           {m}
                         </span>
                       ))}
@@ -596,7 +596,7 @@ export function CustomerDataPage() {
                     <h3 className="text-sm font-semibold mb-3">Pain Points</h3>
                     <div className="flex flex-wrap gap-2">
                       {persona.pain_points.map((p) => (
-                        <span key={p} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border">
+                        <span key={p} className="px-3 py-1.5 rounded text-xs font-medium bg-muted text-muted-foreground border border-border">
                           {p}
                         </span>
                       ))}
@@ -608,9 +608,9 @@ export function CustomerDataPage() {
                 {persona.ad_tone_preferences && persona.ad_tone_preferences.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold mb-3">Ad Tone Preferences</h3>
-                    <div className="bg-muted rounded-xl p-4 border border-border flex flex-wrap gap-2">
+                    <div className="bg-muted rounded p-4 border border-border flex flex-wrap gap-2">
                       {persona.ad_tone_preferences.map((tone) => (
-                        <span key={tone} className={`px-3 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}>
+                        <span key={tone} className={`px-3 py-1 rounded text-xs font-medium ${color.bg} ${color.text}`}>
                           {tone}
                         </span>
                       ))}
@@ -620,7 +620,7 @@ export function CustomerDataPage() {
 
                 <div className="pt-4 border-t border-border flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">Based on {count.toLocaleString()} contacts in this segment</p>
-                  <button className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                  <button className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded hover:bg-primary/90 transition-colors">
                     Generate Ads for {persona.name}
                   </button>
                 </div>

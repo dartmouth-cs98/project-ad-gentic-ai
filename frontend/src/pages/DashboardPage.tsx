@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import {
@@ -45,8 +45,16 @@ const regions = [
   { id: 'global', label: 'Global' },
 ];
 
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20';
+const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20';
 const labelClass = 'block text-sm font-medium mb-1.5';
+const gradientText: React.CSSProperties = {
+  background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+  padding: '0 3px',
+  margin: '0 -3px',
+};
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -102,7 +110,9 @@ const togglePlatform = (platformId: string) => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              {isReturningUser ? `Welcome back, ${firstName}` : 'Dashboard'}
+              {isReturningUser ? (
+                <>Welcome back, <em className="font-serif italic" style={gradientText}>{firstName}</em></>
+              ) : <><em className="font-serif italic" style={gradientText}>Ad-gentic</em> Dashboard</>}
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {isReturningUser ? "Here's what's happening with your campaigns." : "Your advertising hub — let's get started."}
@@ -124,7 +134,7 @@ const togglePlatform = (platformId: string) => {
             )}
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               New Campaign
             </button>
@@ -134,23 +144,20 @@ const togglePlatform = (platformId: string) => {
         {isReturningUser ? (
           <>
             {/* Stats row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {[
-                { label: 'Total Reach', value: '2.4M', change: '+12%', up: true, accent: 'bg-blue-600' },
-                { label: 'Ad Spend', value: '$12.4K', change: '+18%', up: true, accent: 'bg-emerald-500' },
-                { label: 'Avg. CTR', value: '4.1%', change: '+0.3%', up: true, accent: 'bg-violet-500' },
-                { label: 'Conversions', value: '3,820', change: '-2%', up: false, accent: 'bg-orange-500' },
+                { label: 'Total Reach', value: '2.4M', change: '+12%', up: true, accent: 'border-amber-500' },
+                { label: 'Ad Spend', value: '$12.4K', change: '+18%', up: true, accent: 'border-emerald-500' },
+                { label: 'Avg. CTR', value: '4.1%', change: '+0.3%', up: true, accent: 'border-violet-500' },
+                { label: 'Conversions', value: '3,820', change: '-2%', up: false, accent: 'border-orange-500' },
               ].map(({ label, value, change, up, accent }) => (
-                <div key={label} className="bg-card border border-border rounded-xl overflow-hidden">
-                  <div className={`h-0.5 ${accent}`} />
-                  <div className="p-5">
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-3">{label}</p>
-                    <p className="text-2xl font-semibold tracking-tight mb-1">{value}</p>
-                    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${up ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {up ? <TrendingUpIcon className="w-3 h-3" /> : <TrendingDownIcon className="w-3 h-3" />}
-                      {change}
-                    </span>
-                  </div>
+                <div key={label} className={`border-t-2 ${accent} pt-4`}>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">{label}</p>
+                  <p className="text-2xl font-semibold tracking-tight mb-1" style={gradientText}>{value}</p>
+                  <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${up ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {up ? <TrendingUpIcon className="w-3 h-3" /> : <TrendingDownIcon className="w-3 h-3" />}
+                    {change}
+                  </span>
                 </div>
               ))}
             </div>
@@ -160,15 +167,15 @@ const togglePlatform = (platformId: string) => {
               {/* Activity feed */}
               <div className="col-span-12 lg:col-span-4">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Activity</h2>
-                <div className="bg-card border border-border rounded-xl divide-y divide-border">
+                <div className="border border-border divide-y divide-border">
                   {recentActivity.map((activity, i) => {
-                    const accent = ['border-l-blue-600', 'border-l-violet-500', 'border-l-emerald-500'][i];
+                    const accent = ['border-l-amber-500', 'border-l-violet-500', 'border-l-emerald-500'][i];
                     return (
                       <div key={activity.id} className={`p-4 border-l-2 ${accent}`}>
                         <p className="text-sm font-medium leading-snug">{activity.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{activity.text}</p>
                         <div className="flex items-center justify-between mt-2">
-                          <Link to={activity.linkTo} className="inline-flex items-center gap-0.5 text-xs text-blue-500 hover:underline font-medium">
+                          <Link to={activity.linkTo} className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline font-medium">
                             View <ArrowUpRightIcon className="w-3 h-3" />
                           </Link>
                           <span className="text-xs text-muted-foreground">{activity.time}</span>
@@ -182,11 +189,11 @@ const togglePlatform = (platformId: string) => {
               {/* Top campaigns */}
               <div className="col-span-12 lg:col-span-8">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Top Campaigns</h2>
-                <div className="bg-card border border-border rounded-xl divide-y divide-border">
+                <div className="border border-border divide-y divide-border">
                   {topCampaigns.map((campaign) => (
                     <div
                       key={campaign.id}
-                      className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer group"
                       onClick={() => navigate(`/campaign/${campaign.id}`)}
                     >
                       <div className="flex items-center gap-3">
@@ -204,7 +211,7 @@ const togglePlatform = (platformId: string) => {
                         <span className={`text-xs font-medium ${campaign.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
                           {campaign.trendValue}
                         </span>
-                        <ArrowRightIcon className="w-4 h-4 text-muted-foreground" />
+                        <ArrowRightIcon className="w-4 h-4 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                       </div>
                     </div>
                   ))}
@@ -216,24 +223,25 @@ const togglePlatform = (platformId: string) => {
           <>
             {/* Getting started */}
             <div className="mb-8">
-              <h2 className="text-base font-semibold mb-1">Get started in 3 steps</h2>
-              <p className="text-sm text-muted-foreground mb-5">Complete these to unlock your full dashboard with live metrics.</p>
-              <div className="grid grid-cols-3 gap-4">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Get started</h2>
+              <div className="border border-border divide-y divide-border">
                 {[
-                  { step: '01', title: 'Upload customer data', desc: 'Import your audience so our AI can build segments and personas.', label: 'Upload data', path: '/customer-data' },
-                  { step: '02', title: 'Generate your first ad', desc: 'Describe your product and let AI create targeted ad variants.', label: 'Start generating', path: '/generate' },
-                  { step: '03', title: 'Launch & measure', desc: 'Deploy across Meta, TikTok, YouTube and track performance here.', label: 'View campaigns', path: '/campaigns' },
+                  { step: '01', title: 'Add your product', desc: 'Define what you\'re advertising — name, description, and images.', label: 'Add product', path: '/products' },
+                  { step: '02', title: 'Import customer data', desc: 'Upload your audience so the AI can build behavioral personas for targeting.', label: 'Import data', path: '/customer-data' },
+                  { step: '03', title: 'Generate your first campaign', desc: 'Chat with the AI Strategist to plan and generate persona-targeted video ads.', label: 'Start generating', path: '/generate' },
                 ].map(({ step, title, desc, label, path }) => (
                   <div
                     key={step}
                     onClick={() => navigate(path)}
-                    className="bg-card border border-border rounded-xl p-6 cursor-pointer hover:border-foreground/20 transition-colors group"
+                    className="flex items-center gap-6 px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors group"
                   >
-                    <p className="text-3xl font-semibold text-muted-foreground/20 mb-4 tracking-tight">{step}</p>
-                    <h3 className="font-medium mb-1.5">{title}</h3>
-                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{desc}</p>
-                    <span className="inline-flex items-center gap-1 text-sm text-blue-500 font-medium group-hover:gap-2 transition-all">
-                      {label} <ArrowRightIcon className="w-3.5 h-3.5" />
+                    <span className="text-xs font-mono font-semibold flex-shrink-0 w-6" style={gradientText}>{step}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                    </div>
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded text-xs font-medium text-muted-foreground group-hover:border-foreground/40 group-hover:text-foreground transition-colors flex-shrink-0">
+                      {label} <ArrowRightIcon className="w-3 h-3" />
                     </span>
                   </div>
                 ))}
@@ -244,13 +252,13 @@ const togglePlatform = (platformId: string) => {
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 lg:col-span-8">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Performance Overview</h2>
-                <div className="bg-card border border-border rounded-xl p-8 flex flex-col items-center justify-center min-h-[240px] text-center">
+                <div className="border border-border p-8 flex flex-col items-center justify-center min-h-[240px] text-center">
                   <p className="text-5xl font-semibold text-muted-foreground/10 mb-4 tracking-tight">—</p>
                   <p className="text-sm font-medium mb-1">No performance data yet</p>
                   <p className="text-xs text-muted-foreground max-w-xs mb-4">Launch your first campaign to see real-time metrics for reach, conversions, CTR, and ad spend.</p>
                   <button
                     onClick={() => navigate('/generate')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
                   >
                     Create your first ad
                   </button>
@@ -258,7 +266,7 @@ const togglePlatform = (platformId: string) => {
               </div>
               <div className="col-span-12 lg:col-span-4">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Activity</h2>
-                <div className="bg-card border border-border rounded-xl p-6 flex flex-col items-center justify-center min-h-[240px] text-center">
+                <div className="border border-border p-6 flex flex-col items-center justify-center min-h-[240px] text-center">
                   <p className="text-sm font-medium mb-1">No activity yet</p>
                   <p className="text-xs text-muted-foreground max-w-[180px]">Campaign launches and ad generations will appear here.</p>
                 </div>
@@ -270,10 +278,10 @@ const togglePlatform = (platformId: string) => {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-          <div className="relative w-full max-w-lg bg-card border border-border rounded-xl p-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-card border border-border rounded p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-semibold">New Campaign</h2>
-              <button onClick={() => setShowCreateModal(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+              <button onClick={() => setShowCreateModal(false)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground">
                 <XIcon className="w-4 h-4" />
               </button>
             </div>
@@ -282,12 +290,12 @@ const togglePlatform = (platformId: string) => {
               <button
                 onClick={handleAutofill}
                 disabled={isAutofilling}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded text-sm hover:bg-muted transition-colors disabled:opacity-50"
               >
                 {isAutofilling ? (
                   <><Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" /> Auto-filling...</>
                 ) : (
-                  <><SparklesIcon className="w-4 h-4 text-blue-600" /> Auto-fill from profile</>
+                  <><SparklesIcon className="w-4 h-4 text-muted-foreground" /> Auto-fill from profile</>
                 )}
               </button>
 
@@ -332,9 +340,9 @@ const togglePlatform = (platformId: string) => {
                       key={p.id}
                       type="button"
                       onClick={() => togglePlatform(p.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors ${newCampaign.platforms.includes(p.id) ? 'border-blue-600 bg-blue-600/10 text-foreground' : 'border-border text-muted-foreground hover:border-foreground/30'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm transition-colors ${newCampaign.platforms.includes(p.id) ? 'border-foreground bg-foreground/8 text-foreground' : 'border-border text-muted-foreground hover:border-foreground/30'}`}
                     >
-                      {newCampaign.platforms.includes(p.id) && <CheckIcon className="w-3.5 h-3.5 text-blue-600" />}
+                      {newCampaign.platforms.includes(p.id) && <CheckIcon className="w-3.5 h-3.5" />}
                       {p.label}
                     </button>
                   ))}
@@ -356,7 +364,7 @@ const togglePlatform = (platformId: string) => {
               </button>
               <button
                 onClick={handleCreateCampaign}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 <SparklesIcon className="w-4 h-4" />
                 Create & Generate Ads

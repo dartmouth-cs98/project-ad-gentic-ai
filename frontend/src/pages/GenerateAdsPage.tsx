@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useCompany } from '../contexts/CompanyContext';
 import { useUser } from '../contexts/UserContext';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal';
 import { ChatPanel, ResultsPanel } from '../components/generate';
+import { CampaignSetupStepper } from '../components/generate/CampaignSetupStepper';
 import type { Phase, Version } from '../components/generate';
 import type { Campaign, ChatMessage, AdVariant } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
@@ -84,6 +86,7 @@ export function GenerateAdsPage() {
   const { user } = useUser();
   const businessClientId = user?.client_id;
   const campaignStorageKey = `${SELECTED_CAMPAIGN_KEY_PREFIX}${businessClientId ?? 'anonymous'}`;
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ─── Data hooks ──────────────────────────────────────────────
   const { data: campaigns = [], isLoading: isCampaignsLoading } = useCampaigns(businessClientId);
@@ -96,6 +99,10 @@ export function GenerateAdsPage() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
+  const [showStepper, setShowStepper] = useState(false);
+  const [stepperProductId, setStepperProductId] = useState<number | undefined>(undefined);
+  const [expressMode, setExpressMode] = useState(false);
+  const [pendingAutoKickoff, setPendingAutoKickoff] = useState<Campaign | null>(null);
   const [input, setInput] = useState('');
   const [progressIdx, setProgressIdx] = useState(0);
 
@@ -208,12 +215,63 @@ export function GenerateAdsPage() {
     setChatStarted(true);
   }, [campaigns, campaignStorageKey]);
 
+  // ─── URL param: ?productId=X → open stepper with product pre-selected ───
+  useEffect(() => {
+    const pid = searchParams.get('productId');
+    if (!pid) return;
+    const id = Number(pid);
+    if (!Number.isFinite(id)) return;
+    setStepperProductId(id);
+    setShowStepper(true);
+    setSearchParams({}, { replace: true });
+  }, []);
+
   // ─── Campaign selection from empty state ─────────────────────
   const handleStartChat = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
     setChatStarted(true);
     localStorage.setItem(campaignStorageKey, String(campaign.id));
   };
+
+  const handleStepperComplete = (campaign: Campaign, withExpressMode: boolean) => {
+    setExpressMode(withExpressMode);
+    if (withExpressMode) setPendingAutoKickoff(campaign);
+    setActiveCampaignId(campaign.id);
+    setShowStepper(false);
+    setChatStarted(true);
+    localStorage.setItem(campaignStorageKey, String(campaign.id));
+  };
+
+  // ─── Express mode auto-approve ───────────────────────────────
+  useEffect(() => {
+    if (!expressMode) return;
+    if (phase === 'generating' || phase === 'results') return;
+    const latestPlan = [...messages].reverse().find((m) => m.message_type === 'plan');
+    if (!latestPlan) return;
+    const planIdx = messages.indexOf(latestPlan);
+    const alreadyResolved = messages.slice(planIdx + 1).some((m) => m.message_type === 'plan_response');
+    if (alreadyResolved) return;
+    const timer = setTimeout(() => handleApprovePlan(latestPlan), 600);
+    return () => clearTimeout(timer);
+  }, [messages, expressMode, phase]);
+
+  // ─── Express mode auto-kickoff ────────────────────────────────
+  useEffect(() => {
+    if (!pendingAutoKickoff || !chatStarted || !activeCampaignId) return;
+    const campaign = pendingAutoKickoff;
+    setPendingAutoKickoff(null);
+    const parts = [`Generate ads for "${campaign.name}"`];
+    if (campaign.target_audience) parts.push(`targeting ${campaign.target_audience}`);
+    if (campaign.goal) parts.push(`with a ${campaign.goal} goal`);
+    if (campaign.product_context) parts.push(`for ${campaign.product_context}`);
+    chatCompletion.mutate({
+      campaign_id: activeCampaignId,
+      message: parts.join(', ') + '.',
+      filter_context: buildFilterContext(),
+      campaign_context: { name: campaign.name, brief: campaign.brief },
+      previous_plan: undefined,
+    });
+  }, [chatStarted, activeCampaignId, pendingAutoKickoff]);
 
   // ─── Progress animation during generating ───────────────────
   useEffect(() => {
@@ -399,19 +457,16 @@ export function GenerateAdsPage() {
       <div className="flex h-[calc(100vh-4rem)] bg-background overflow-hidden">
 
       {/* ── Empty State: pick a campaign before entering chat ── */}
-      {!chatStarted && (
+      {!chatStarted && !showStepper && (
         <div className="flex flex-1 flex-col items-center justify-center px-8">
           <div className="w-full max-w-2xl">
 
             {/* Hero */}
             <div className="flex flex-col items-center text-center mb-12">
-              <div className="relative mb-6">
-                <div className="absolute inset-0 rounded-full blur-3xl opacity-20 scale-150 bg-blue-500" />
-                <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600/20 to-violet-600/20 border border-blue-500/20 flex items-center justify-center shadow-xl">
-                  <SparklesIcon className="w-9 h-9 text-blue-400" />
+              <div className="mb-6">
+                <div className="w-20 h-20 rounded bg-muted border border-border flex items-center justify-center">
+                  <SparklesIcon className="w-9 h-9 text-muted-foreground" />
                 </div>
-                <div className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-violet-500/50 border border-violet-400/60" />
-                <div className="absolute -bottom-1 -left-2 w-2.5 h-2.5 rounded-full bg-blue-500/50 border border-blue-400/60" />
               </div>
               <h1 className="text-2xl font-bold text-foreground mb-2">Generate your next ad</h1>
               <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
@@ -428,7 +483,7 @@ export function GenerateAdsPage() {
               {isCampaignsLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-card border border-border rounded-xl animate-pulse" />
+                    <div key={i} className="h-16 bg-card border border-border rounded animate-pulse" />
                   ))}
                 </div>
               ) : campaigns.length > 0 ? (
@@ -437,10 +492,10 @@ export function GenerateAdsPage() {
                     <button
                       key={campaign.id}
                       onClick={() => handleStartChat(campaign)}
-                      className="w-full flex items-center gap-4 px-5 py-4 bg-card border border-border rounded-xl hover:border-blue-500/40 hover:bg-blue-500/5 transition-all group text-left"
+                      className="w-full flex items-center gap-4 px-5 py-4 bg-card border border-border rounded hover:border-foreground/20 hover:bg-muted/30 transition-all group text-left"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
-                        <ZapIcon className="w-4 h-4 text-blue-400" />
+                      <div className="w-9 h-9 rounded bg-muted border border-border flex items-center justify-center flex-shrink-0 group-hover:bg-muted transition-colors">
+                        <ZapIcon className="w-4 h-4 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{campaign.name}</p>
@@ -468,14 +523,26 @@ export function GenerateAdsPage() {
             {/* New campaign CTA */}
             <div className="flex gap-3">
               <button
-                onClick={() => setShowCreateCampaignModal(true)}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-600/20"
+                onClick={() => { setStepperProductId(undefined); setShowStepper(true); }}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-primary hover:bg-primary/90 active:scale-[0.99] text-primary-foreground rounded text-sm font-medium transition-all"
               >
                 <PlusIcon className="w-4 h-4" />
                 New Campaign
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Stepper: guided campaign creation ── */}
+      {showStepper && !chatStarted && (
+        <div className="flex flex-1 flex-col items-center justify-center px-8">
+          <CampaignSetupStepper
+            businessClientId={businessClientId ?? 0}
+            initialProductId={stepperProductId}
+            onComplete={handleStepperComplete}
+            onCancel={() => { setShowStepper(false); setStepperProductId(undefined); }}
+          />
         </div>
       )}
 
@@ -520,12 +587,12 @@ export function GenerateAdsPage() {
             <div
               onMouseDown={handleDragStart}
               className={`absolute inset-0 flex items-center justify-center cursor-col-resize transition-colors ${
-                isDragging ? 'bg-blue-500/20' : 'hover:bg-border/40'
+                isDragging ? 'bg-foreground/10' : 'hover:bg-border/40'
               }`}
             >
               <div
                 className={`w-1 h-8 rounded-full transition-colors ${
-                  isDragging ? 'bg-blue-500' : 'bg-border group-hover/handle:bg-muted-foreground'
+                  isDragging ? 'bg-foreground/40' : 'bg-border group-hover/handle:bg-muted-foreground'
                 }`}
               />
             </div>

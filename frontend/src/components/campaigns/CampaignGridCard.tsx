@@ -33,11 +33,11 @@ export function CampaignGridCard({ campaign, isSelected, onToggleSelection }: Ca
           type="checkbox"
           checked={isSelected}
           onChange={() => onToggleSelection(campaign.id)}
-          className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500 cursor-pointer"
+          className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
         />
       </div>
       <Link to={`/campaign/${campaign.id}`}>
-        <div className={`bg-card border rounded-xl overflow-hidden hover:border-foreground/20 transition-colors cursor-pointer group ${isSelected ? 'border-blue-600/40' : 'border-border'}`}>
+        <div className={`bg-card border rounded overflow-hidden hover:border-foreground/20 transition-colors cursor-pointer group ${isSelected ? 'border-primary/40' : 'border-border'}`}>
           <div className="flex h-full">
             <div className="w-28 flex-shrink-0 bg-muted relative">
               {campaign.thumbnail ? (
@@ -58,7 +58,7 @@ export function CampaignGridCard({ campaign, isSelected, onToggleSelection }: Ca
                   </h3>
                   <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{campaign.product}</p>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusStyles[campaign.status]}`}>
+                <span className={`text-xs px-2 py-0.5 rounded font-medium flex-shrink-0 ${statusStyles[campaign.status]}`}>
                   {campaign.status}
                 </span>
               </div>

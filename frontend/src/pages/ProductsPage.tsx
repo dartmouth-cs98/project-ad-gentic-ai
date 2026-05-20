@@ -28,7 +28,7 @@ import {
 import type { Product } from '../types';
 
 const MAX_IMAGES = 5;
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
+const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
 const labelClass = 'block text-sm font-medium mb-1.5';
 
 // ---------- Product Card ----------
@@ -56,7 +56,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden group hover:border-foreground/20 transition-colors">
+    <div className="bg-card border border-border rounded overflow-hidden group hover:border-foreground/20 transition-colors">
       {/* Image area */}
       <div className="h-40 bg-muted flex items-center justify-center relative">
         {currentUrl ? (
@@ -83,7 +83,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
         {canAddMore && (
           <button
             onClick={() => onUploadImages(product)}
-            className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-1 rounded-md bg-black/60 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+            className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-1 rounded bg-black/60 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
           >
             <UploadIcon className="w-3 h-3" />
             {hasImages ? 'Add' : 'Upload'}
@@ -129,7 +129,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
             href={product.product_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-blue-500 hover:underline mt-2"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline mt-2"
           >
             <ExternalLinkIcon className="w-3 h-3" />
             Product link
@@ -140,7 +140,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
           {canAddMore && (
             <button
               onClick={() => onUploadImages(product)}
-              className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
             >
               <ImageIcon className="w-3 h-3" />
               {hasImages ? 'Add' : 'Upload'} Image
@@ -154,7 +154,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
           {/* Shortcut: jump to /generate with this product pre-selected in the stepper */}
           <button
             onClick={() => navigate(`/generate?productId=${product.id}`)}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-blue-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
             title="Create a campaign for this product"
           >
             <ZapIcon className="w-3 h-3" />
@@ -163,7 +163,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
 
           <button
             onClick={() => onDelete(product)}
-            className="p-1 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
+            className="p-1 text-muted-foreground hover:text-red-500 rounded hover:bg-red-500/10 transition-colors"
           >
             <TrashIcon className="w-3.5 h-3.5" />
           </button>
@@ -194,10 +194,10 @@ function CreateProductModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => !isCreating && onClose()} />
-      <div className="relative w-full max-w-md bg-card border border-border rounded-xl">
+      <div className="relative w-full max-w-md bg-card border border-border rounded">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-lg font-semibold">Add Product</h2>
-          <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+          <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground">
             <XIcon className="w-4 h-4" />
           </button>
         </div>
@@ -223,7 +223,7 @@ function CreateProductModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {createMutation.isError && (
-          <div className="mx-6 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+          <div className="mx-6 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-500">
             {(createMutation.error as Error).message}
           </div>
         )}
@@ -233,7 +233,7 @@ function CreateProductModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={handleCreate}
             disabled={isCreating}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {isCreating ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Creating...</> : <><PlusIcon className="w-4 h-4" /> Add Product</>}
           </button>
@@ -254,7 +254,7 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-card border border-border rounded-xl p-6">
+      <div className="relative w-full max-w-sm bg-card border border-border rounded p-6">
         <h2 className="text-base font-semibold mb-1">Delete Product</h2>
         <p className="text-sm text-muted-foreground mb-6">
           Are you sure you want to delete <span className="font-medium text-foreground">{product.name}</span>? This action cannot be undone.
@@ -264,7 +264,7 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
           >
             {isLoading && <Loader2Icon className="w-4 h-4 animate-spin" />}
             {isLoading ? 'Deleting...' : 'Delete'}
@@ -332,7 +332,7 @@ export function ProductsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <PlusIcon className="w-4 h-4" />
               Add Product
@@ -348,13 +348,13 @@ export function ProductsPage() {
             placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20 placeholder:text-muted-foreground"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20 placeholder:text-muted-foreground"
           />
         </div>
 
         {/* Upload status banner */}
         {uploadMutation.isPending && (
-          <div className="mb-4 flex items-center gap-2 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3 text-sm text-blue-500">
+          <div className="mb-4 flex items-center gap-2 bg-muted border border-border rounded px-4 py-3 text-sm text-foreground">
             <Loader2Icon className="w-4 h-4 animate-spin" />
             Uploading image(s) for {uploadTargetProduct?.name}...
           </div>
@@ -381,7 +381,7 @@ export function ProductsPage() {
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">Add your first product to start creating campaigns and generating ads.</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <PlusIcon className="w-4 h-4" />
               Add your first product

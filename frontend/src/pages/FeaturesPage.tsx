@@ -76,7 +76,7 @@ export function FeaturesPage() {
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight leading-[1.05]">
             What Ad-gentic{' '}
-            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>does</em>
+            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic', padding: '0 3px', margin: '0 -3px' }}>does</em>
           </h1>
           <p className="text-lg text-muted-foreground">
             Four capabilities that take you from customer data to live, persona-targeted video campaigns.

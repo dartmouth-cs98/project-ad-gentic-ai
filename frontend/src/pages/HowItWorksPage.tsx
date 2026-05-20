@@ -79,7 +79,7 @@ export function HowItWorksPage() {
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight leading-[1.05]">
             From customer data to{' '}
-            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>live ads</em>
+            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic', padding: '0 3px', margin: '0 -3px' }}>live ads</em>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Five steps from raw data to persona-targeted video ads across your ad platforms.

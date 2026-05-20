@@ -99,7 +99,7 @@ export function ProfilePage() {
             <div className="col-span-2 space-y-8">
               <Card variant="elevated" padding="lg">
                 <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
-                  <BuildingIcon className="w-5 h-5 text-blue-500" />
+                  <BuildingIcon className="w-5 h-5 text-muted-foreground" />
                   Company Identity
                 </h2>
 
@@ -174,7 +174,7 @@ export function ProfilePage() {
               <Card variant="elevated" padding="lg">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <UsersIcon className="w-5 h-5 text-blue-500" />
+                    <UsersIcon className="w-5 h-5 text-muted-foreground" />
                     Team Members
                   </h2>
                   <Badge variant="info">{3} Active Members</Badge>
@@ -183,7 +183,7 @@ export function ProfilePage() {
                 {/* Invite Form */}
                 <form
                   onSubmit={handleInvite}
-                  className="bg-background p-4 rounded-xl border border-border mb-8">
+                  className="bg-background p-4 rounded border border-border mb-8">
 
                   <h3 className="text-sm font-semibold text-foreground mb-3">
                     Invite New Member
@@ -229,7 +229,7 @@ export function ProfilePage() {
                 </form>
 
                 {/* Team Table */}
-                <div className="overflow-hidden rounded-xl border border-border">
+                <div className="overflow-hidden rounded border border-border">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-background text-muted-foreground">
                       <tr>
@@ -299,10 +299,10 @@ export function ProfilePage() {
               <Card
                 variant="default"
                 padding="md"
-                className="bg-gradient-to-br from-blue-600 to-purple-600 text-white border-none">
+                className="bg-primary text-primary-foreground border-none">
 
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded bg-white/20 flex items-center justify-center">
                     <ShieldIcon className="w-5 h-5 text-white" />
                   </div>
                   <div>

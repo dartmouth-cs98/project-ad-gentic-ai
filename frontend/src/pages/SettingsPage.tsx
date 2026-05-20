@@ -85,7 +85,6 @@ function EmptyState({
   icon: Icon,
   iconBg,
   iconColor,
-  glowColor,
   title,
   description,
   cta,
@@ -95,7 +94,6 @@ function EmptyState({
   icon: React.ElementType;
   iconBg: string;
   iconColor: string;
-  glowColor: string;
   title: string;
   description: string;
   cta: string;
@@ -104,16 +102,10 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-      <div className="relative mb-8">
-        {/* Glow */}
-        <div className={`absolute inset-0 rounded-full blur-2xl opacity-30 scale-150 ${glowColor}`} />
-        {/* Icon ring */}
-        <div className={`relative w-20 h-20 rounded-2xl ${iconBg} flex items-center justify-center shadow-lg`}>
+      <div className="mb-8">
+        <div className={`w-20 h-20 rounded ${iconBg} flex items-center justify-center`}>
           <Icon className={`w-9 h-9 ${iconColor}`} />
         </div>
-        {/* Decorative orbiting dots */}
-        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500/40 border border-blue-500/60" />
-        <div className="absolute -bottom-2 -left-2 w-2 h-2 rounded-full bg-violet-500/40 border border-violet-500/60" />
       </div>
 
       <h3 className="text-xl font-bold text-foreground mb-2">{title}</h3>
@@ -123,7 +115,7 @@ function EmptyState({
 
       <button
         onClick={onCta}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/20"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
       >
         {cta}
         <ArrowRightIcon className="w-4 h-4" />
@@ -317,7 +309,7 @@ export function SettingsPage() {
         {/* Success Overlay — Plan change */}
         {showSuccess && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-            <div className="bg-card border border-border p-8 rounded-2xl shadow-xl flex flex-col items-center">
+            <div className="bg-card border border-border p-8 rounded shadow-xl flex flex-col items-center">
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
                 <CheckCircleIcon className="w-8 h-8 text-emerald-500" />
               </div>
@@ -331,7 +323,7 @@ export function SettingsPage() {
         {showCancelModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
-            <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-8 z-10">
+            <div className="relative w-full max-w-md bg-card border border-border rounded p-8 z-10">
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
                   <AlertTriangleIcon className="w-6 h-6 text-amber-500" />
@@ -342,12 +334,12 @@ export function SettingsPage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleCancelSubscription}
-                  className="flex-1 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-muted transition-colors">
+                  className="flex-1 py-2.5 border border-border rounded text-sm text-muted-foreground hover:bg-muted transition-colors">
                   Confirm Cancellation
                 </button>
                 <button
                   onClick={() => setShowCancelModal(false)}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+                  className="flex-1 py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors">
                   Keep My Plan
                 </button>
               </div>
@@ -367,9 +359,9 @@ export function SettingsPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`pb-4 px-4 text-sm font-medium transition-colors relative whitespace-nowrap ${activeTab === tab.key ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'}`}>
+                className={`pb-4 px-4 text-sm font-medium transition-colors relative whitespace-nowrap ${activeTab === tab.key ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
                 {tab.label}
-                {activeTab === tab.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
+                {activeTab === tab.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-t-full" />}
               </button>
             ))}
           </div>
@@ -379,38 +371,38 @@ export function SettingsPage() {
             <div className="space-y-8">
               <div className="grid grid-cols-3 gap-6">
                 {/* Current Plan + Payment */}
-                <div className="col-span-2 bg-card border border-border rounded-xl p-7">
+                <div className="col-span-2 bg-card border border-border rounded p-7">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h3 className="text-base font-semibold text-foreground">Current Plan</h3>
                       <p className="text-muted-foreground text-sm">Renews on March 12, 2026</p>
                     </div>
-                    <span className="px-3 py-1 bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-full text-xs font-semibold capitalize">
+                    <span className="px-3 py-1 bg-muted text-foreground border border-border rounded text-xs font-semibold capitalize">
                       {profile.plan} Plan
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 p-4 bg-muted rounded-xl border border-border mb-6">
-                    <div className="w-12 h-12 bg-card rounded-xl border border-border flex items-center justify-center flex-shrink-0">
+                  <div className="flex items-center gap-4 p-4 bg-muted rounded border border-border mb-6">
+                    <div className="w-12 h-12 bg-card rounded border border-border flex items-center justify-center flex-shrink-0">
                       <CreditCardIcon className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
                       <p className="font-medium text-foreground">Visa ending in 4242</p>
                       <p className="text-xs text-muted-foreground">Expires 12/28</p>
                     </div>
-                    <button className="ml-auto px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors">
+                    <button className="ml-auto px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded hover:bg-muted transition-colors">
                       Update
                     </button>
                   </div>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setActiveTab('plans')}
-                      className="px-4 py-2 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors">
+                      className="px-4 py-2 border border-border rounded text-sm text-foreground hover:bg-muted transition-colors">
                       Change Plan
                     </button>
                     {profile.plan !== 'basic' && (
                       <button
                         onClick={() => setShowCancelModal(true)}
-                        className="px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-xl transition-colors">
+                        className="px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded transition-colors">
                         Cancel Subscription
                       </button>
                     )}
@@ -418,7 +410,7 @@ export function SettingsPage() {
                 </div>
 
                 {/* Usage */}
-                <div className="bg-card border border-border rounded-xl p-7">
+                <div className="bg-card border border-border rounded p-7">
                   <h3 className="text-base font-semibold text-foreground mb-5">Usage</h3>
                   <div className="space-y-5">
                     {[
@@ -441,7 +433,7 @@ export function SettingsPage() {
               </div>
 
               {/* Billing History */}
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="bg-card border border-border rounded overflow-hidden">
                 <div className="p-6 border-b border-border">
                   <h3 className="text-base font-semibold text-foreground">Billing History</h3>
                 </div>
@@ -449,10 +441,9 @@ export function SettingsPage() {
                 {profile.plan === 'basic' ? (
                   /* Empty state for free plan — no invoices yet */
                   <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 rounded-full blur-2xl opacity-25 scale-150 bg-blue-500" />
-                      <div className="relative w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <ReceiptIcon className="w-7 h-7 text-blue-500" />
+                    <div className="mb-6">
+                      <div className="w-16 h-16 rounded bg-muted border border-border flex items-center justify-center">
+                        <ReceiptIcon className="w-7 h-7 text-muted-foreground" />
                       </div>
                     </div>
                     <h4 className="text-base font-semibold text-foreground mb-1.5">No invoices yet</h4>
@@ -461,7 +452,7 @@ export function SettingsPage() {
                     </p>
                     <button
                       onClick={() => setActiveTab('plans')}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors">
                       View Plans
                       <ArrowRightIcon className="w-4 h-4" />
                     </button>
@@ -488,12 +479,12 @@ export function SettingsPage() {
                           <td className="px-6 py-4 text-muted-foreground">{item.plan}</td>
                           <td className="px-6 py-4 text-foreground font-medium">{item.amount}</td>
                           <td className="px-6 py-4">
-                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-xs font-medium">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded text-xs font-medium">
                               {item.status}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Download</button>
+                            <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">Download</button>
                           </td>
                         </tr>
                       ))}
@@ -514,20 +505,20 @@ export function SettingsPage() {
               ].map((plan) => (
                 <div
                   key={plan.id}
-                  className={`relative flex flex-col bg-card border rounded-xl p-7 ${
+                  className={`relative flex flex-col bg-card border rounded p-7 ${
                     profile.plan === plan.id
-                      ? 'ring-2 ring-blue-600 border-blue-600/30'
+                      ? 'ring-2 ring-foreground/30 border-foreground/30'
                       : plan.highlight && profile.plan !== plan.id
-                        ? 'ring-2 ring-blue-600 border-blue-600/30'
+                        ? 'ring-2 ring-foreground/30 border-foreground/30'
                         : 'border-border hover:border-foreground/20'
                   } transition-colors`}>
                   {profile.plan === plan.id && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-foreground text-background text-xs font-medium rounded">
                       Current Plan
                     </div>
                   )}
                   {plan.highlight && profile.plan !== plan.id && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-foreground text-background text-xs font-medium rounded">
                       Most Popular
                     </div>
                   )}
@@ -541,7 +532,7 @@ export function SettingsPage() {
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <CheckIcon className="w-4 h-4 text-primary flex-shrink-0" />
                         {feature}
                       </li>
                     ))}
@@ -549,11 +540,11 @@ export function SettingsPage() {
                   <button
                     disabled={profile.plan === plan.id}
                     onClick={() => handleUpgrade(plan.id as 'basic' | 'premium' | 'enterprise')}
-                    className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    className={`w-full py-2.5 rounded text-sm font-medium transition-colors ${
                       profile.plan === plan.id
                         ? 'bg-muted text-muted-foreground cursor-not-allowed'
                         : plan.highlight
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                           : 'border border-border text-foreground hover:bg-muted'
                     }`}>
                     {getPlanButtonText(plan.id)}
@@ -568,15 +559,11 @@ export function SettingsPage() {
             <>
               {!brandConfigured ? (
                 /* ── Brand Empty State ── */
-                <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                  {/* Hero gradient strip */}
-                  <div className="relative h-2 bg-gradient-to-r from-blue-600 via-violet-500 to-emerald-500" />
-
+                <div className="bg-card border border-border rounded overflow-hidden">
                   <EmptyState
                     icon={PaletteIcon}
-                    iconBg="bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-blue-500/20"
-                    iconColor="text-blue-400"
-                    glowColor="bg-blue-500"
+                    iconBg="bg-muted border border-border"
+                    iconColor="text-muted-foreground"
                     title="Your brand profile isn't set up yet"
                     description="Add your logo, brand colors, and voice so Ad-gentic can generate ads that look and sound exactly like you."
                     cta="Set Up Brand Profile"
@@ -590,15 +577,15 @@ export function SettingsPage() {
                         ].map((swatch) => (
                           <div key={swatch.label} className="flex flex-col items-center gap-1.5">
                             <div
-                              className="w-8 h-8 rounded-lg border border-white/10 shadow-md"
+                              className="w-8 h-8 rounded border border-white/10 shadow-md"
                               style={{ backgroundColor: swatch.color }}
                             />
                             <span className="text-[10px] text-muted-foreground">{swatch.label}</span>
                           </div>
                         ))}
                         <div className="w-px h-10 bg-border mx-1" />
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg border border-border">
-                          <SparklesIcon className="w-3.5 h-3.5 text-blue-400" />
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded border border-border">
+                          <SparklesIcon className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="text-xs text-muted-foreground">AI-matched tone</span>
                         </div>
                       </div>
@@ -614,7 +601,7 @@ export function SettingsPage() {
                         { icon: SparklesIcon, text: 'AI voice & tone' },
                       ].map(({ icon: Icon, text }) => (
                         <div key={text} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Icon className="w-3.5 h-3.5 text-blue-500" />
+                          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                           {text}
                         </div>
                       ))}
@@ -627,14 +614,14 @@ export function SettingsPage() {
 
                   {/* Brand saved toast */}
                   {brandSaved && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-500">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded text-sm text-emerald-500">
                       <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
                       Brand profile saved successfully.
                     </div>
                   )}
 
                   {/* Company Identity */}
-                  <div className="bg-card border border-border rounded-xl p-7">
+                  <div className="bg-card border border-border rounded p-7">
                     <h3 className="text-base font-semibold text-foreground mb-1">Company Identity</h3>
                     <p className="text-sm text-muted-foreground mb-6">Your brand identity is used across all generated ads.</p>
                     <div className="flex items-start gap-6 mb-6">
@@ -648,7 +635,7 @@ export function SettingsPage() {
                           onChange={handleLogoUpload}
                         />
                         {logoPreview ? (
-                          <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-border group cursor-pointer" onClick={() => logoInputRef.current?.click()}>
+                          <div className="relative w-24 h-24 rounded overflow-hidden border border-border group cursor-pointer" onClick={() => logoInputRef.current?.click()}>
                             <img src={logoPreview} alt="Brand logo" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                               <UploadIcon className="w-5 h-5 text-white" />
@@ -663,11 +650,11 @@ export function SettingsPage() {
                         ) : (
                           <button
                             onClick={() => logoInputRef.current?.click()}
-                            className="w-24 h-24 rounded-xl bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-500/5 transition-all group">
-                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-1.5 group-hover:bg-blue-500/20 transition-colors">
-                              <UploadIcon className="w-4 h-4 text-blue-500" />
+                            className="w-24 h-24 rounded bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-foreground/30 hover:bg-muted/80 transition-all group">
+                            <div className="w-8 h-8 rounded bg-muted border border-border flex items-center justify-center mb-1.5 group-hover:bg-background transition-colors">
+                              <UploadIcon className="w-4 h-4 text-muted-foreground" />
                             </div>
-                            <span className="text-[10px] text-muted-foreground group-hover:text-blue-500 transition-colors font-medium">Upload logo</span>
+                            <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors font-medium">Upload logo</span>
                             <span className="text-[9px] text-muted-foreground mt-0.5">PNG, JPG, SVG</span>
                           </button>
                         )}
@@ -680,14 +667,14 @@ export function SettingsPage() {
                           value={brandForm.companyName}
                           onChange={(e) => setBrandForm({ ...brandForm, companyName: e.target.value })}
                           placeholder="e.g. Acme Inc."
-                          className="w-full px-3 py-2 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 bg-muted border border-border rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Brand Colors */}
-                  <div className="bg-card border border-border rounded-xl p-7">
+                  <div className="bg-card border border-border rounded p-7">
                     <h3 className="text-base font-semibold text-foreground mb-1">Brand Colors</h3>
                     <p className="text-sm text-muted-foreground mb-6">These colors will be applied to generated ad creatives.</p>
                     <div className="grid grid-cols-3 gap-4">
@@ -698,7 +685,7 @@ export function SettingsPage() {
                       ].map((color) => (
                         <div key={color.key}>
                           <label className="block text-sm font-medium text-foreground mb-2">{color.label}</label>
-                          <div className="rounded-xl border border-border overflow-hidden">
+                          <div className="rounded border border-border overflow-hidden">
                             <div
                               className="h-14 w-full relative cursor-pointer group"
                               style={{ backgroundColor: brandForm[color.key] }}
@@ -722,7 +709,7 @@ export function SettingsPage() {
                               type="text"
                               value={brandForm[color.key]}
                               onChange={(e) => setBrandForm({ ...brandForm, [color.key]: e.target.value })}
-                              className="w-full px-3 py-2 bg-muted border-t border-border rounded-b-xl text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                              className="w-full px-3 py-2 bg-muted border-t border-border rounded-b text-sm font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:ring-inset"
                             />
                           </div>
                         </div>
@@ -731,7 +718,7 @@ export function SettingsPage() {
                   </div>
 
                   {/* Brand Voice */}
-                  <div className="bg-card border border-border rounded-xl p-7">
+                  <div className="bg-card border border-border rounded p-7">
                     <h3 className="text-base font-semibold text-foreground mb-1">Brand Voice & Tone</h3>
                     <p className="text-sm text-muted-foreground mb-6">AI will match this tone when generating ad copy.</p>
                     <div className="grid grid-cols-2 gap-3 mb-6">
@@ -739,10 +726,10 @@ export function SettingsPage() {
                         <button
                           key={tone.value}
                           onClick={() => setBrandForm({ ...brandForm, tone: tone.value })}
-                          className={`p-4 rounded-xl border text-left transition-all ${brandForm.tone === tone.value ? 'border-blue-600 bg-blue-500/5 ring-1 ring-blue-600' : 'border-border hover:border-foreground/20'}`}>
+                          className={`p-4 rounded border text-left transition-all ${brandForm.tone === tone.value ? 'border-foreground/30 bg-muted ring-1 ring-foreground/20' : 'border-border hover:border-foreground/20'}`}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-sm text-foreground">{tone.label}</span>
-                            {brandForm.tone === tone.value && <CheckIcon className="w-4 h-4 text-blue-600" />}
+                            {brandForm.tone === tone.value && <CheckIcon className="w-4 h-4 text-foreground" />}
                           </div>
                           <p className="text-xs text-muted-foreground">{tone.desc}</p>
                         </button>
@@ -753,9 +740,9 @@ export function SettingsPage() {
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-1.5">Brand Guidelines</label>
                       {brandForm.guidelines === '' && (
-                        <div className="mb-2 flex items-start gap-2 px-3 py-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                          <SparklesIcon className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
-                          <p className="text-xs text-blue-400/80 leading-relaxed">
+                        <div className="mb-2 flex items-start gap-2 px-3 py-2 bg-muted border border-border rounded">
+                          <SparklesIcon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             Tip: describe your dos and don'ts (e.g. "Always lead with value. Avoid jargon. Use data to back claims.") — the more specific, the better your ads.
                           </p>
                         </div>
@@ -765,7 +752,7 @@ export function SettingsPage() {
                         placeholder="Describe your brand's dos and don'ts for ad copy..."
                         value={brandForm.guidelines}
                         onChange={(e) => setBrandForm({ ...brandForm, guidelines: e.target.value })}
-                        className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        className="w-full px-3 py-2 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 resize-none"
                       />
                     </div>
                   </div>
@@ -779,7 +766,7 @@ export function SettingsPage() {
                     <button
                       onClick={handleSaveBrand}
                       disabled={brandSaving}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20">
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all">
                       {brandSaving ? (
                         <><Loader2Icon className="w-4 h-4 animate-spin" />Saving...</>
                       ) : (
@@ -806,16 +793,12 @@ export function SettingsPage() {
 
               {connectedCount === 0 && (
                 /* ── Integrations Empty State Banner ── */
-                <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                  <div className="relative h-1.5 bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500" />
+                <div className="bg-card border border-border rounded overflow-hidden">
                   <div className="flex flex-col items-center py-12 px-8 text-center">
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 rounded-full blur-2xl opacity-25 scale-150 bg-violet-500" />
-                      <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 border border-violet-500/20 flex items-center justify-center">
-                        <PlugIcon className="w-7 h-7 text-violet-400" />
+                    <div className="mb-6">
+                      <div className="w-16 h-16 rounded bg-muted border border-border flex items-center justify-center">
+                        <PlugIcon className="w-7 h-7 text-muted-foreground" />
                       </div>
-                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500/40 border border-blue-500/60" />
-                      <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-pink-500/40 border border-pink-500/60" />
                     </div>
 
                     <h4 className="text-lg font-bold text-foreground mb-2">Connect your first platform</h4>
@@ -828,7 +811,7 @@ export function SettingsPage() {
                       {initialIntegrations.slice(0, 5).map((int) => (
                         <div
                           key={int.id}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border rounded-full text-xs text-muted-foreground"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border rounded text-xs text-muted-foreground"
                         >
                           <div className={`w-4 h-4 rounded ${int.color} flex items-center justify-center text-white text-[8px] font-bold`}>
                             {int.icon}
@@ -846,8 +829,8 @@ export function SettingsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 {integrations.map((integration) => (
-                  <div key={integration.id} className="bg-card border border-border rounded-xl p-5 flex items-start gap-4 hover:border-foreground/20 transition-colors">
-                    <div className={`w-11 h-11 rounded-xl ${integration.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                  <div key={integration.id} className="bg-card border border-border rounded p-5 flex items-start gap-4 hover:border-foreground/20 transition-colors">
+                    <div className={`w-11 h-11 rounded ${integration.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
                       {integration.icon}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -869,21 +852,21 @@ export function SettingsPage() {
                           <span className="text-xs text-muted-foreground truncate">{integration.accountName}</span>
                           <button
                             onClick={() => handleDisconnect(integration.id)}
-                            className="text-xs text-red-500 border border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors flex-shrink-0">
+                            className="text-xs text-red-500 border border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10 px-2.5 py-1 rounded transition-colors flex-shrink-0">
                             Disconnect
                           </button>
                         </div>
                       ) : integration.comingSoon ? (
                         <button
                           disabled
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground bg-muted/40 cursor-not-allowed">
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded text-xs text-muted-foreground bg-muted/40 cursor-not-allowed">
                           <ClockIcon className="w-3 h-3" />
                           Coming soon
                         </button>
                       ) : (
                         <button
                           onClick={() => handleConnect(integration.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors">
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded text-xs text-foreground hover:bg-muted transition-colors">
                           <LinkIcon className="w-3 h-3" />Connect
                         </button>
                       )}
@@ -898,7 +881,7 @@ export function SettingsPage() {
           {activeTab === 'notifications' && (
             <div className="space-y-6 max-w-3xl">
               {/* Channel Masters */}
-              <div className="bg-card border border-border rounded-xl p-7">
+              <div className="bg-card border border-border rounded p-7">
                 <h3 className="text-base font-semibold text-foreground mb-1">Notification Channels</h3>
                 <p className="text-sm text-muted-foreground mb-6">Enable or disable entire notification channels.</p>
                 <div className="grid grid-cols-3 gap-4">
@@ -907,10 +890,10 @@ export function SettingsPage() {
                     { key: 'inApp' as const, label: 'In-App', desc: 'Browser notifications', icon: SmartphoneIcon },
                     { key: 'slack' as const, label: 'Slack', desc: '#marketing-ads', icon: HashIcon },
                   ].map((channel) => (
-                    <div key={channel.key} className={`p-4 rounded-xl border transition-all ${channelMasters[channel.key] ? 'border-border bg-card' : 'border-border bg-muted opacity-60'}`}>
+                    <div key={channel.key} className={`p-4 rounded border transition-all ${channelMasters[channel.key] ? 'border-border bg-card' : 'border-border bg-muted opacity-60'}`}>
                       <div className="flex items-center justify-between mb-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                          <channel.icon className="w-4 h-4 text-blue-600" />
+                        <div className="w-9 h-9 rounded bg-muted flex items-center justify-center">
+                          <channel.icon className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
@@ -919,7 +902,7 @@ export function SettingsPage() {
                             checked={channelMasters[channel.key]}
                             onChange={() => setChannelMasters((prev) => ({ ...prev, [channel.key]: !prev[channel.key] }))}
                           />
-                          <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
+                          <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                         </label>
                       </div>
                       <h4 className="font-medium text-foreground text-sm">{channel.label}</h4>
@@ -930,7 +913,7 @@ export function SettingsPage() {
               </div>
 
               {/* Granular Controls */}
-              <div className="bg-card border border-border rounded-xl p-7">
+              <div className="bg-card border border-border rounded p-7">
                 <h3 className="text-base font-semibold text-foreground mb-1">Notification Preferences</h3>
                 <p className="text-sm text-muted-foreground mb-6">Fine-tune which notifications you receive per channel.</p>
 
@@ -947,7 +930,7 @@ export function SettingsPage() {
                   {notifications.map((item) => (
                     <div key={item.id} className="flex items-center py-3 border-b border-border last:border-0">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                        <div className="w-9 h-9 rounded bg-muted flex items-center justify-center flex-shrink-0">
                           <item.icon className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <div className="min-w-0">
@@ -966,7 +949,7 @@ export function SettingsPage() {
                                 disabled={!channelMasters[channel]}
                                 onChange={() => toggleNotification(item.id, channel)}
                               />
-                              <div className={`w-9 h-5 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${!channelMasters[channel] ? 'bg-muted cursor-not-allowed' : 'bg-muted peer-checked:bg-blue-600'}`} />
+                              <div className={`w-9 h-5 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${!channelMasters[channel] ? 'bg-muted cursor-not-allowed' : 'bg-muted peer-checked:bg-primary'}`} />
                             </label>
                           </div>
                         ))}

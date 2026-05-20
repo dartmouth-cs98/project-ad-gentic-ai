@@ -21,7 +21,7 @@ export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection,
   const navigate = useNavigate();
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded overflow-hidden">
       <table className="w-full text-left text-sm">
         <thead className="border-b border-border">
           <tr>
@@ -30,7 +30,7 @@ export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection,
                 type="checkbox"
                 checked={selectedCampaigns.length === campaigns.length && campaigns.length > 0}
                 onChange={onToggleSelectAll}
-                className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
               />
             </th>
             <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
@@ -45,23 +45,23 @@ export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection,
           {campaigns.map((campaign) => (
             <tr
               key={campaign.id}
-              className={`transition-colors ${selectedCampaigns.includes(campaign.id) ? 'bg-blue-600/5' : 'hover:bg-muted/50'}`}
+              className={`transition-colors ${selectedCampaigns.includes(campaign.id) ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
             >
               <td className="px-4 py-3">
                 <input
                   type="checkbox"
                   checked={selectedCampaigns.includes(campaign.id)}
                   onChange={() => onToggleSelection(campaign.id)}
-                  className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
                 />
               </td>
               <td className="px-4 py-3">
-                <Link to={`/campaign/${campaign.id}`} className="font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link to={`/campaign/${campaign.id}`} className="font-medium hover:text-foreground transition-colors">
                   {campaign.name}
                 </Link>
               </td>
               <td className="px-4 py-3">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyles[campaign.status]}`}>
+                <span className={`text-xs px-2 py-0.5 rounded font-medium ${statusStyles[campaign.status]}`}>
                   {campaign.status}
                 </span>
               </td>
@@ -74,13 +74,13 @@ export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection,
                 <div className="flex items-center justify-end gap-2">
                   <button
                     onClick={() => navigate(`/campaign/${campaign.id}`)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-border rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                   >
                     <EditIcon className="w-3.5 h-3.5" /> Edit
                   </button>
                   <button
                     onClick={() => onDeleteClick(campaign.id, campaign.name)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-red-500/20 rounded-lg hover:bg-red-500/10 transition-colors text-red-500"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-red-500/20 rounded hover:bg-red-500/10 transition-colors text-red-500"
                   >
                     <TrashIcon className="w-3.5 h-3.5" /> Delete
                   </button>

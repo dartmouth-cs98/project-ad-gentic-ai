@@ -175,18 +175,18 @@ export function CampaignsPage() {
             <p className="text-sm text-muted-foreground mt-0.5">Manage and track your ad campaigns.</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center bg-muted border border-border rounded-lg p-1">
+            <div className="inline-flex items-center bg-muted border border-border rounded p-1">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <LayoutGridIcon className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <ListIcon className="w-4 h-4" />
               </button>
@@ -196,7 +196,7 @@ export function CampaignsPage() {
               onClick={openCreateModal}
               disabled={!canManageCampaigns}
               title={!canManageCampaigns ? 'A business client is required to create campaigns.' : undefined}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:pointer-events-none"
             >
               <PlusIcon className="w-4 h-4" />
               Create Campaign
@@ -215,22 +215,22 @@ export function CampaignsPage() {
         )}
 
         {selectedCampaigns.length > 0 && (
-          <div className="mb-4 flex items-center gap-3 bg-blue-600/10 border border-blue-600/20 rounded-lg px-4 py-3">
-            <span className="text-sm font-medium text-blue-500">
+          <div className="mb-4 flex items-center gap-3 bg-muted border border-border rounded px-4 py-3">
+            <span className="text-sm font-medium text-foreground">
               {selectedCampaigns.length} campaign{selectedCampaigns.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex-1" />
             <button
               type="button"
               onClick={handleBulkPause}
-              className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              className="px-3 py-1.5 text-sm border border-border rounded hover:bg-muted transition-colors"
             >
               Pause Selected
             </button>
             <button
               type="button"
               onClick={handleBulkDelete}
-              className="px-3 py-1.5 text-sm border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
+              className="px-3 py-1.5 text-sm border border-red-500/30 text-red-500 rounded hover:bg-red-500/10 transition-colors"
             >
               Delete Selected
             </button>
@@ -253,7 +253,7 @@ export function CampaignsPage() {
             </p>
             <Link
               to="/sign-in"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               Sign in
             </Link>
@@ -268,7 +268,7 @@ export function CampaignsPage() {
                 placeholder="Search campaigns..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20 placeholder:text-muted-foreground"
+                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20 placeholder:text-muted-foreground"
               />
             </div>
 
@@ -280,7 +280,7 @@ export function CampaignsPage() {
                 id={dateRangeSelectId}
                 value={dateRangePreset}
                 onChange={(e) => setDateRangePreset(e.target.value as DateRangePreset)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                className="w-full px-3 py-2 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20"
               >
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
@@ -303,7 +303,7 @@ export function CampaignsPage() {
                         type="checkbox"
                         checked={selectedObjectives.includes(objective)}
                         onChange={() => toggleObjective(objective)}
-                        className="rounded border-border text-blue-600 focus:ring-blue-500"
+                        className="rounded border-border text-primary focus:ring-primary"
                       />
                       <span className="truncate" title={objective}>
                         {objective}
@@ -343,7 +343,7 @@ export function CampaignsPage() {
                 <button
                   type="button"
                   onClick={openCreateModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
                 >
                   <PlusIcon className="w-4 h-4" />
                   Create your first campaign

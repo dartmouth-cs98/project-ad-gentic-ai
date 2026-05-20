@@ -115,7 +115,7 @@ export function TeamPage() {
           <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-5">The team</p>
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.05]">
             We're building the<br />
-            <em className="font-serif italic not-italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>next great</em> advertising platform.
+            <em className="font-serif italic not-italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic', padding: '0 3px', margin: '0 -3px' }}>next great</em> advertising platform.
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
             Five builders who got tired of watching brands waste budgets on ads that miss. We think advertising can be smarter, more honest, and actually effective — so we're making it happen.
@@ -167,7 +167,7 @@ export function TeamPage() {
           </div>
           <blockquote className="text-3xl sm:text-4xl font-bold tracking-tight leading-snug">
             "Advertising should work for everyone — not just the brands with the{' '}
-            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>biggest budgets.</em>"
+            <em className="font-serif italic" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic', padding: '0 3px', margin: '0 -3px' }}>biggest budgets.</em>"
           </blockquote>
         </div>
       </section>

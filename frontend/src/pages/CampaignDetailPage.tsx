@@ -109,7 +109,7 @@ function HeroKpiGrid({ hero }: { hero: CampaignAnalyticsSummary['hero'] }) {
         return (
           <Card key={`${kpi.label}-${index}`} variant="elevated" padding="md">
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-2 rounded-lg ${wrap}`}>{renderHeroIcon(kpi.icon)}</div>
+              <div className={`p-2 rounded ${wrap}`}>{renderHeroIcon(kpi.icon)}</div>
               {kpi.badge != null ? (
                 <span className={heroBadgeClass(kpi.badgeStyle)}>{kpi.badge}</span>
               ) : null}
@@ -135,7 +135,7 @@ function AnalyticsEmptyState({
   return (
     <Card variant="elevated" padding="lg" className={className}>
       <div className="flex flex-col sm:flex-row items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
           <BarChart3Icon className="w-6 h-6 text-muted-foreground" />
         </div>
         <div className="min-w-0 flex-1">
@@ -195,10 +195,10 @@ function AttachedProducts({ products }: { products: Product[] }) {
               <img
                 src={product.image_urls[0]}
                 alt={product.name}
-                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                className="w-12 h-12 rounded object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
                 <PackageIcon className="w-5 h-5 text-muted-foreground" />
               </div>
             )}
@@ -338,7 +338,7 @@ export function CampaignDetailPage() {
             <p className="text-sm text-muted-foreground mb-4">
               {(error as Error)?.message}
             </p>
-            <Link to="/campaigns" className="text-blue-600 text-sm hover:underline">
+            <Link to="/campaigns" className="text-muted-foreground text-sm hover:text-foreground">
               Back to campaigns
             </Link>
           </div>
@@ -483,7 +483,7 @@ export function CampaignDetailPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`pb-4 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.key
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-foreground text-foreground'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -504,7 +504,7 @@ export function CampaignDetailPage() {
             )}
 
             {!isVariantsLoading && isVariantsError && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 Failed to load ad variants: {(variantsError as Error)?.message}
               </div>
             )}
@@ -512,7 +512,7 @@ export function CampaignDetailPage() {
             {!isVariantsLoading && !isVariantsError && completedVariants.length === 0 && (
               <Card variant="elevated" padding="lg">
                 <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                  <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
                     <PackageIcon className="w-6 h-6 text-muted-foreground" />
                   </div>
                   <div>
@@ -538,7 +538,7 @@ export function CampaignDetailPage() {
                 ) : attachedProducts.length > 0 ? (
                   <AttachedProducts products={attachedProducts} />
                 ) : (
-                  <div className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                  <div className="rounded border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
                     {productContextText
                       ? `Attached product context: ${productContextText}`
                       : 'No attached products were found for this campaign.'}

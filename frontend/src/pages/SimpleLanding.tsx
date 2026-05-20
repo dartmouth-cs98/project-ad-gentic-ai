@@ -9,6 +9,8 @@ const gradientText: React.CSSProperties = {
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
   backgroundClip: 'text',
+  padding: '0 3px',
+  margin: '0 -3px',
 };
 
 export function SimpleLanding() {

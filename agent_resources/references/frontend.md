@@ -75,3 +75,25 @@ Invalidation often uses **prefix** queries—see `frontend/src/hooks/*.ts`.
 
 - `localStorage` key: `theme` (`light` | `dark`)
 - `document.documentElement` class: `dark` when dark mode
+
+## Campaigns list (`CampaignsPage`)
+
+| Area | Path / symbol |
+|------|----------------|
+| Page | `src/pages/CampaignsPage.tsx` |
+| Grid card | `src/components/campaigns/CampaignGridCard.tsx` |
+| Table row delete | `src/components/campaigns/CampaignTable.tsx` |
+| Delete confirm modal | `src/components/campaigns/DeleteCampaignModal.tsx` (portal to `document.body`) |
+
+**Selection (grid view):** Checkbox top-left toggles selection; clicking the card body navigates to **`#/campaign/:id`** (campaign name is a link). Selected cards use blue border/ring/background. Selection persists across date/search filters; bulk delete resolves names from the full loaded list (`rawCampaigns`), not the date-filtered view.
+
+**Selection (table view):** Row checkbox + row highlight; per-row **Delete** opens the same modal as bulk.
+
+**Delete flows:**
+
+| Action | API |
+|--------|-----|
+| 1 campaign (detail or list) | `DELETE /campaigns/{id}` — `deleteCampaign` / `useDeleteCampaign` |
+| 2+ campaigns (list, **Delete Selected**) | `POST /campaigns/bulk-delete` — `deleteCampaignsBulk` / `useDeleteCampaignsBulk` |
+
+Modal lists campaign name(s) and data removed (campaign, chat, variants, metrics, consumer events). Confirm via **Cancel** / **Delete** (no type-to-confirm). Bulk delete capped at **50** (`BULK_DELETE_MAX_CAMPAIGNS`). Partial bulk: amber banner when some `not_found_ids`; modal stays open if none were deleted.

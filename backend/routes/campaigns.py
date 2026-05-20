@@ -10,13 +10,21 @@ from cryptography.fernet import InvalidToken
 
 from database import get_db
 from dependencies import get_current_client_id
-from schemas.campaign import CampaignCreate, CampaignUpdate, CampaignResponse
+from schemas.campaign import (
+    CampaignBulkDeleteRequest,
+    CampaignBulkDeleteResponse,
+    CampaignCreate,
+    CampaignUpdate,
+    CampaignResponse,
+)
 from crud.campaign import (
+    CampaignDeleteConflict,
     get_campaigns,
     get_campaign,
     create_campaign,
     update_campaign,
     delete_campaign,
+    delete_campaigns_bulk,
 )
 from services.ad_platforms.meta.campaign_publisher import publish_campaign, MetaPublishError
 from services.ad_platforms.meta.connection_loader import (
@@ -60,6 +68,22 @@ def read_campaign(campaign_id: int, db: Session = Depends(get_db)):
 def create_new_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
     return create_campaign(db, data)
 
+
+@router.post("/bulk-delete", response_model=CampaignBulkDeleteResponse)
+def bulk_remove_campaigns(
+    body: CampaignBulkDeleteRequest, db: Session = Depends(get_db)
+):
+    """Delete multiple campaigns and cascade-delete related rows in one transaction."""
+    try:
+        deleted_ids, not_found_ids = delete_campaigns_bulk(db, body.campaign_ids)
+    except CampaignDeleteConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return CampaignBulkDeleteResponse(
+        deleted_ids=deleted_ids,
+        not_found_ids=not_found_ids,
+    )
+
+
 @router.put("/{campaign_id}", response_model=CampaignResponse)
 def update_existing_campaign(
     campaign_id: int, data: CampaignUpdate, db: Session = Depends(get_db)
@@ -73,8 +97,12 @@ def update_existing_campaign(
 
 @router.delete("/{campaign_id}", status_code=204)
 def remove_campaign(campaign_id: int, db: Session = Depends(get_db)):
-    """Delete a campaign by ID."""
-    if not delete_campaign(db, campaign_id):
+    """Delete a campaign by ID and cascade-delete related rows."""
+    try:
+        deleted = delete_campaign(db, campaign_id)
+    except CampaignDeleteConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not deleted:
         raise HTTPException(status_code=404, detail="Campaign not found")
 
 

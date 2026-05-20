@@ -95,7 +95,31 @@ JWT required except **`GET /social-auth/callback`** (browser redirect from Meta)
 | POST | `/campaigns/` |
 | PUT | `/campaigns/{campaign_id}` |
 | DELETE | `/campaigns/{campaign_id}` |
+| POST | `/campaigns/bulk-delete` |
 | PATCH | `/campaigns/{campaign_id}/run` |
+
+**`DELETE /campaigns/{id}`:** Cascade-deletes `consumer_events` (via variants), `ad_variants`, `campaign_metrics`, and `chat_messages`, then the campaign (**204**). **404** if missing; **409** if a FK still blocks delete after cascade (`CampaignDeleteConflict`).
+
+**`POST /campaigns/bulk-delete`:** Request body:
+
+```json
+{ "campaign_ids": [1, 2, 3] }
+```
+
+- **1–50** unique ids (deduped server-side; order preserved for `not_found_ids`).
+- One transaction per request (same cascade order as single delete); avoids parallel-delete deadlocks on SQL Server.
+- **200** response:
+
+```json
+{ "deleted_ids": [1, 2], "not_found_ids": [3] }
+```
+
+Deletes all **found** ids; ids with no row are listed in `not_found_ids` (no error if some missing).
+
+- **409** — FK still blocks after cascade.
+- **422** — empty list or more than 50 ids.
+
+Frontend: campaigns list uses bulk when **2+** selected; single id uses **`DELETE /campaigns/{id}`** ([`deleteCampaignsBulk`](../frontend/src/api/campaigns.ts)).
 
 **Campaign metrics** (separate router file; same URL prefix **`/campaigns`** — registered after core campaign routes in `main.py`):
 

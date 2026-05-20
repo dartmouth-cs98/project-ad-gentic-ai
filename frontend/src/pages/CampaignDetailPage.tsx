@@ -253,6 +253,7 @@ export function CampaignDetailPage() {
   const [activeTab, setActiveTab] = useState<'variants' | 'analytics' | 'settings'>('variants');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const tabs = [
     { key: 'variants' as const, label: 'Ad Variants' },
@@ -290,9 +291,22 @@ export function CampaignDetailPage() {
     });
   };
 
+  const closeDeleteModal = () => {
+    if (deleteMutation.isPending) return;
+    setShowDeleteModal(false);
+    setDeleteError(null);
+    deleteMutation.reset();
+  };
+
   const handleDelete = () => {
+    setDeleteError(null);
     deleteMutation.mutate(campaignId, {
       onSuccess: () => navigate('/campaigns'),
+      onError: (err) => {
+        setDeleteError(
+          err instanceof Error ? err.message : 'Failed to delete campaign.',
+        );
+      },
     });
   };
 
@@ -440,7 +454,11 @@ export function CampaignDetailPage() {
               <Button
                 variant="danger"
                 leftIcon={<TrashIcon className="w-4 h-4" />}
-                onClick={() => setShowDeleteModal(true)}
+                onClick={() => {
+                  setDeleteError(null);
+                  deleteMutation.reset();
+                  setShowDeleteModal(true);
+                }}
               >
                 Delete
               </Button>
@@ -582,11 +600,12 @@ export function CampaignDetailPage() {
           />
         )}
 
-        {showDeleteModal && (
+        {showDeleteModal && campaign && (
           <DeleteCampaignModal
-            campaignName={campaign.name}
+            campaignNames={[campaign.name]}
             isLoading={deleteMutation.isPending}
-            onClose={() => setShowDeleteModal(false)}
+            error={deleteError}
+            onClose={closeDeleteModal}
             onConfirm={handleDelete}
           />
         )}

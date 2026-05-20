@@ -20,7 +20,7 @@ This document answers: **“How do I make frontend changes in the house style?�
 | `pages/` | Route-level screens (compose layout + data hooks). |
 | `components/layout/` | App chrome (e.g. `Sidebar`). |
 | `components/ui/` | Reusable primitives (`Button`, `Input`, `Card`, `Select`, …). |
-| `components/campaigns/` | Campaign-specific UI (tables, modals, analytics). |
+| `components/campaigns/` | Campaign list/detail UI: **`CampaignGridCard`** (checkbox-only selection; card body links to detail), **`DeleteCampaignModal`** (lists cascade targets; bulk/single delete), table + analytics. List bulk delete → **`POST /campaigns/bulk-delete`** when 2+ selected ([references/frontend.md](./references/frontend.md)). |
 | `components/generate/` | Generate / chat / variants experience; `index.ts` re-exports. |
 | `api/` | Plain `fetch` wrappers — **no data caching here**. |
 | `hooks/` | TanStack Query hooks (`use*`) + small UI hooks (`useFilterState`, `useResizablePanel`). |

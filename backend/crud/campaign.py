@@ -1,13 +1,82 @@
 """CRUD operations for campaigns table."""
 
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete as sa_delete, select
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
+from models.ad_variant import AdVariant
 from models.campaign import Campaign
+from models.campaign_metric import CampaignMetric
+from models.chat_message import ChatMessage
+from models.consumer_event import ConsumerEvent
 from schemas.campaign import CampaignCreate, CampaignUpdate
+
+_MAX_DEADLOCK_RETRIES = 3
+
+
+class CampaignDeleteConflict(Exception):
+    """Raised when campaign delete fails due to remaining FK references."""
+
+
+def _is_deadlock(exc: BaseException) -> bool:
+    """True for SQL Server deadlock victim (error 1205 / 40001)."""
+    if not isinstance(exc, DBAPIError):
+        return False
+    orig = exc.orig
+    if orig is None:
+        return "1205" in str(exc)
+    args = getattr(orig, "args", ())
+    if args and args[0] == "40001":
+        return True
+    return "1205" in str(orig)
+
+
+def _cascade_delete_campaign_ids(db: Session, campaign_ids: list[int]) -> None:
+    """Delete dependent rows then campaign rows for the given IDs (no commit)."""
+    if not campaign_ids:
+        return
+
+    variant_ids_subq = select(AdVariant.id).where(AdVariant.campaign_id.in_(campaign_ids))
+
+    db.execute(
+        sa_delete(ConsumerEvent).where(
+            ConsumerEvent.ad_variant_id.in_(variant_ids_subq)
+        )
+    )
+    db.execute(sa_delete(AdVariant).where(AdVariant.campaign_id.in_(campaign_ids)))
+    db.execute(
+        sa_delete(CampaignMetric).where(CampaignMetric.campaign_id.in_(campaign_ids))
+    )
+    db.execute(sa_delete(ChatMessage).where(ChatMessage.campaign_id.in_(campaign_ids)))
+    db.execute(sa_delete(Campaign).where(Campaign.id.in_(campaign_ids)))
+
+
+def _commit_cascade_delete(db: Session, campaign_ids: list[int]) -> None:
+    """Run cascade deletes and commit, retrying on SQL Server deadlock."""
+    last_error: Optional[BaseException] = None
+    for attempt in range(_MAX_DEADLOCK_RETRIES):
+        try:
+            _cascade_delete_campaign_ids(db, campaign_ids)
+            db.commit()
+            return
+        except IntegrityError as exc:
+            db.rollback()
+            raise CampaignDeleteConflict(
+                "Campaign cannot be deleted because related data still exists."
+            ) from exc
+        except DBAPIError as exc:
+            db.rollback()
+            last_error = exc
+            if _is_deadlock(exc) and attempt < _MAX_DEADLOCK_RETRIES - 1:
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            raise
+    if last_error is not None:
+        raise last_error
 
 
 def get_campaigns(
@@ -55,10 +124,36 @@ def update_campaign(
 
 
 def delete_campaign(db: Session, campaign_id: int) -> bool:
-    """Delete a campaign by ID. Returns True if deleted, False if not found."""
-    campaign = db.get(Campaign, campaign_id)
-    if campaign is None:
+    """Delete a campaign and dependent rows in one transaction.
+
+    Returns True if deleted, False if not found.
+    Raises CampaignDeleteConflict if a FK still blocks delete after cascade.
+    """
+    if db.get(Campaign, campaign_id) is None:
         return False
-    db.delete(campaign)
-    db.commit()
+    _commit_cascade_delete(db, [campaign_id])
     return True
+
+
+def delete_campaigns_bulk(
+    db: Session, campaign_ids: list[int]
+) -> tuple[list[int], list[int]]:
+    """Delete multiple campaigns in one transaction.
+
+    Returns (deleted_ids, not_found_ids). Deduplicates ``campaign_ids`` while
+    preserving first-seen order. Raises CampaignDeleteConflict on FK failure.
+    """
+    unique_ids = list(dict.fromkeys(campaign_ids))
+    if not unique_ids:
+        return [], []
+
+    found = list(
+        db.scalars(select(Campaign.id).where(Campaign.id.in_(unique_ids))).all()
+    )
+    found_set = set(found)
+    not_found = [cid for cid in unique_ids if cid not in found_set]
+
+    if found:
+        _commit_cascade_delete(db, found)
+
+    return found, not_found

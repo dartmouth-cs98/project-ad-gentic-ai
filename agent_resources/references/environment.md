@@ -33,6 +33,16 @@ Loaded via **`python-dotenv`** from **`backend/.env`** (`database.py`, several w
 | `VIDEO_API_KEY` | OpenAI-compatible video generation (`ad_video_generation_worker`) |
 | `VIDEO_SECONDS` | Clip length for video API: **`4`**, **`8`**, or **`12`** (default **`12`**). Drives script beat template and audio guards (`utils/video_timing.py`). |
 
+### Video provider (Sora vs Google Veo)
+
+| Variable | Role |
+|----------|------|
+| `VEO_GENERATION_ENABLED` | When `false`, Grok routing always uses Sora (`VIDEO_API_KEY`); default **`true`** if unset (`utils/video_provider_config.py`) |
+| `GOOGLE_VEO_API_KEY` / `GOOGLE_API_KEY` / `GEMINI_API_KEY` | First non-empty wins for Veo (Gemini Developer API path) |
+| `GOOGLE_VEO_MODEL` | Optional Veo model id (see `backend/.env.example`) |
+
+Do **not** set `GOOGLE_GENAI_USE_VERTEXAI` for the built-in Veo path (Vertex/GCS not supported in-repo).
+
 ### Email (verification / password reset)
 
 | Variable | Role |

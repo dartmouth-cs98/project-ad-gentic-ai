@@ -14,6 +14,8 @@ Add a Markdown file per task or epic slice, for example:
 
 - `feature-name.md`
 - `2026-04-14-fix-campaign-list-auth.md`
+- `2026-05-20-campaign-cascade-delete.md` (campaign `DELETE` cascade — shipped)
+- `2026-05-20-campaign-bulk-delete-api.md` (bulk delete API — shipped)
 
 **Include** where helpful:
 

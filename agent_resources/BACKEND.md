@@ -88,7 +88,7 @@ There is **no Celery/Redis** queue in this repo: **the database is the queue**.
 | **Azure SQL / ODBC** | **`database.py`** | **`DB_CONNECTION_STRING`**, **`DB_PASSWORD`**, or **`USE_AZURE_AD`** + **`DB_ODBC_CONNECTION_STRING`** |
 | **OpenAI-compatible** | Chat, moderation, video worker, script **`AsyncOpenAI`** path, shared clients | **`OPENAI_API_KEY`**, **`SCRIPT_*`**, **`VIDEO_API_KEY`** |
 | **xAI SDK** | Batch script creation (`batch_generate_ad_scripts`) | **`xai_sdk`** + **`SCRIPT_*`** in **`script_creation_worker`** |
-| **Meta Graph / OAuth** | Social connect, insights, publish helpers | **`META_*`**, **`FERNET_SECRET_KEY`**, `services/meta/` |
+| **Meta Graph / OAuth** | Social connect, insights, publish helpers | **`META_*`**, **`FERNET_SECRET_KEY`**, `services/ad_platforms/meta/` |
 | **Resend** | Email verification and password reset | **`RESEND_*`** |
 | **Google** | **`POST /auth/google`** | **`GOOGLE_CLIENT_SECRET`** |
 
@@ -112,7 +112,7 @@ Client singletons: **`get_openai_client`** is **`lru_cache`**’d; tests can **`
 
 - **Input:** **Pydantic** schemas on route bodies; FastAPI returns **422** on validation failure.
 - **App errors:** Raise **`HTTPException(status_code=…, detail=…)`** with **string** or structured **`detail`** (FastAPI serializes).
-- **DB integrity:** e.g. **`IntegrityError`** in **`consumers`** CSV path—catch and map to a **409** or clear message.
+- **DB integrity:** e.g. **`IntegrityError`** in **`consumers`** CSV path—catch and map to a **409** or clear message. **Campaign delete:** `crud/campaign.py` **`delete_campaign`** / **`delete_campaigns_bulk`** cascade-delete children then the campaign; remaining FK issues raise **`CampaignDeleteConflict`** → **409** on **`DELETE /campaigns/{id}`** and **`POST /campaigns/bulk-delete`**. SQL Server deadlocks (**1205**) are retried up to 3 times inside **`_commit_cascade_delete`** before surfacing as **500**.
 - **Workers/poller:** **`execute_ad_job`** catches exceptions, sets **`ad_variant`** to **`failed`** with traceback in **`meta`**, re-raises; poller marks **`ad_job`** failed and increments batch **`failed_jobs`**. Invalid **`input_json`** → job **failed** without bumping **`attempt_count`** (parse before claim).
 
 There is **no** global exception handler in `main.py` for logging/masking—**add carefully** if you introduce one (preserve **`HTTPException`** behavior).
@@ -165,6 +165,8 @@ When adding endpoints: **register router in `main.py`**, add **`tags`**, and mir
 | [PRODUCT.md](./PRODUCT.md) | Business behavior the backend should implement. |
 | [TESTING.md](./TESTING.md) | pytest, fixtures, CI workflows. |
 | [references/](./references/) | HTTP paths, env vars, tables (lookup). |
+| [SCHEMA.md](./SCHEMA.md) | SQL Server columns and FK relationships. |
+| [exec-plans/](../exec-plans/) | Task execution plans (e.g. [campaign cascade delete](../exec-plans/2026-05-20-campaign-cascade-delete.md), [bulk delete API](../exec-plans/2026-05-20-campaign-bulk-delete-api.md)). |
 | [design-docs/](./design-docs/) | Major changes: write design here before coding. |
 | [backend/README.md](../backend/README.md) | Runbook, ports, worker prefixes. |
 | [AGENTS.md](../AGENTS.md) | How to run the repo and CI summary. |

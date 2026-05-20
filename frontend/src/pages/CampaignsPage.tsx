@@ -18,7 +18,13 @@ import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
 
 import { useUser } from '../contexts/UserContext';
-import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
+import { BULK_DELETE_MAX_CAMPAIGNS } from '../api/campaigns';
+import {
+  useCampaigns,
+  useDeleteCampaign,
+  useDeleteCampaignsBulk,
+  useUpdateCampaign,
+} from '../hooks/useCampaigns';
 import { useProducts } from '../hooks/useProducts';
 import {
   campaignToItem,
@@ -54,6 +60,7 @@ export function CampaignsPage() {
   const rawCampaigns = rawCampaignsData ?? EMPTY_CAMPAIGNS;
   const products = productsData ?? [];
   const deleteMutation = useDeleteCampaign();
+  const bulkDeleteMutation = useDeleteCampaignsBulk();
   const updateMutation = useUpdateCampaign();
 
   const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('all');
@@ -96,7 +103,8 @@ export function CampaignsPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [campaignToDelete, setCampaignToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [campaignsToDelete, setCampaignsToDelete] = useState<{ id: number; name: string }[]>([]);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const toggleObjective = (objective: string) => {
     setSelectedObjectives((prev) =>
@@ -138,26 +146,71 @@ export function CampaignsPage() {
     setSelectedCampaigns([]);
   };
 
-  const handleBulkDelete = async () => {
-    await Promise.all(
-      selectedCampaigns.map((id) => deleteMutation.mutateAsync(Number(id))),
-    );
-    setSelectedCampaigns([]);
+  const isDeletingCampaigns =
+    deleteMutation.isPending || bulkDeleteMutation.isPending;
+
+  const closeDeleteModal = () => {
+    if (isDeletingCampaigns) return;
+    setShowDeleteModal(false);
+    setCampaignsToDelete([]);
+    setDeleteError(null);
   };
 
-  const handleDeleteClick = (campaignId: string, campaignName: string) => {
-    setCampaignToDelete({ id: Number(campaignId), name: campaignName });
+  const openDeleteModal = (targets: { id: number; name: string }[]) => {
+    if (targets.length === 0) return;
+    setDeleteError(null);
+    setCampaignsToDelete(targets);
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (!campaignToDelete) return;
-    deleteMutation.mutate(campaignToDelete.id, {
-      onSuccess: () => {
+  const handleBulkDeleteClick = () => {
+    const targets = campaigns
+      .filter((c) => selectedCampaigns.includes(c.id))
+      .map((c) => ({ id: Number(c.id), name: c.name }));
+    openDeleteModal(targets);
+  };
+
+  const handleDeleteClick = (campaignId: string, campaignName: string) => {
+    openDeleteModal([{ id: Number(campaignId), name: campaignName }]);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (campaignsToDelete.length === 0) return;
+    setDeleteError(null);
+    const ids = campaignsToDelete.map((c) => c.id);
+    if (ids.length > BULK_DELETE_MAX_CAMPAIGNS) {
+      setDeleteError(
+        `You can delete at most ${BULK_DELETE_MAX_CAMPAIGNS} campaigns at a time. Deselect some campaigns and try again.`,
+      );
+      return;
+    }
+    try {
+      if (ids.length === 1) {
+        await deleteMutation.mutateAsync(ids[0]);
+        setSelectedCampaigns([]);
         setShowDeleteModal(false);
-        setCampaignToDelete(null);
-      },
-    });
+        setCampaignsToDelete([]);
+      } else {
+        const result = await bulkDeleteMutation.mutateAsync(ids);
+        const { deleted_ids, not_found_ids } = result;
+        if (deleted_ids.length === 0 && not_found_ids.length > 0) {
+          setDeleteError(
+            'None of the selected campaigns could be deleted — they may have already been removed.',
+          );
+          return;
+        }
+        setSelectedCampaigns([]);
+        setShowDeleteModal(false);
+        setCampaignsToDelete([]);
+        if (not_found_ids.length > 0) {
+          setDeleteError(
+            `${not_found_ids.length} campaign(s) were already removed and could not be deleted.`,
+          );
+        }
+      }
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete campaigns.');
+    }
   };
 
   const openCreateModal = () => {
@@ -204,6 +257,23 @@ export function CampaignsPage() {
           </div>
         </div>
 
+        {deleteError && (
+          <div
+            className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 flex items-start justify-between gap-3"
+            role="alert"
+          >
+            <span>{deleteError}</span>
+            <button
+              type="button"
+              onClick={() => setDeleteError(null)}
+              className="text-amber-900/70 dark:text-amber-100/70 hover:text-amber-900 dark:hover:text-amber-100"
+              aria-label="Dismiss"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {!userLoading && user && !canManageCampaigns && (
           <div
             className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
@@ -229,8 +299,14 @@ export function CampaignsPage() {
             </button>
             <button
               type="button"
-              onClick={handleBulkDelete}
-              className="px-3 py-1.5 text-sm border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
+              onClick={handleBulkDeleteClick}
+              disabled={selectedCampaigns.length > BULK_DELETE_MAX_CAMPAIGNS}
+              title={
+                selectedCampaigns.length > BULK_DELETE_MAX_CAMPAIGNS
+                  ? `Select at most ${BULK_DELETE_MAX_CAMPAIGNS} campaigns to delete at once`
+                  : undefined
+              }
+              className="px-3 py-1.5 text-sm border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
             >
               Delete Selected
             </button>
@@ -409,14 +485,12 @@ export function CampaignsPage() {
           />
         )}
 
-        {showDeleteModal && campaignToDelete && (
+        {showDeleteModal && campaignsToDelete.length > 0 && (
           <DeleteCampaignModal
-            campaignName={campaignToDelete.name}
-            isLoading={deleteMutation.isPending}
-            onClose={() => {
-              setShowDeleteModal(false);
-              setCampaignToDelete(null);
-            }}
+            campaignNames={campaignsToDelete.map((c) => c.name)}
+            isLoading={isDeletingCampaigns}
+            error={deleteError}
+            onClose={closeDeleteModal}
             onConfirm={handleConfirmDelete}
           />
         )}

@@ -31,7 +31,7 @@ This document answers: **“What behavior is the code trying to implement?”** 
 
 | Feature | Intended behavior (from code) |
 |---------|----------------------------------|
-| **Campaigns** | CRUD by `business_client_id`; `brief` can hold **JSON** whose keys are **version numbers** (string or int) mapping to brief text for that creative version. |
+| **Campaigns** | CRUD by `business_client_id`; `brief` can hold **JSON** whose keys are **version numbers** (string or int) mapping to brief text for that creative version. **Delete** removes the campaign plus **`ad_variants`**, **`chat_messages`**, **`campaign_metrics`**, and related **`consumer_events`** (cascade in one transaction). List page: select via checkbox only; **Delete Selected** uses **`POST /campaigns/bulk-delete`** (one request for 2+ campaigns). Detail page: **`DELETE /campaigns/{id}`**. Confirmation modal lists what will be deleted ([`DeleteCampaignModal`](../frontend/src/components/campaigns/DeleteCampaignModal.tsx)). |
 | **Products** | CRUD; images uploaded to Azure **`product-images`**; **`image_name`** is required for automated ad generation (worker loads blob by name). |
 | **Consumers** | CRUD; **unique (business_client_id, email)** when email is used; **traits** JSON drives script personalization; **persona** links for segmentation. |
 | **Personas** | Global persona library (UUID id, unique name); JSON lists for motivators, pain points, optional tone preferences. |

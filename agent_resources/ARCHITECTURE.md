@@ -64,6 +64,8 @@ There is **no separate message broker** (e.g. Redis/RabbitMQ) in the current dep
 
 Browser → **FastAPI routes** (`routes/*`) → **SQLAlchemy** sessions (`get_db`) → **CRUD** + **Pydantic schemas** → JSON responses. Routes that use **`get_current_client_id`** validate **`JWT_SECRET`**-signed bearer tokens (`dependencies.py`). **Not every resource route is JWT-scoped today** (e.g. parts of **`/campaigns`**); see [BACKEND.md](./BACKEND.md).
 
+**Campaign delete:** `DELETE /campaigns/{id}` and `POST /campaigns/bulk-delete` run application-level cascade in **`crud/campaign.py`** (children then campaign; one transaction for bulk). See [references/persistence.md](./references/persistence.md) and [references/backend-api.md](./references/backend-api.md).
+
 ### 2. Product images
 
 Uploads flow through **`routes/product.py`**: files land in Azure Blob (**`product-images`** container). Ad generation later **downloads** the same blob by `image_name` when building a variant.
@@ -102,7 +104,7 @@ Failures are recorded on the variant **`meta`** (e.g. error trace) and statuses 
 | **Caches** | None required for core flow; clients may be cached in-process (e.g. OpenAI client LRU) |
 | **Queues** | **Database** (`ad_jobs` + locks), not a separate queue service |
 | **LLM / media APIs** | **OpenAI-compatible** clients (chat, video, moderation, primary script path), **xAI SDK** (batch scripts), env-driven keys/URLs (`backend/.env.example`) |
-| **Meta** | OAuth token storage, insights fetch, campaign publish — `services/meta/`, `routes/social_auth.py`, `routes/metrics.py` |
+| **Meta** | OAuth token storage, insights fetch, campaign publish — `services/ad_platforms/meta/`, `routes/social_auth.py`, `routes/metrics.py` |
 
 ---
 
@@ -146,6 +148,8 @@ with **DB-backed job processing** instead of a visible Celery deployment in code
 | [FRONTEND.md](./FRONTEND.md) | Frontend structure and house style |
 | [TESTING.md](./TESTING.md) | How to validate changes |
 | [references/](./references/) | Lookup: API paths, env vars, routes, tables, CI |
+| [SCHEMA.md](./SCHEMA.md) | SQL Server schema and FK graph |
+| [exec-plans/](../exec-plans/) | Task-level implementation plans |
 | [design-docs/](./design-docs/) | Design write-ups for major changes (before implementation) |
 | [README.md](../README.md) | Product narrative, diagram, setup, Docker/Make |
 | [backend/README.md](../backend/README.md) | Backend ports, worker route prefixes, local run |

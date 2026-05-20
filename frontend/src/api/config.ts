@@ -38,3 +38,24 @@ export function authHeaders(isJson = true): HeadersInit {
     }
     return headers;
 }
+
+/** Turn FastAPI ``detail`` (string, validation array, etc.) into a user-facing message. */
+export function formatApiDetail(detail: unknown, fallback: string): string {
+    if (typeof detail === 'string' && detail.length > 0) {
+        return detail;
+    }
+    if (Array.isArray(detail)) {
+        const parts = detail
+            .map((item) => {
+                if (item && typeof item === 'object' && 'msg' in item) {
+                    return String((item as { msg: unknown }).msg);
+                }
+                return typeof item === 'string' ? item : '';
+            })
+            .filter(Boolean);
+        if (parts.length > 0) {
+            return parts.join(' ');
+        }
+    }
+    return fallback;
+}

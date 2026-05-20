@@ -1,5 +1,9 @@
 # Database Schema Summary
 
+Authoritative **SQL Server** shape for `dbo.*` tables (columns and FKs). SQLAlchemy models live in **`backend/models/`**; see [references/persistence.md](./references/persistence.md) for ORM mapping notes (e.g. `ad_variants.metadata` → model field `meta`, optional `session_id` mapped in ORM but not on API schemas).
+
+When this file and code disagree, verify the live database, then update **both** SCHEMA and models.
+
 ## Tables
 
 ### ad_job_batches
@@ -207,3 +211,15 @@
 - `consumers.secondary_persona_id` → `personas.id`
 - `products.business_client_id` → `business_clients.id`
 - `social_connections.business_client_id` → `business_clients.id`
+
+## Application delete (campaigns)
+
+There are **no `ON DELETE CASCADE`** FKs in SQL Server for campaign children. **`DELETE /campaigns/{id}`** and **`POST /campaigns/bulk-delete`** delete in this order (see `backend/crud/campaign.py`):
+
+1. `consumer_events` (via `ad_variants` on the campaign)
+2. `ad_variants`
+3. `campaign_metrics`
+4. `chat_messages` (`campaign_id` only)
+5. `campaigns`
+
+`ad_jobs` are not FK-linked to `campaigns`. Blob objects for variant videos are not removed on delete.

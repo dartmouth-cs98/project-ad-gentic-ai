@@ -25,6 +25,7 @@ We aim for a **short, fast base** of **unit tests**, a **middle layer** of **int
 ### Backend (`backend/tests/`)
 
 - **API integration:** `TestClient` against **`main.app`**, **`dependency_overrides`** for `get_db` and `get_current_client_id`, **in-memory SQLite** (`StaticPool`), temporary removal of **`dbo`** schema on models for SQLite (`test_consumers.py`, `test_product.py`, etc.).
+- **Campaign delete:** **`test_delete_campaign.py`** (single `DELETE`, cascade order, 404/409); **`test_bulk_delete_campaigns.py`** (bulk partial success, dedupe, limits).
 - **Route unit behavior:** e.g. **`test_ad_variants.py`** uses **`monkeypatch`** on env and CRUD functions to test SAS URL signing without Azure.
 - **Services:** **`test_persona_assignment_service.py`**, **`test_consumer_persona_processor.py`**, **`test_script_moderation_worker.py`** — mocks for LLM clients, **no network**.
 - **Workers / poller:** **`test_ad_job_worker.py`**, **`test_ad_job_poller.py`** — **`pytest.importorskip("azure.storage.blob")`** when imports pull Azure; **`patch`** / **`AsyncMock`** for `execute_ad_job`, `claim_ad_job`, etc.
@@ -40,7 +41,7 @@ We aim for a **short, fast base** of **unit tests**, a **middle layer** of **int
 
 | Workflow | What it proves |
 |----------|----------------|
-| **`run-tests.yml`** | `python -m pytest tests -v` in **`backend/`** with **`JWT_SECRET`**, **`DB_CONNECTION_STRING=sqlite:///test.db`**, **`ALLOWED_ORIGINS`**. |
+| **`run-tests.yml`** | `python -m pytest tests -v` in **`backend/`** with **`JWT_SECRET`**, **`DB_CONNECTION_STRING=sqlite:///test.db`**, **`ALLOWED_ORIGINS`**. **`conftest.py`** sets **`VEO_GENERATION_ENABLED=true`** for tests by default. |
 | **`backend-build.yaml`** | `python -c "from main import app"` with same env pattern. |
 | **`lint.yaml`** | Frontend **ESLint**. |
 | **`frontend-build.yaml`** | Frontend **Vite build**. |

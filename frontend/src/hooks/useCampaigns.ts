@@ -5,6 +5,7 @@ import {
   createCampaign,
   updateCampaign,
   deleteCampaign,
+  deleteCampaignsBulk,
 } from '../api/campaigns';
 import type { CreateCampaignPayload, UpdateCampaignPayload } from '../types';
 
@@ -57,6 +58,17 @@ export function useDeleteCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (campaignId: number) => deleteCampaign(campaignId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
+    },
+  });
+}
+
+/** Delete multiple campaigns in one request. Invalidates the campaigns list on success. */
+export function useDeleteCampaignsBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (campaignIds: number[]) => deleteCampaignsBulk(campaignIds),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
     },

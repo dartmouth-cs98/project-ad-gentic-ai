@@ -4,7 +4,7 @@ import json
 from datetime import datetime, date
 from decimal import Decimal
 from typing import Literal, Optional
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # Valid campaign statuses
 CampaignStatus = Literal["draft", "active", "paused", "completed"]
@@ -83,6 +83,19 @@ class CampaignUpdate(_DateRangeValidator):
     @classmethod
     def coerce_to_json(cls, v: Optional[str]) -> Optional[str]:
         return _ensure_json(v)
+
+
+class CampaignBulkDeleteRequest(BaseModel):
+    """Delete multiple campaigns in one request."""
+
+    campaign_ids: list[int] = Field(..., min_length=1, max_length=50)
+
+
+class CampaignBulkDeleteResponse(BaseModel):
+    """Result of a bulk campaign delete."""
+
+    deleted_ids: list[int]
+    not_found_ids: list[int]
 
 
 # ---------- Response schema ----------

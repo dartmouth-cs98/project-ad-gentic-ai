@@ -96,6 +96,15 @@ export function CampaignsPage() {
     [campaignsByDate, products],
   );
 
+  /** Names for any loaded campaign id (not limited to the current date filter). */
+  const campaignNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of rawCampaigns) {
+      map.set(String(c.id), c.name);
+    }
+    return map;
+  }, [rawCampaigns]);
+
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
@@ -164,9 +173,10 @@ export function CampaignsPage() {
   };
 
   const handleBulkDeleteClick = () => {
-    const targets = campaigns
-      .filter((c) => selectedCampaigns.includes(c.id))
-      .map((c) => ({ id: Number(c.id), name: c.name }));
+    const targets = selectedCampaigns.map((id) => ({
+      id: Number(id),
+      name: campaignNameById.get(id) ?? `Campaign #${id}`,
+    }));
     openDeleteModal(targets);
   };
 

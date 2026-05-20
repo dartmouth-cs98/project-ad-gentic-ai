@@ -85,7 +85,7 @@ Invalidation often uses **prefix** queries—see `frontend/src/hooks/*.ts`.
 | Table row delete | `src/components/campaigns/CampaignTable.tsx` |
 | Delete confirm modal | `src/components/campaigns/DeleteCampaignModal.tsx` (portal to `document.body`) |
 
-**Selection (grid view):** Checkbox top-left toggles selection; clicking the card body navigates to **`#/campaign/:id`** (campaign name is a link). Selected cards use blue border/ring/background.
+**Selection (grid view):** Checkbox top-left toggles selection; clicking the card body navigates to **`#/campaign/:id`** (campaign name is a link). Selected cards use blue border/ring/background. Selection persists across date/search filters; bulk delete resolves names from the full loaded list (`rawCampaigns`), not the date-filtered view.
 
 **Selection (table view):** Row checkbox + row highlight; per-row **Delete** opens the same modal as bulk.
 

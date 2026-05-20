@@ -27,7 +27,7 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
         {/* Range */}
         <div className="flex-shrink-0">
           <label className={labelClass}>Range</label>
-          <div className="flex bg-muted rounded-lg p-0.5">
+          <div className="flex bg-muted rounded p-0.5">
             {(['individual', 'group', 'broad'] as PersonalizationRange[]).map((r) => (
               <button
                 key={r}
@@ -78,9 +78,9 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
               <button
                 key={f}
                 onClick={() => filterDispatch({ type: 'TOGGLE_FORMAT', payload: f })}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium capitalize transition-all border ${
+                className={`px-2.5 py-1.5 rounded text-xs font-medium capitalize transition-all border ${
                   filterState.adFormats.has(f)
-                    ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400'
+                    ? 'border-primary bg-primary/10 text-foreground'
                     : 'border-border text-muted-foreground hover:border-foreground/30'
                 }`}
               >
@@ -98,9 +98,9 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => filterDispatch({ type: 'SET_COLOR_MODE', payload: 'brand' as ColorMode })}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+              className={`px-2.5 py-1.5 rounded text-xs font-medium transition-all border ${
                 filterState.colorMode === 'brand'
-                  ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400'
+                  ? 'border-primary bg-primary/10 text-foreground'
                   : 'border-border text-muted-foreground hover:border-foreground/30'
               }`}
             >
@@ -108,9 +108,9 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
             </button>
             <button
               onClick={() => filterDispatch({ type: 'SET_COLOR_MODE', payload: 'custom' as ColorMode })}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 rounded text-xs font-medium transition-all border flex items-center gap-1.5 ${
                 filterState.colorMode === 'custom'
-                  ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400'
+                  ? 'border-primary bg-primary/10 text-foreground'
                   : 'border-border text-muted-foreground hover:border-foreground/30'
               }`}
             >
@@ -138,7 +138,7 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
               <button
                 key={t}
                 onClick={() => filterDispatch({ type: 'SET_TONE', payload: t })}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                className={`px-2.5 py-1.5 rounded text-xs font-medium capitalize transition-all ${
                   filterState.tone === t
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:bg-muted'
@@ -155,7 +155,7 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
         {/* Budget */}
         <div className="flex-shrink-0">
           <label className={labelClass}>Budget</label>
-          <div className="flex bg-muted rounded-lg p-0.5">
+          <div className="flex bg-muted rounded p-0.5">
             {(['low', 'mid', 'premium'] as BudgetTier[]).map((b) => (
               <button
                 key={b}
@@ -186,7 +186,7 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
               <button
                 key={c.value}
                 onClick={() => filterDispatch({ type: 'SET_CTA', payload: c.value })}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
                   filterState.ctaStyle === c.value
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:bg-muted'
@@ -208,14 +208,14 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
               e.stopPropagation();
               setShowLanguageDropdown(!showLanguageDropdown);
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:border-foreground/30 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border text-xs font-medium text-foreground hover:border-foreground/30 transition-colors"
           >
             <GlobeIcon className="w-3 h-3 text-muted-foreground" />
             {filterState.language}
             <ChevronDownIcon className="w-3 h-3 text-muted-foreground" />
           </button>
           {showLanguageDropdown && (
-            <div className="absolute left-0 top-full mt-1 w-44 bg-card rounded-xl border border-border shadow-lg z-40 py-1 overflow-hidden">
+            <div className="absolute left-0 top-full mt-1 w-44 bg-card rounded border border-border shadow-lg z-40 py-1 overflow-hidden">
               {languageOptions.map((l) => (
                 <button
                   key={l}
@@ -225,7 +225,7 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
                   }}
                   className={`w-full text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors ${
                     filterState.language === l
-                      ? 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-600/10'
+                      ? 'text-foreground font-semibold bg-muted'
                       : 'text-foreground'
                   }`}
                 >
@@ -246,9 +246,9 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
           <button
             key={p}
             onClick={() => filterDispatch({ type: 'TOGGLE_PLATFORM', payload: p })}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border ${
+            className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all border ${
               filterState.selectedPlatforms.has(p)
-                ? 'border-blue-600 bg-blue-600/10 text-blue-600 dark:text-blue-400'
+                ? 'border-primary bg-primary/10 text-foreground'
                 : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
             }`}
           >

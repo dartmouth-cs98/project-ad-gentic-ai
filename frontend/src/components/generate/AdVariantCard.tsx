@@ -66,7 +66,7 @@ export const AdVariantCard = memo(function AdVariantCard({ variant, isSelected, 
 
         {/* Status / approval badge */}
         {variant.status === 'completed' ? (
-          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${
+          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
             variant.is_approved
               ? 'bg-emerald-500/15 text-emerald-500'
               : 'bg-amber-500/15 text-amber-500'
@@ -75,7 +75,7 @@ export const AdVariantCard = memo(function AdVariantCard({ variant, isSelected, 
             {variant.is_approved ? 'Approved' : 'Pending Approval'}
           </div>
         ) : (
-          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 ${config.bg} ${config.text}`}>
+          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${config.bg} ${config.text}`}>
             <StatusIcon className={`w-2.5 h-2.5 ${config.animate ? 'animate-spin' : ''}`} />
             {config.label}
           </div>

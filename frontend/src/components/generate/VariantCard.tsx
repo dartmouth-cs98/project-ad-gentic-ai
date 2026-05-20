@@ -40,12 +40,12 @@ export function VariantCard({ variant, isSelected, onToggle, groupColors }: Vari
           alt={variant.headline}
           className="w-full h-full object-cover"
         />
-        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm rounded-full text-[10px] text-white font-bold flex items-center gap-1">
+        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm rounded text-[10px] text-white font-bold flex items-center gap-1">
           <SparklesIcon className="w-2.5 h-2.5 text-amber-400" />
           {variant.score}%
         </div>
         <div
-          className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize flex items-center gap-1 ${fColors.bg} ${fColors.text}`}
+          className={`absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-semibold capitalize flex items-center gap-1 ${fColors.bg} ${fColors.text}`}
         >
           <FormatIcon className="w-2.5 h-2.5" />
           {variant.format}

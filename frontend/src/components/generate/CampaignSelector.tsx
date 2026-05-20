@@ -58,7 +58,7 @@ export function CampaignSelector({
   };
 
   return (
-    <div className="max-w-[280px]">
+    <div>
       <div className="relative" data-campaign-dropdown>
         <button
           onClick={(e) => {
@@ -66,7 +66,7 @@ export function CampaignSelector({
             setShowDropdown(!showDropdown);
           }}
           disabled={isLoading}
-          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border transition-colors text-left"
+          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded bg-muted hover:bg-muted/80 border border-border transition-colors text-left"
         >
           <div className="flex items-center gap-2 min-w-0">
             <FolderIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
@@ -82,7 +82,7 @@ export function CampaignSelector({
         </button>
 
         {showDropdown && (
-          <div className="absolute left-0 right-0 top-full mt-1 bg-card rounded-xl border border-border shadow-lg z-30 py-1.5 overflow-hidden">
+          <div className="absolute left-0 right-0 top-full mt-1 bg-card rounded border border-border shadow-lg z-30 py-1.5 overflow-hidden">
             {/* Search */}
             <div className="px-2.5 pb-1.5 pt-0.5">
               <div className="relative">
@@ -93,7 +93,7 @@ export function CampaignSelector({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search campaigns..."
-                  className="w-full pl-8 pr-3 py-2 bg-muted border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:bg-background transition-all"
+                  className="w-full pl-8 pr-3 py-2 bg-muted border border-border rounded text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:bg-background transition-all"
                   onClick={(e) => e.stopPropagation()}
                 />
                 {search && (
@@ -121,12 +121,12 @@ export function CampaignSelector({
                     key={c.id}
                     onClick={() => handleSelect(c)}
                     className={`w-full text-left px-3 py-2 hover:bg-muted transition-colors ${
-                      activeCampaignId === c.id ? 'bg-blue-600/10' : ''
+                      activeCampaignId === c.id ? 'bg-muted' : ''
                     }`}
                   >
                     <p
                       className={`text-sm font-medium truncate ${
-                        activeCampaignId === c.id ? 'text-blue-600 dark:text-blue-400' : 'text-foreground'
+                        activeCampaignId === c.id ? 'text-foreground font-semibold' : 'text-foreground'
                       }`}
                     >
                       {c.name}
@@ -141,7 +141,7 @@ export function CampaignSelector({
             <div className="border-t border-border mt-0.5 pt-0.5">
               <button
                 onClick={(e) => { e.stopPropagation(); setShowDropdown(false); onCreateCampaign?.(); }}
-                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 text-blue-500"
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 text-muted-foreground hover:text-foreground"
               >
                 <PlusIcon className="w-3.5 h-3.5" />
                 <span className="text-sm font-medium">New Campaign</span>
@@ -150,9 +150,6 @@ export function CampaignSelector({
           </div>
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-1 ml-0.5">
-        Chat is tied to this campaign
-      </p>
     </div>
   );
 }

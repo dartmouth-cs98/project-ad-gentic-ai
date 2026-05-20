@@ -7,9 +7,60 @@ export type Tone = 'formal' | 'playful' | 'bold' | 'minimal';
 export type BudgetTier = 'low' | 'mid' | 'premium';
 export type CtaStyle = 'soft' | 'direct' | 'urgency';
 export type ColorMode = 'brand' | 'custom';
+export type PresetKey = 'performance' | 'awareness' | 'engagement';
+
+// ─── Presets ─────────────────────────────────────────────────────
+export interface PresetDefinition {
+  label: string;
+  description: string;
+  tone: Tone;
+  budgetTier: BudgetTier;
+  ctaStyle: CtaStyle;
+  personalizationRange: PersonalizationRange;
+  platforms: string[];
+  adFormats: AdFormatOption[];
+  variantsPerGroup: number;
+}
+
+export const PRESETS: Record<PresetKey, PresetDefinition> = {
+  performance: {
+    label: 'Performance',
+    description: 'High-converting direct response',
+    tone: 'bold',
+    budgetTier: 'mid',
+    ctaStyle: 'direct',
+    personalizationRange: 'group',
+    platforms: ['Facebook Feed', 'Instagram Story'],
+    adFormats: ['images', 'videos'],
+    variantsPerGroup: 4,
+  },
+  awareness: {
+    label: 'Awareness',
+    description: 'Broad reach, brand building',
+    tone: 'formal',
+    budgetTier: 'premium',
+    ctaStyle: 'soft',
+    personalizationRange: 'broad',
+    platforms: ['Facebook Feed', 'LinkedIn Banner'],
+    adFormats: ['images', 'videos'],
+    variantsPerGroup: 3,
+  },
+  engagement: {
+    label: 'Engagement',
+    description: 'Social sharing & interaction',
+    tone: 'playful',
+    budgetTier: 'low',
+    ctaStyle: 'soft',
+    personalizationRange: 'individual',
+    platforms: ['Instagram Story', 'TikTok Feed'],
+    adFormats: ['videos'],
+    variantsPerGroup: 4,
+  },
+};
 
 // ─── State shape ─────────────────────────────────────────────────
 export interface FilterState {
+  activePreset: PresetKey | null;
   personalizationRange: PersonalizationRange;
   variantsPerGroup: number;
   adFormats: Set<AdFormatOption>;
@@ -24,6 +75,7 @@ export interface FilterState {
 
 // ─── Defaults ────────────────────────────────────────────────────
 export const DEFAULT_FILTERS: FilterState = {
+  activePreset: 'performance',
   personalizationRange: 'group',
   variantsPerGroup: 4,
   adFormats: new Set<AdFormatOption>(['images', 'videos']),
@@ -38,6 +90,7 @@ export const DEFAULT_FILTERS: FilterState = {
 
 // ─── Actions ─────────────────────────────────────────────────────
 export type FilterAction =
+  | { type: 'SET_PRESET'; payload: PresetKey }
   | { type: 'SET_RANGE'; payload: PersonalizationRange }
   | { type: 'SET_VARIANTS_PER_GROUP'; payload: number }
   | { type: 'TOGGLE_FORMAT'; payload: AdFormatOption }
@@ -53,11 +106,26 @@ export type FilterAction =
 // ─── Reducer ─────────────────────────────────────────────────────
 function filterReducer(state: FilterState, action: FilterAction): FilterState {
   switch (action.type) {
+    case 'SET_PRESET': {
+      const p = PRESETS[action.payload];
+      return {
+        ...state,
+        activePreset: action.payload,
+        tone: p.tone,
+        budgetTier: p.budgetTier,
+        ctaStyle: p.ctaStyle,
+        personalizationRange: p.personalizationRange,
+        selectedPlatforms: new Set(p.platforms),
+        adFormats: new Set(p.adFormats),
+        variantsPerGroup: p.variantsPerGroup,
+      };
+    }
+
     case 'SET_RANGE':
-      return { ...state, personalizationRange: action.payload };
+      return { ...state, activePreset: null, personalizationRange: action.payload };
 
     case 'SET_VARIANTS_PER_GROUP':
-      return { ...state, variantsPerGroup: action.payload };
+      return { ...state, activePreset: null, variantsPerGroup: action.payload };
 
     case 'TOGGLE_FORMAT': {
       const next = new Set(state.adFormats);
@@ -67,25 +135,26 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
       } else {
         next.add(action.payload);
       }
-      return { ...state, adFormats: next };
+      return { ...state, activePreset: null, adFormats: next };
     }
 
     case 'SET_TONE':
-      return { ...state, tone: action.payload };
+      return { ...state, activePreset: null, tone: action.payload };
 
     case 'SET_BUDGET':
-      return { ...state, budgetTier: action.payload };
+      return { ...state, activePreset: null, budgetTier: action.payload };
 
     case 'SET_CTA':
-      return { ...state, ctaStyle: action.payload };
+      return { ...state, activePreset: null, ctaStyle: action.payload };
 
     case 'SET_LANGUAGE':
-      return { ...state, language: action.payload };
+      return { ...state, activePreset: null, language: action.payload };
 
     case 'SET_COLOR_MODE':
-      return { ...state, colorMode: action.payload };
+      return { ...state, activePreset: null, colorMode: action.payload };
 
     case 'SET_CUSTOM_COLOR':
+      // Color picker doesn't clear the preset — presets don't specify colors
       return { ...state, customColor: action.payload };
 
     case 'TOGGLE_PLATFORM': {
@@ -95,13 +164,12 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
       } else {
         next.add(action.payload);
       }
-      return { ...state, selectedPlatforms: next };
+      return { ...state, activePreset: null, selectedPlatforms: next };
     }
 
     case 'RESET':
       return {
         ...DEFAULT_FILTERS,
-        // Sets must be new instances to avoid shared references
         adFormats: new Set(DEFAULT_FILTERS.adFormats),
         selectedPlatforms: new Set(DEFAULT_FILTERS.selectedPlatforms),
       };
@@ -113,8 +181,9 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
 
 // ─── Hook ────────────────────────────────────────────────────────
 
-/** Count how many filters differ from defaults. */
+/** Count how many filters differ from defaults. Returns 0 when a preset is active. */
 export function countActiveFilters(state: FilterState): number {
+  if (state.activePreset !== null) return 0;
   return [
     state.personalizationRange !== DEFAULT_FILTERS.personalizationRange,
     state.variantsPerGroup !== DEFAULT_FILTERS.variantsPerGroup,

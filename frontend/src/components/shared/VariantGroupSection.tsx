@@ -66,7 +66,7 @@ export function VariantGroupSection({
         </div>
 
         <span
-          className={`text-xs font-medium flex-shrink-0 px-2 py-0.5 rounded-full ${
+          className={`text-xs font-medium flex-shrink-0 px-2 py-0.5 rounded ${
             allApproved
               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
               : 'bg-muted text-muted-foreground'

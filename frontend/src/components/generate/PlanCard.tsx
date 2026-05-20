@@ -57,7 +57,7 @@ export function PlanCard({ content, onApprove, onDecline, resolved, expressMode 
 
   if (!plan) {
     return (
-      <div className="max-w-[85%] rounded-2xl px-4 py-3 text-base leading-relaxed bg-muted border border-border text-foreground whitespace-pre-wrap">
+      <div className="max-w-[85%] rounded-lg px-4 py-3 text-base leading-relaxed bg-muted border border-border text-foreground whitespace-pre-wrap">
         {content}
       </div>
     );
@@ -66,7 +66,7 @@ export function PlanCard({ content, onApprove, onDecline, resolved, expressMode 
   return (
     <div className="max-w-[90%] space-y-3">
       {intro && (
-        <div className="rounded-2xl px-4 py-3 text-base leading-relaxed bg-muted border border-border text-foreground">
+        <div className="rounded-lg px-4 py-3 text-base leading-relaxed bg-muted border border-border text-foreground">
           {intro}
         </div>
       )}

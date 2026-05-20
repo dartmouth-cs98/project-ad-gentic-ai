@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { ChatHeader } from './ChatHeader';
-import { FilterPanel } from './FilterPanel';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import type { Campaign, ChatMessage } from '../../types';
@@ -71,8 +69,6 @@ export function ChatPanel({
   style,
   className,
 }: ChatPanelProps) {
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-
   return (
     <div
       className={`flex flex-col h-full bg-card border-r border-border relative ${className ?? ''}`}
@@ -89,22 +85,9 @@ export function ChatPanel({
         versions={versions}
         onVersionSelect={onVersionSelect}
         filterState={filterState}
-        showFilterPanel={showFilterPanel}
-        onToggleFilterPanel={() => setShowFilterPanel((v) => !v)}
+        filterDispatch={filterDispatch}
         variantCount={variantCount}
       />
-
-      {/* Filter panel only in idle phase — results panel owns filters after generation */}
-      {phase === 'idle' && (
-        <FilterPanel
-          filterState={filterState}
-          filterDispatch={filterDispatch}
-          isOpen={showFilterPanel}
-          onClose={() => setShowFilterPanel(false)}
-          phase={phase}
-          onEditClick={() => setShowFilterPanel(true)}
-        />
-      )}
 
       <ChatMessageList
         messages={messages}

@@ -29,6 +29,7 @@ from models.consumer_event import ConsumerEvent
 _MODELS = (Campaign, AdVariant, ChatMessage, CampaignMetric, ConsumerEvent)
 _ORIGINAL_SCHEMAS = {m: m.__table__.schema for m in _MODELS}
 _CLIENT_ID = 42
+_OTHER_CLIENT_ID = 999
 
 
 @pytest.fixture()
@@ -63,10 +64,15 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 
-def _seed_campaign(db_session, *, name: str = "Test Campaign") -> Campaign:
+def _seed_campaign(
+    db_session,
+    *,
+    name: str = "Test Campaign",
+    business_client_id: int = _CLIENT_ID,
+) -> Campaign:
     now = datetime.now(timezone.utc)
     campaign = Campaign(
-        business_client_id=_CLIENT_ID,
+        business_client_id=business_client_id,
         name=name,
         status="draft",
         created_at=now,
@@ -157,3 +163,28 @@ def test_bulk_delete_all_not_found(client, db_session):
     body = resp.json()
     assert body["deleted_ids"] == []
     assert set(body["not_found_ids"]) == {888, 999}
+
+
+def test_bulk_delete_returns_403_when_any_id_foreign(client, db_session):
+    own = _seed_campaign(db_session, name="Mine")
+    foreign = _seed_campaign(db_session, name="Theirs", business_client_id=_OTHER_CLIENT_ID)
+    _seed_variant(db_session, own.id)
+    _seed_variant(db_session, foreign.id)
+
+    resp = client.post(
+        "/campaigns/bulk-delete",
+        json={"campaign_ids": [own.id, foreign.id]},
+    )
+    assert resp.status_code == 403
+    assert db_session.get(Campaign, own.id) is not None
+    assert db_session.get(Campaign, foreign.id) is not None
+
+
+def test_bulk_delete_returns_403_for_foreign_only(client, db_session):
+    foreign = _seed_campaign(db_session, business_client_id=_OTHER_CLIENT_ID)
+    resp = client.post(
+        "/campaigns/bulk-delete",
+        json={"campaign_ids": [foreign.id]},
+    )
+    assert resp.status_code == 403
+    assert db_session.get(Campaign, foreign.id) is not None

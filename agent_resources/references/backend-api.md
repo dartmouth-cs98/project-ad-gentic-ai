@@ -98,9 +98,9 @@ JWT required except **`GET /social-auth/callback`** (browser redirect from Meta)
 | POST | `/campaigns/bulk-delete` |
 | PATCH | `/campaigns/{campaign_id}/run` |
 
-**`DELETE /campaigns/{id}`:** Cascade-deletes `consumer_events` (via variants), `ad_variants`, `campaign_metrics`, and `chat_messages`, then the campaign (**204**). **404** if missing; **409** if a FK still blocks delete after cascade (`CampaignDeleteConflict`).
+**`DELETE /campaigns/{id}`:** Requires JWT (`Authorization: Bearer`). Caller must own `campaign.business_client_id` (**403** otherwise). Cascade-deletes `consumer_events` (via variants), `ad_variants`, `campaign_metrics`, and `chat_messages`, then the campaign (**204**). **401** without valid token; **404** if missing; **409** if a FK still blocks delete after cascade (`CampaignDeleteConflict`).
 
-**`POST /campaigns/bulk-delete`:** Request body:
+**`POST /campaigns/bulk-delete`:** Requires JWT. If any **existing** id in the request belongs to another client, the whole request fails with **403** (no partial delete). Request body:
 
 ```json
 { "campaign_ids": [1, 2, 3] }
@@ -116,6 +116,8 @@ JWT required except **`GET /social-auth/callback`** (browser redirect from Meta)
 
 Deletes all **found** ids; ids with no row are listed in `not_found_ids` (no error if some missing).
 
+- **401** — missing or invalid Bearer token.
+- **403** — at least one requested id exists but belongs to another `business_client_id`.
 - **409** — FK still blocks after cascade.
 - **422** — empty list or more than 50 ids.
 

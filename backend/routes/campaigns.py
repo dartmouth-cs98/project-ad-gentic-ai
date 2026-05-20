@@ -5,11 +5,13 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from cryptography.fernet import InvalidToken
 
 from database import get_db
 from dependencies import get_current_client_id
+from models.campaign import Campaign
 from schemas.campaign import (
     CampaignBulkDeleteRequest,
     CampaignBulkDeleteResponse,
@@ -35,6 +37,16 @@ from services.ad_platforms.meta.persona_grouping import group_approved_variants_
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _raise_if_foreign_campaigns(campaigns: list[Campaign], client_id: int) -> None:
+    """Reject delete when any campaign belongs to another business client."""
+    for campaign in campaigns:
+        if campaign.business_client_id != client_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to delete this campaign",
+            )
 
 
 @router.get("/", response_model=list[CampaignResponse])
@@ -71,9 +83,18 @@ def create_new_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
 
 @router.post("/bulk-delete", response_model=CampaignBulkDeleteResponse)
 def bulk_remove_campaigns(
-    body: CampaignBulkDeleteRequest, db: Session = Depends(get_db)
+    body: CampaignBulkDeleteRequest,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
 ):
     """Delete multiple campaigns and cascade-delete related rows in one transaction."""
+    unique_ids = list(dict.fromkeys(body.campaign_ids))
+    if unique_ids:
+        campaigns = list(
+            db.scalars(select(Campaign).where(Campaign.id.in_(unique_ids))).all()
+        )
+        _raise_if_foreign_campaigns(campaigns, client_id)
+
     try:
         deleted_ids, not_found_ids = delete_campaigns_bulk(db, body.campaign_ids)
     except CampaignDeleteConflict as exc:
@@ -96,8 +117,21 @@ def update_existing_campaign(
 
 
 @router.delete("/{campaign_id}", status_code=204)
-def remove_campaign(campaign_id: int, db: Session = Depends(get_db)):
+def remove_campaign(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
     """Delete a campaign by ID and cascade-delete related rows."""
+    campaign = get_campaign(db, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    if campaign.business_client_id != client_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to delete this campaign",
+        )
+
     try:
         deleted = delete_campaign(db, campaign_id)
     except CampaignDeleteConflict as exc:

@@ -29,6 +29,7 @@ from models.consumer_event import ConsumerEvent
 _MODELS = (Campaign, AdVariant, ChatMessage, CampaignMetric, ConsumerEvent)
 _ORIGINAL_SCHEMAS = {m: m.__table__.schema for m in _MODELS}
 _CLIENT_ID = 42
+_OTHER_CLIENT_ID = 999
 
 
 @pytest.fixture()
@@ -198,6 +199,13 @@ def test_delete_campaign_cascades_consumer_events(client, db_session):
 def test_delete_campaign_not_found(client):
     resp = client.delete("/campaigns/999")
     assert resp.status_code == 404
+
+
+def test_delete_returns_403_for_other_clients_campaign(client, db_session):
+    campaign = _seed_campaign(db_session, business_client_id=_OTHER_CLIENT_ID)
+    resp = client.delete(f"/campaigns/{campaign.id}")
+    assert resp.status_code == 403
+    assert db_session.get(Campaign, campaign.id) is not None
 
 
 def test_delete_does_not_affect_other_campaigns(client, db_session):

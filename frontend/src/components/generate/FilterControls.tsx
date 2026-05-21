@@ -51,8 +51,9 @@ export function FilterControls({ filterState, filterDispatch, compact }: FilterC
           <label className={labelClass}>Per Group</label>
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => filterDispatch({ type: 'SET_VARIANTS_PER_GROUP', payload: Math.max(2, filterState.variantsPerGroup - 1) })}
-              className="w-7 h-7 rounded-md bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 transition-colors"
+              onClick={() => filterDispatch({ type: 'SET_VARIANTS_PER_GROUP', payload: Math.max(1, filterState.variantsPerGroup - 1) })}
+              disabled={filterState.variantsPerGroup <= 1}
+              className="w-7 h-7 rounded-md bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 transition-colors disabled:opacity-40 disabled:pointer-events-none"
             >
               <MinusIcon className="w-3 h-3" />
             </button>

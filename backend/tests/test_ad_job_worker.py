@@ -447,12 +447,8 @@ async def test_generate_campaign_preview_returns_list_of_ad_variant_ids():
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
         patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
         patch(
-            "workers.ad_job_worker.worker.load_all_personas",
-            return_value=[mock_persona],
-        ),
-        patch(
-            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
-            return_value=[mock_consumer],
+            "workers.ad_job_worker.worker.resolve_preview_consumer_ids",
+            return_value=[mock_consumer.id],
         ),
         patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock, return_value=99),
     ):
@@ -487,12 +483,8 @@ async def test_generate_campaign_preview_uses_consumer_from_any_business_client(
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
         patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
         patch(
-            "workers.ad_job_worker.worker.load_all_personas",
-            return_value=[mock_persona],
-        ),
-        patch(
-            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
-            return_value=[mock_consumer],
+            "workers.ad_job_worker.worker.resolve_preview_consumer_ids",
+            return_value=[mock_consumer.id],
         ),
         patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock, return_value=99),
     ):
@@ -524,11 +516,7 @@ async def test_generate_campaign_preview_returns_empty_when_plan_groups_yield_no
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
         patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
         patch(
-            "workers.ad_job_worker.worker.load_all_personas",
-            return_value=[mock_persona],
-        ),
-        patch(
-            "workers.ad_job_worker.worker.get_consumers_by_persona_id",
+            "workers.ad_job_worker.worker.resolve_preview_consumer_ids",
             return_value=[],
         ),
         patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock) as mock_exec,
@@ -655,12 +643,14 @@ async def test_generate_campaign_preview_returns_empty_when_structured_plan_json
     with (
         patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_factory),
         patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
-        patch("workers.ad_job_worker.worker.load_all_personas") as mock_personas,
+        patch(
+            "workers.ad_job_worker.worker.resolve_preview_consumer_ids",
+            return_value=[],
+        ),
         patch("workers.ad_job_worker.worker.execute_ad_job", new_callable=AsyncMock) as mock_exec,
     ):
         result = await generate_campaign_preview(campaign_id=1, product_id=1, version_number=1)
     assert result == []
-    mock_personas.assert_not_called()
     mock_exec.assert_not_called()
     mock_db.close.assert_called_once()
 

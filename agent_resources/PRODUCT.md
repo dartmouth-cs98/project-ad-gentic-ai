@@ -53,7 +53,7 @@ This document answers: **“What behavior is the code trying to implement?”** 
 5. **Job ordering** — Pending jobs are processed **oldest first** (`created_at` ascending).
 6. **Failed jobs** — After **`MAX_ATTEMPTS`**, jobs stop being picked as **pending**; invalid **`input_json`** is marked **failed** **without** incrementing **`attempt_count`** (parse happens before claim).
 7. **Moderation** — Scripts must pass brand-safety norms suitable for **general-audience** social ads (see moderation prompt in `script_moderation_worker`).
-8. **Credits / billing** — `business_clients` has **`credits_balance`** and **`subscription_tier`**; **deduction rules are not centralized** in the snippets reviewed—treat billing as **product policy** to enforce consistently when implemented.
+8. **Credits / billing** — Daily allowance on **`business_clients`**: **`credits_balance`** (remaining today), **`credits_daily_reset_on`** (UTC date). **10/day** for `basic`/`free`, **100/day** for `premium`/`enterprise`; no rollover; tier upgrade grants full new cap immediately. Generation via **`POST /ad-generation/generate-*`** reserves 1 credit per `execute_ad_job`; batch job failures refund via poller. **`CREDITS_ENFORCE`** env toggles deduction.
 
 ---
 

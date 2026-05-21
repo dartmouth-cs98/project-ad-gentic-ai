@@ -203,6 +203,18 @@ class TestBuildScriptPrompt:
         assert "- Action:" in out
         assert "- Line (approx. word count):" in out
 
+    def test_includes_ai_generated_video_guidance(self):
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="",
+        )
+        assert "AI-generated video production" in out
+        assert "image-to-video model" in out
+        assert "One beat = one continuous shot" in out
+        assert "Every beat must be achievable by the AI image-to-video workflow" in out
+
 
 class TestFormatCampaignContextBlock:
     def test_empty_inputs_return_empty_string(self):

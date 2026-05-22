@@ -68,7 +68,11 @@ def fetch_and_cache_metrics(
         day = date.fromisoformat(day_row["date_start"])
         conversions = _extract_conversions(day_row.get("actions", []))
 
-        existing = db.query(CampaignMetric).filter_by(campaign_id=campaign_id, date=day).first()
+        existing = (
+            db.query(CampaignMetric)
+            .filter_by(campaign_id=campaign_id, external_platform="meta", date=day)
+            .first()
+        )
         if existing:
             # Overwrite with latest values — Meta may have updated this day's numbers
             _apply(existing, day_row, conversions, meta_campaign_id, now)

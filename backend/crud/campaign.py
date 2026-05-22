@@ -6,11 +6,12 @@ from typing import Optional
 
 from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from models.ad_variant import AdVariant
 from models.campaign import Campaign
 from models.campaign_metric import CampaignMetric
+from models.campaign_publication import CampaignPublication
 from models.chat_message import ChatMessage
 from models.consumer_event import ConsumerEvent
 from schemas.campaign import CampaignCreate, CampaignUpdate
@@ -51,6 +52,11 @@ def _cascade_delete_campaign_ids(db: Session, campaign_ids: list[int]) -> None:
     db.execute(
         sa_delete(CampaignMetric).where(CampaignMetric.campaign_id.in_(campaign_ids))
     )
+    db.execute(
+        sa_delete(CampaignPublication).where(
+            CampaignPublication.campaign_id.in_(campaign_ids)
+        )
+    )
     db.execute(sa_delete(ChatMessage).where(ChatMessage.campaign_id.in_(campaign_ids)))
     db.execute(sa_delete(Campaign).where(Campaign.id.in_(campaign_ids)))
 
@@ -87,7 +93,11 @@ def get_campaigns(
     status: Optional[str] = None,
 ) -> list[Campaign]:
     """Return campaigns for a specific business client, with optional status filter."""
-    query = select(Campaign).where(Campaign.business_client_id == business_client_id)
+    query = (
+        select(Campaign)
+        .where(Campaign.business_client_id == business_client_id)
+        .options(selectinload(Campaign.publications))
+    )
     if status is not None:
         query = query.where(Campaign.status == status)
     query = query.order_by(Campaign.created_at.desc()).offset(skip).limit(limit)
@@ -95,8 +105,13 @@ def get_campaigns(
 
 
 def get_campaign(db: Session, campaign_id: int) -> Optional[Campaign]:
-    """Return a single campaign by ID, or None."""
-    return db.get(Campaign, campaign_id)
+    """Return a single campaign by ID with its publications eager-loaded, or None."""
+    stmt = (
+        select(Campaign)
+        .options(selectinload(Campaign.publications))
+        .where(Campaign.id == campaign_id)
+    )
+    return db.scalars(stmt).one_or_none()
 
 
 def create_campaign(db: Session, data: CampaignCreate) -> Campaign:

@@ -23,10 +23,11 @@ from main import app
 from models.ad_variant import AdVariant
 from models.campaign import Campaign
 from models.campaign_metric import CampaignMetric
+from models.campaign_publication import CampaignPublication
 from models.chat_message import ChatMessage
 from models.consumer_event import ConsumerEvent
 
-_MODELS = (Campaign, AdVariant, ChatMessage, CampaignMetric, ConsumerEvent)
+_MODELS = (Campaign, AdVariant, ChatMessage, CampaignMetric, CampaignPublication, ConsumerEvent)
 _ORIGINAL_SCHEMAS = {m: m.__table__.schema for m in _MODELS}
 _CLIENT_ID = 42
 _OTHER_CLIENT_ID = 999

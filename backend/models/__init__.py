@@ -4,6 +4,7 @@ from .ad_job_batch import AdJobBatch
 from .business_client import BusinessClient
 from .campaign import Campaign
 from .campaign_metric import CampaignMetric
+from .campaign_publication import CampaignPublication
 from .chat_message import ChatMessage
 from .consumer_event import ConsumerEvent
 from .persona import Persona
@@ -18,6 +19,7 @@ __all__ = [
     "BusinessClient",
     "Campaign",
     "CampaignMetric",
+    "CampaignPublication",
     "ChatMessage",
     "ConsumerEvent",
     "Persona",

@@ -17,6 +17,7 @@ Add a Markdown file per task or epic slice, for example:
 - `2026-05-20-campaign-cascade-delete.md` (campaign `DELETE` cascade — shipped)
 - `2026-05-20-campaign-bulk-delete-api.md` (bulk delete API — shipped)
 - `2026-05-20-campaign-delete-auth.md` (JWT + ownership on `DELETE` / `bulk-delete`)
+- `2026-05-21-credits-ad-generation-deduction.md` (tier-based daily credits: 10 free / 100 subscription; `credits_daily_reset_on` only — no ledger in v1)
 
 **Include** where helpful:
 

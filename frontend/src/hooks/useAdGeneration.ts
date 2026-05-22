@@ -8,6 +8,7 @@ import {
 } from '../api/adGeneration';
 import { updateCampaign, runCampaign } from '../api/campaigns';
 import type { UpdateCampaignPayload } from '../types';
+import { PROFILE_KEY } from './useAuth';
 
 export const AD_VARIANTS_KEY = ['ad-variants'] as const;
 
@@ -46,6 +47,7 @@ export function useGeneratePreview() {
       generateCampaignPreview(params.campaignId, params.productId, params.versionNumber),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: AD_VARIANTS_KEY });
+      qc.invalidateQueries({ queryKey: PROFILE_KEY });
     },
   });
 }
@@ -58,6 +60,7 @@ export function useGenerateFullAds() {
       generateCampaignAdVariants(params.campaignId, params.productId, params.versionNumber),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: AD_VARIANTS_KEY });
+      qc.invalidateQueries({ queryKey: PROFILE_KEY });
     },
   });
 }

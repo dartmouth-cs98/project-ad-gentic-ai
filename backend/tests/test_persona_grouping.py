@@ -72,7 +72,8 @@ def _mk_client(db) -> BusinessClient:
         password_hash="x",
         business_name="Test",
         subscription_tier="basic",
-        credits_balance=0,
+        credits_balance=10,
+        credits_daily_reset_on=__import__("datetime").date.today(),
         email_verified=True,
     )
     db.add(c)

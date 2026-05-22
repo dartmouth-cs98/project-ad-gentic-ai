@@ -133,13 +133,75 @@ def variants_per_group_target(group: dict[str, Any], prefs: Optional[GenerationP
     return max(1, min(10, n))
 
 
+def preview_rng(campaign_id: int, version_number: int) -> random.Random:
+    """Deterministic RNG so credit estimates match preview generation for a version."""
+    return random.Random(campaign_id * 1_000_003 + version_number)
+
+
 def pick_consumers_for_preview_group(
     consumers: list[Any],
     target_count: int,
+    *,
+    rng: random.Random | None = None,
 ) -> list[Any]:
     """Pick up to ``target_count`` distinct consumers (shuffle)."""
     if not consumers or target_count <= 0:
         return []
     pool = list(consumers)
-    random.shuffle(pool)
+    if rng is not None:
+        rng.shuffle(pool)
+    else:
+        random.shuffle(pool)
     return pool[: min(target_count, len(pool))]
+
+
+def resolve_preview_consumer_ids(
+    db: Session, campaign_id: int, version_number: int
+) -> list[int]:
+    """Consumer IDs that preview generation would charge (1 credit each).
+
+    Uses a seeded RNG per (campaign_id, version_number) so estimates match the worker.
+    """
+    from crud.campaign import get_campaign
+    from crud.consumer import get_consumers_by_persona_id
+    from utils.campaign_version_brief import resolve_brief_and_preferences_for_version
+
+    campaign = get_campaign(db, campaign_id)
+    if campaign is None:
+        return []
+
+    plan_message, prefs, structured_brief = resolve_brief_and_preferences_for_version(
+        campaign.brief, version_number
+    )
+    plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
+    if structured_brief and (plan_message or "").strip() and plan is None:
+        return []
+
+    rng = preview_rng(campaign_id, version_number)
+    groups = plan.get("persona_groups") if plan else None
+    out: list[int] = []
+
+    if isinstance(groups, list) and groups:
+        personas = load_all_personas(db)
+        for g in groups:
+            if not isinstance(g, dict):
+                continue
+            persona = find_persona_for_plan_group_name(str(g.get("name") or ""), personas)
+            if persona is None:
+                continue
+            consumers = get_consumers_by_persona_id(db, persona.id)
+            if not consumers:
+                continue
+            n = variants_per_group_target(g, prefs)
+            for consumer in pick_consumers_for_preview_group(consumers, n, rng=rng):
+                out.append(consumer.id)
+        return out
+
+    personas = load_all_personas(db)
+    if not personas:
+        return []
+    for persona in rng.sample(personas, min(6, len(personas))):
+        consumers = get_consumers_by_persona_id(db, persona.id)
+        if consumers:
+            out.append(rng.choice(consumers).id)
+    return out

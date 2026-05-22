@@ -33,6 +33,7 @@ from routes.product import router as product_router
 from routes.chat_completions import router as chat_completions_router
 from routes.social_auth import router as social_auth_router
 from routes.metrics import router as metrics_router
+from routes.ad_generation import router as ad_generation_router
 
 from services.ad_job_poller.service import run_poller
 from database import get_engine
@@ -41,8 +42,8 @@ from database import get_engine
 logger = logging.getLogger(__name__)
 
 
-def _ensure_auth_columns_exist() -> None:
-    """Best-effort startup migration for auth-related business_client columns."""
+def _ensure_business_client_columns_exist() -> None:
+    """Best-effort startup migration for dbo.business_clients columns (auth + credits)."""
     engine = get_engine()
     # Only run this auto-migration path for SQL Server.
     if engine.dialect.name != "mssql":
@@ -106,19 +107,38 @@ def _ensure_auth_columns_exist() -> None:
             WHERE auth_provider IS NULL;
         END
         """,
+        """
+        IF COL_LENGTH('dbo.business_clients', 'credits_daily_reset_on') IS NULL
+        BEGIN
+            ALTER TABLE dbo.business_clients
+            ADD credits_daily_reset_on DATE NULL;
+
+            UPDATE dbo.business_clients
+            SET credits_daily_reset_on = CAST(SYSUTCDATETIME() AS DATE),
+                credits_balance = CASE
+                    WHEN LOWER(LTRIM(RTRIM(ISNULL(subscription_tier, 'basic')))) IN ('premium', 'enterprise')
+                    THEN 100
+                    ELSE 10
+                END
+            WHERE credits_daily_reset_on IS NULL;
+
+            ALTER TABLE dbo.business_clients
+            ALTER COLUMN credits_daily_reset_on DATE NOT NULL;
+        END
+        """,
     ]
 
     with engine.begin() as conn:
         for stmt in statements:
             conn.execute(text(stmt))
-    logger.info("Ensured auth schema columns exist on dbo.business_clients.")
+    logger.info("Ensured business_clients schema columns exist (auth + credits).")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the ad_job poller task when the app starts; cancel it on shutdown."""
     import asyncio
-    _ensure_auth_columns_exist()
+    _ensure_business_client_columns_exist()
     poller_task = asyncio.create_task(run_poller())
     yield
     poller_task.cancel()
@@ -151,6 +171,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(ad_generation_router, prefix="/ad-generation", tags=["Ad Generation"])
 app.include_router(ad_job_worker_router, prefix="/ad-job-worker", tags=["Ad Job Worker"])
 app.include_router(ad_post_worker_router, prefix="/ad-post-worker", tags=["Ad Post Worker"])
 

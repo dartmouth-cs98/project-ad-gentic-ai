@@ -63,6 +63,7 @@ When this file and code disagree, verify the live database, then update **both**
 | subscription_tier | nvarchar(100) | no |  |  |
 | stripe_customer_id | nvarchar(510) | yes |  |  |
 | credits_balance | int | no |  |  |
+| credits_daily_reset_on | date | no |  |  |
 | created_at | datetime2 | no |  |  |
 | traits | nvarchar(MAX) | yes |  |  |
 | email_verified | bit | no |  |  |

@@ -39,14 +39,23 @@ JWT required except **`GET /social-auth/callback`** (browser redirect from Meta)
 | GET | `/social-auth/status` |
 | DELETE | `/social-auth/disconnect` |
 
+### `/ad-generation` (JWT — daily credits)
+
+| Method | Path |
+|--------|------|
+| POST | `/ad-generation/generate-campaign-preview` |
+| POST | `/ad-generation/generate-campaign-ad-variants` |
+
+Requires auth; enforces campaign/product ownership and daily credit balance. Returns **402** when insufficient credits.
+
 ### `/ad-job-worker`
 
 | Method | Path |
 |--------|------|
 | GET | `/ad-job-worker/hello` |
 | POST | `/ad-job-worker/run-ad-job` |
-| POST | `/ad-job-worker/generate-campaign-preview` |
-| POST | `/ad-job-worker/generate-campaign-ad-variants` |
+| POST | `/ad-job-worker/generate-campaign-preview` (deprecated — **410**; use `/ad-generation`) |
+| POST | `/ad-job-worker/generate-campaign-ad-variants` (deprecated — **410**; use `/ad-generation`) |
 
 ### `/ad-post-worker`
 

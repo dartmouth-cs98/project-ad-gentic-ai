@@ -2,7 +2,6 @@ import base64
 import io
 import json
 import os
-import random
 import traceback
 import uuid
 from typing import Optional
@@ -22,7 +21,7 @@ from crud.ad_variant import (
 from crud.ad_job import create_ad_job
 from crud.ad_job_batch import create_ad_job_batch
 from crud.campaign import get_campaign
-from crud.consumer import get_consumer, get_all_consumers, get_consumers_by_persona_id
+from crud.consumer import get_consumer, get_all_consumers
 from crud.product import get_product
 from schemas.ad_variant import AdVariantCreate, AdVariantUpdate
 from schemas.ad_job import AdJobCreate
@@ -31,11 +30,9 @@ from services.consumer_traits_description import consumer_profile_text_for_scrip
 from utils.campaign_version_brief import resolve_brief_and_preferences_for_version
 from utils.plan_execution import (
     parse_plan_json_from_message,
-    find_persona_for_plan_group_name,
     load_all_personas,
     resolve_persona_ids_from_plan,
-    variants_per_group_target,
-    pick_consumers_for_preview_group,
+    resolve_preview_consumer_ids,
 )
 from workers.ad_job_worker.script_video import (
     align_script_with_video_provider,
@@ -292,74 +289,31 @@ async def generate_campaign_preview(
         if campaign is None:
             raise AdJobClientError(f"Campaign not found: {campaign_id}")
 
-        plan_message, prefs, structured_brief = resolve_brief_and_preferences_for_version(
-            campaign.brief, version_number
-        )
-        plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
-        if structured_brief and (plan_message or "").strip() and plan is None:
-            logger.warning(
-                "Preview: campaign_id=%s business_client_id=%s structured brief has plan_message "
-                "but plan JSON could not be parsed — returning empty (no legacy fallback)",
-                campaign_id,
-                campaign.business_client_id,
+        consumer_ids = resolve_preview_consumer_ids(db, campaign_id, version_number)
+        if not consumer_ids:
+            plan_message, _prefs, structured_brief = resolve_brief_and_preferences_for_version(
+                campaign.brief, version_number
             )
-            return []
-        groups = plan.get("persona_groups") if plan else None
-
-        if isinstance(groups, list) and groups:
-            personas = load_all_personas(db)
-            created_ad_variant_ids: list[int] = []
-            for g in groups:
-                if not isinstance(g, dict):
-                    continue
-                raw_name = g.get("name")
-                persona = find_persona_for_plan_group_name(str(raw_name or ""), personas)
-                if persona is None:
-                    logger.warning(
-                        "Preview: skipping plan persona group %r — no matching Persona in DB",
-                        raw_name,
-                    )
-                    continue
-                consumers = get_consumers_by_persona_id(db, persona.id)
-                if not consumers:
-                    logger.warning(
-                        "Preview: campaign_id=%s business_client_id=%s no consumers for persona %s "
-                        "(primary persona match in database)",
-                        campaign_id,
-                        campaign.business_client_id,
-                        persona.name,
-                    )
-                    continue
-                n = variants_per_group_target(g, prefs)
-                picked = pick_consumers_for_preview_group(consumers, n)
-                for consumer in picked:
-                    ad_variant_id = await execute_ad_job(
-                        campaign_id, product_id, consumer.id, version_number, is_preview=True
-                    )
-                    created_ad_variant_ids.append(ad_variant_id)
-            if created_ad_variant_ids:
-                return created_ad_variant_ids
-            logger.warning(
-                "Preview: campaign_id=%s business_client_id=%s plan had persona_groups but produced "
-                "no variants — returning empty (no random fallback)",
-                campaign_id,
-                campaign.business_client_id,
-            )
+            plan = parse_plan_json_from_message(plan_message or "") if plan_message else None
+            if structured_brief and (plan_message or "").strip() and plan is None:
+                logger.warning(
+                    "Preview: campaign_id=%s business_client_id=%s structured brief has plan_message "
+                    "but plan JSON could not be parsed — returning empty (no legacy fallback)",
+                    campaign_id,
+                    campaign.business_client_id,
+                )
+            else:
+                logger.warning(
+                    "Preview: campaign_id=%s business_client_id=%s produced no variants",
+                    campaign_id,
+                    campaign.business_client_id,
+                )
             return []
 
-        # Legacy: no persona_groups in plan — random personas (global library), one consumer each
-        personas = load_all_personas(db)
-        if not personas:
-            return []
-        selected_personas = random.sample(personas, min(6, len(personas)))
-        created_ad_variant_ids = []
-        for persona in selected_personas:
-            consumers = get_consumers_by_persona_id(db, persona.id)
-            if not consumers:
-                continue
-            selected_consumer = random.choice(consumers)
+        created_ad_variant_ids: list[int] = []
+        for consumer_id in consumer_ids:
             ad_variant_id = await execute_ad_job(
-                campaign_id, product_id, selected_consumer.id, version_number, is_preview=True
+                campaign_id, product_id, consumer_id, version_number, is_preview=True
             )
             created_ad_variant_ids.append(ad_variant_id)
         return created_ad_variant_ids

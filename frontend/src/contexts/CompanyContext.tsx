@@ -9,6 +9,8 @@ export interface CompanyProfile {
   userName: string;
   email: string;
   avatarUrl?: string;
+  creditsBalance: number;
+  creditsDailyCap: number;
 }
 
 interface CompanyContextType {
@@ -32,6 +34,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     plan: (user?.subscription_tier as CompanyProfile['plan']) || 'basic',
     userName: user?.business_name || user?.email || '',
     email: user?.email || '',
+    creditsBalance: user?.credits_balance ?? 0,
+    creditsDailyCap: user?.credits_daily_cap ?? 10,
     ...overrides,
   };
 

@@ -40,6 +40,7 @@ async def test_process_one_job_invalid_input_marks_failed_without_claiming():
         patch.object(_poller_module, "update_ad_job") as mock_update,
         patch.object(_poller_module, "increment_ad_job_batch_progress") as mock_inc,
         patch.object(_poller_module, "claim_ad_job") as mock_claim,
+        patch.object(_poller_module, "refund_credits") as mock_refund,
         patch.object(_poller_module, "execute_ad_job", new_callable=AsyncMock),
     ):
         await _poller_module._process_one_job(job_id, batch_id, invalid_input, worker_id)
@@ -64,11 +65,16 @@ async def test_process_one_job_missing_keys_marks_failed_without_claiming():
     mock_db = MagicMock()
     mock_factory = MagicMock(return_value=mock_db)
 
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 42
+
     with (
         patch.object(_poller_module, "_get_session_factory", return_value=mock_factory),
-        patch.object(_poller_module, "update_ad_job") as mock_update,
+        patch.object(_poller_module, "update_ad_job", return_value=MagicMock()) as mock_update,
         patch.object(_poller_module, "increment_ad_job_batch_progress") as mock_inc,
         patch.object(_poller_module, "claim_ad_job") as mock_claim,
+        patch.object(_poller_module, "get_campaign", return_value=mock_campaign),
+        patch.object(_poller_module, "refund_credits") as mock_refund,
     ):
         await _poller_module._process_one_job(job_id, batch_id, incomplete_input, worker_id)
 
@@ -76,6 +82,7 @@ async def test_process_one_job_missing_keys_marks_failed_without_claiming():
     assert mock_update.call_args[0][2].status == "failed"
     mock_inc.assert_called_once_with(mock_db, batch_id, failed_delta=1)
     mock_claim.assert_not_called()
+    mock_refund.assert_called_once_with(mock_db, 42, 1)
 
 
 # ---------------------------------------------------------------------------
@@ -134,11 +141,16 @@ async def test_process_one_job_execution_failure_marks_failed_and_increments_bat
     mock_db = MagicMock()
     mock_factory = MagicMock(return_value=mock_db)
 
+    mock_campaign = MagicMock()
+    mock_campaign.business_client_id = 99
+
     with (
         patch.object(_poller_module, "_get_session_factory", return_value=mock_factory),
         patch.object(_poller_module, "claim_ad_job", return_value=True),
         patch.object(_poller_module, "update_ad_job") as mock_update,
         patch.object(_poller_module, "increment_ad_job_batch_progress") as mock_inc,
+        patch.object(_poller_module, "get_campaign", return_value=mock_campaign),
+        patch.object(_poller_module, "refund_credits") as mock_refund,
         patch.object(
             _poller_module,
             "execute_ad_job",
@@ -154,6 +166,7 @@ async def test_process_one_job_execution_failure_marks_failed_and_increments_bat
     assert update_data.status == "failed"
     assert "Video API error" in (update_data.error_message or "")
     mock_inc.assert_called_once_with(mock_db, batch_id, failed_delta=1)
+    mock_refund.assert_called_once_with(mock_db, 99, 1)
 
 
 @pytest.mark.asyncio

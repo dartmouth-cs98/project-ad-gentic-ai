@@ -13,6 +13,7 @@ from utils.plan_execution import (
     find_persona_for_plan_group_name,
     parse_plan_json_from_message,
     pick_consumers_for_preview_group,
+    preview_rng,
     variants_per_group_target,
 )
 
@@ -80,3 +81,21 @@ def test_pick_consumers_caps_distinct():
     c1, c2, c3 = MagicMock(), MagicMock(), MagicMock()
     picked = pick_consumers_for_preview_group([c1, c2, c3], 10)
     assert len(picked) == 3
+
+
+def test_preview_rng_deterministic_legacy_sample():
+    rng_a = preview_rng(42, 1)
+    rng_b = preview_rng(42, 1)
+    items = list(range(20))
+    assert rng_a.sample(items, 6) == rng_b.sample(items, 6)
+    assert rng_a.sample(items, 6) != preview_rng(42, 2).sample(items, 6)
+
+
+def test_pick_consumers_uses_seeded_rng():
+    c1, c2, c3 = MagicMock(), MagicMock(), MagicMock()
+    c1.id, c2.id, c3.id = 1, 2, 3
+    rng = preview_rng(9, 2)
+    first = [x.id for x in pick_consumers_for_preview_group([c1, c2, c3], 2, rng=rng)]
+    rng2 = preview_rng(9, 2)
+    second = [x.id for x in pick_consumers_for_preview_group([c1, c2, c3], 2, rng=rng2)]
+    assert first == second

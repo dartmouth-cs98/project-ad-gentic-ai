@@ -103,6 +103,9 @@ class ProfileResponse(BaseModel):
     business_name: str
     subscription_tier: str
     credits_balance: int
+    credits_daily_cap: int
+    credits_daily_reset_on: str
+    credits_next_reset_at: str
     traits: Optional[dict] = None
     auth_provider: Optional[str] = None
 

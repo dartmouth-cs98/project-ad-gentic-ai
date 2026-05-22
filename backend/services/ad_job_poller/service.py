@@ -14,6 +14,9 @@ from crud.ad_job import (
     update_ad_job,
     release_job_lock,
 )
+from crud.campaign import get_campaign
+from services.credits import refund_credits
+from utils.ad_job_input import campaign_id_from_job_input
 from crud.ad_job_batch import increment_ad_job_batch_progress
 from schemas.ad_job import AdJobUpdate
 from workers.ad_job_worker.worker import execute_ad_job
@@ -60,6 +63,11 @@ async def _process_one_job(job_id: UUID, batch_id: UUID, input_json: str, worker
             )
             if updated is not None:
                 increment_ad_job_batch_progress(db, batch_id, failed_delta=1)
+                campaign_id = campaign_id_from_job_input(input_json)
+                if campaign_id is not None:
+                    campaign = get_campaign(db, campaign_id)
+                    if campaign is not None:
+                        refund_credits(db, campaign.business_client_id, 1)
         finally:
             db.close()
         return
@@ -106,6 +114,9 @@ async def _process_one_job(job_id: UUID, batch_id: UUID, input_json: str, worker
                 ),
             )
             increment_ad_job_batch_progress(db, batch_id, failed_delta=1)
+            campaign = get_campaign(db, payload["campaign_id"])
+            if campaign is not None:
+                refund_credits(db, campaign.business_client_id, 1)
     except Exception as e:
         logger.exception("Poller error for job %s: %s", job_id, e)
         try:

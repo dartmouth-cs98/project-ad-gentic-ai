@@ -3,14 +3,15 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from workers.ad_job_worker.errors import AdJobClientError
-from workers.ad_job_worker.worker import (
-    execute_ad_job,
-    generate_campaign_preview as run_generate_campaign_preview,
-    generate_campaign_ad_variants as run_generate_campaign_ad_variants,
-)
+from workers.ad_job_worker.worker import execute_ad_job
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+_LEGACY_GENERATION_DETAIL = (
+    "This endpoint is retired. Use POST /ad-generation/generate-campaign-preview or "
+    "/ad-generation/generate-campaign-ad-variants with JWT authentication."
+)
 
 @router.post("/run-ad-job")
 async def run_ad_job(campaign_id: int, product_id: int, consumer_id: int, version_number: int):
@@ -21,24 +22,14 @@ async def run_ad_job(campaign_id: int, product_id: int, consumer_id: int, versio
     return {"status": "completed", "ad_variant_id": ad_variant_id}
 
 
-@router.post("/generate-campaign-preview")
+@router.post("/generate-campaign-preview", deprecated=True)
 async def generate_campaign_preview(campaign_id: int, product_id: int, version_number: int):
-    try:
-        ad_variant_ids = await run_generate_campaign_preview(campaign_id, product_id, version_number)
-    except AdJobClientError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    return {"status": "completed", "ad_variant_ids": ad_variant_ids}
+    raise HTTPException(status_code=410, detail=_LEGACY_GENERATION_DETAIL)
 
 
-@router.post("/generate-campaign-ad-variants")
+@router.post("/generate-campaign-ad-variants", deprecated=True)
 async def generate_campaign_ad_variants(campaign_id: int, product_id: int, version_number: int):
-    try:
-        batch_id = await run_generate_campaign_ad_variants(campaign_id, product_id, version_number)
-    except AdJobClientError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    if batch_id is None:
-        return {"status": "completed", "message": "No ad variants to generate"}
-    return {"status": "completed", "batch_id": str(batch_id), "message": "Campaign ad variants enqueued"}
+    raise HTTPException(status_code=410, detail=_LEGACY_GENERATION_DETAIL)
 
 @router.get("/hello")
 async def hello():

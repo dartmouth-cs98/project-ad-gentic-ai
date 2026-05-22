@@ -6,6 +6,8 @@ from decimal import Decimal
 from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from schemas.campaign_publication import CampaignPublicationResponse
+
 # Valid campaign statuses
 CampaignStatus = Literal["draft", "active", "paused", "completed"]
 
@@ -118,7 +120,6 @@ class CampaignResponse(BaseModel):
     brief: Optional[str] = None
     platforms: Optional[str] = None
     meta_campaign_id: Optional[str] = None
-    external_campaign_id: Optional[str] = None
-    external_platform: Optional[str] = None
+    publications: list[CampaignPublicationResponse] = []
 
     model_config = {"from_attributes": True}

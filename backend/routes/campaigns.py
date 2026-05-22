@@ -28,6 +28,7 @@ from crud.campaign import (
     delete_campaign,
     delete_campaigns_bulk,
 )
+from crud.campaign_publication import get_publication, upsert_publication
 from services.ad_platforms.meta.campaign_publisher import publish_campaign, MetaPublishError
 from services.ad_platforms.meta.connection_loader import (
     load_publish_connection,
@@ -182,6 +183,11 @@ def run_campaign(
             detail="No approved ad variants to publish. Approve at least one variant first.",
         )
 
+    # Look up any prior Meta publication so we can resume from a partial failure
+    # instead of creating a duplicate campaign on Meta.
+    existing_pub = get_publication(db, campaign_id, "meta")
+    existing_meta_id = existing_pub.external_campaign_id if existing_pub else campaign.meta_campaign_id
+
     try:
         meta_campaign_id = publish_campaign(
             campaign_name=campaign.name,
@@ -194,7 +200,7 @@ def run_campaign(
             ad_account_id=connection.ad_account_id,
             instagram_account_id=connection.instagram_account_id,
             facebook_page_id=connection.facebook_page_id,
-            existing_meta_campaign_id=campaign.meta_campaign_id,
+            existing_meta_campaign_id=existing_meta_id,
         )
     except InvalidToken:
         # Token decryption failed (e.g., rotated FERNET_SECRET_KEY or corrupted token).
@@ -208,12 +214,16 @@ def run_campaign(
         )
     except MetaPublishError as exc:
         # Persist partial state so a retry can resume without creating duplicates.
-        # Also persist when publish_campaign rotated the Meta campaign id (e.g., stale stored id),
-        # so retries don't keep recreating campaigns.
-        if exc.meta_campaign_id and exc.meta_campaign_id != campaign.meta_campaign_id:
-            campaign.meta_campaign_id = exc.meta_campaign_id
-            campaign.external_campaign_id = exc.meta_campaign_id
-            campaign.external_platform = "meta"
+        if exc.meta_campaign_id:
+            upsert_publication(
+                db,
+                campaign_id=campaign_id,
+                external_platform="meta",
+                external_campaign_id=exc.meta_campaign_id,
+                status="failed",
+                error_message=str(exc)[:500],
+            )
+            campaign.meta_campaign_id = exc.meta_campaign_id  # legacy column kept in sync
             campaign.updated_at = datetime.now(timezone.utc)
             db.commit()
         logger.exception(
@@ -233,11 +243,15 @@ def run_campaign(
             ),
         )
 
-    campaign.meta_campaign_id = meta_campaign_id
-    campaign.external_campaign_id = meta_campaign_id
-    campaign.external_platform = "meta"
+    upsert_publication(
+        db,
+        campaign_id=campaign_id,
+        external_platform="meta",
+        external_campaign_id=meta_campaign_id,
+        status="active",
+    )
+    campaign.meta_campaign_id = meta_campaign_id  # legacy column kept in sync
     campaign.status = "active"
     campaign.updated_at = datetime.now(timezone.utc)
     db.commit()
-    db.refresh(campaign)
-    return campaign
+    return get_campaign(db, campaign_id)

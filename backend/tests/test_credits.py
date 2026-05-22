@@ -77,6 +77,42 @@ def test_ensure_daily_refresh_no_rollover():
     db.close()
 
 
+def test_reserve_at_day_rollover_deducts_from_refreshed_cap():
+    """Refresh and deduction commit together under the row lock."""
+    db = TestingSessionLocal()
+    yesterday = utc_today() - timedelta(days=1)
+    c = _client(balance=3, reset_on=yesterday)
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+
+    reserve_credits(db, c.id, 4)
+    db.refresh(c)
+    assert c.credits_balance == 6
+    assert c.credits_daily_reset_on == utc_today()
+    db.close()
+
+
+def test_reserve_insufficient_at_day_rollover_does_not_persist_refresh():
+    db = TestingSessionLocal()
+    yesterday = utc_today() - timedelta(days=1)
+    c = _client(balance=3, reset_on=yesterday)
+    db.add(c)
+    db.commit()
+    client_id = c.id
+    db.close()
+
+    db = TestingSessionLocal()
+    with pytest.raises(HTTPException) as exc_info:
+        reserve_credits(db, client_id, 15)
+    assert exc_info.value.status_code == 402
+
+    c = db.get(BusinessClient, client_id)
+    assert c.credits_balance == 3
+    assert c.credits_daily_reset_on == yesterday
+    db.close()
+
+
 def test_reserve_and_refund():
     db = TestingSessionLocal()
     c = _client(balance=10)

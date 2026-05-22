@@ -61,14 +61,26 @@ def _coerce_reset_date(value: date | datetime | None) -> date | None:
     return value
 
 
-def ensure_daily_refresh(db: Session, client: BusinessClient) -> BusinessClient:
-    """If UTC calendar day advanced, set balance to tier cap (no rollover)."""
+def _apply_daily_refresh_if_needed(client: BusinessClient) -> bool:
+    """Update in-memory balance when UTC day advanced. Caller owns commit/lock."""
     today = utc_today()
     reset_on = _coerce_reset_date(getattr(client, "credits_daily_reset_on", None))
     if reset_on is None or reset_on < today:
-        cap = daily_cap(client.subscription_tier)
-        client.credits_balance = cap
+        client.credits_balance = daily_cap(client.subscription_tier)
         client.credits_daily_reset_on = today
+        return True
+    return False
+
+
+def ensure_daily_refresh(
+    db: Session, client: BusinessClient, *, commit: bool = True
+) -> BusinessClient:
+    """If UTC calendar day advanced, set balance to tier cap (no rollover).
+
+    When ``commit`` is False, only mutates the attached instance (for use under
+    ``FOR UPDATE`` before a single commit in ``reserve_credits`` / ``refund_credits``).
+    """
+    if _apply_daily_refresh_if_needed(client) and commit:
         db.commit()
         db.refresh(client)
     return client
@@ -123,9 +135,10 @@ def reserve_credits(db: Session, client_id: int, amount: int) -> BusinessClient:
     client = _lock_client(db, client_id)
     if client is None:
         raise HTTPException(status_code=404, detail="Business client not found.")
-    ensure_daily_refresh(db, client)
+    ensure_daily_refresh(db, client, commit=False)
     cap = daily_cap(client.subscription_tier)
     if client.credits_balance < amount:
+        db.rollback()
         raise HTTPException(
             status_code=402,
             detail={
@@ -149,7 +162,7 @@ def refund_credits(db: Session, client_id: int, amount: int) -> BusinessClient |
     client = _lock_client(db, client_id)
     if client is None:
         return None
-    ensure_daily_refresh(db, client)
+    ensure_daily_refresh(db, client, commit=False)
     cap = daily_cap(client.subscription_tier)
     client.credits_balance = min(cap, client.credits_balance + amount)
     db.commit()

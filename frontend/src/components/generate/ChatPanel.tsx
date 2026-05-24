@@ -6,6 +6,7 @@ import { ChatInput } from './ChatInput';
 import type { Campaign, ChatMessage } from '../../types';
 import type { Phase, Version } from './types';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
+import type { PreferencesSaveStatus } from '../../hooks/usePersistedCampaignPreferences';
 
 interface ChatPanelProps {
   phase: Phase;
@@ -22,6 +23,7 @@ interface ChatPanelProps {
   // Filter
   filterState: FilterState;
   filterDispatch: React.Dispatch<FilterAction>;
+  preferencesSaveStatus?: PreferencesSaveStatus;
   // Chat
   messages: ChatMessage[];
   userName: string;
@@ -54,6 +56,7 @@ export function ChatPanel({
   onVersionSelect,
   filterState,
   filterDispatch,
+  preferencesSaveStatus = 'idle',
   messages,
   userName,
   input,
@@ -100,6 +103,7 @@ export function ChatPanel({
           onClose={() => setShowFilterPanel(false)}
           phase={phase}
           onEditClick={() => setShowFilterPanel(true)}
+          preferencesSaveStatus={preferencesSaveStatus}
         />
       )}
 

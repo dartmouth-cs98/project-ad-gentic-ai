@@ -134,11 +134,34 @@ def _ensure_business_client_columns_exist() -> None:
     logger.info("Ensured business_clients schema columns exist (auth + credits).")
 
 
+def _ensure_campaign_columns_exist() -> None:
+    """Best-effort startup migration for dbo.campaigns columns."""
+    engine = get_engine()
+    if engine.dialect.name != "mssql":
+        return
+
+    statements = [
+        """
+        IF COL_LENGTH('dbo.campaigns', 'draft_generation_preferences') IS NULL
+        BEGIN
+            ALTER TABLE dbo.campaigns
+            ADD draft_generation_preferences NVARCHAR(MAX) NULL;
+        END
+        """,
+    ]
+
+    with engine.begin() as conn:
+        for stmt in statements:
+            conn.execute(text(stmt))
+    logger.info("Ensured campaigns schema columns exist (draft_generation_preferences).")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the ad_job poller task when the app starts; cancel it on shutdown."""
     import asyncio
     _ensure_business_client_columns_exist()
+    _ensure_campaign_columns_exist()
     poller_task = asyncio.create_task(run_poller())
     yield
     poller_task.cancel()

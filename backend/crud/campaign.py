@@ -15,6 +15,8 @@ from models.campaign_publication import CampaignPublication
 from models.chat_message import ChatMessage
 from models.consumer_event import ConsumerEvent
 from schemas.campaign import CampaignCreate, CampaignUpdate
+from schemas.generation_preferences import GenerationPreferences
+from utils.draft_generation_preferences import generation_preferences_to_json
 
 _MAX_DEADLOCK_RETRIES = 3
 
@@ -132,6 +134,22 @@ def update_campaign(
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(campaign, field, value)
+    campaign.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(campaign)
+    return campaign
+
+
+def update_campaign_draft_preferences(
+    db: Session,
+    campaign_id: int,
+    prefs: GenerationPreferences,
+) -> Optional[Campaign]:
+    """Update only ``draft_generation_preferences`` for a campaign."""
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        return None
+    campaign.draft_generation_preferences = generation_preferences_to_json(prefs)
     campaign.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(campaign)

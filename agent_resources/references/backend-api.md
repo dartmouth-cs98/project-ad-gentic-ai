@@ -106,6 +106,11 @@ Requires auth; enforces campaign/product ownership and daily credit balance. Ret
 | DELETE | `/campaigns/{campaign_id}` |
 | POST | `/campaigns/bulk-delete` |
 | PATCH | `/campaigns/{campaign_id}/run` |
+| PATCH | `/campaigns/{campaign_id}/draft-generation-preferences` |
+
+**`PATCH /campaigns/{id}/draft-generation-preferences`:** Requires JWT; caller must own the campaign. Body = `GenerationPreferences` JSON (same shape as version snapshots in `brief`). Persists in-progress Ad Studio panel state to `campaigns.draft_generation_preferences` for cross-device sync. **200** returns `CampaignResponse` with parsed `draft_generation_preferences`. **401** / **403** / **404** / **422** as usual.
+
+**`PUT /campaigns/{id}`** may also include `draft_generation_preferences` (object or JSON string) alongside other fields — used on plan approve together with `brief`.
 
 **`DELETE /campaigns/{id}`:** Requires JWT (`Authorization: Bearer`). Caller must own `campaign.business_client_id` (**403** otherwise). Cascade-deletes `consumer_events` (via variants), `ad_variants`, `campaign_metrics`, `campaign_publications`, and `chat_messages`, then the campaign (**204**). **401** without valid token; **404** if missing; **409** if a FK still blocks delete after cascade (`CampaignDeleteConflict`).
 

@@ -43,6 +43,27 @@ describe('generationPreferences', () => {
     expect(state.selectedPlatforms.has('Facebook Feed')).toBe(false);
   });
 
+  it('preserves empty platform list from persisted JSON', () => {
+    const prefs = {
+      personalization_range: 'group',
+      variants_per_group: 4,
+      ad_formats: ['images', 'videos'],
+      tone: 'bold',
+      budget_tier: 'mid',
+      cta_style: 'direct',
+      language: 'English (US)',
+      platforms: [] as string[],
+      color_mode: 'brand',
+    };
+    const state = parseGenerationPreferencesToFilterState(prefs);
+    expect(state.selectedPlatforms.size).toBe(0);
+
+    const roundTripped = parseGenerationPreferencesToFilterState(
+      buildGenerationPreferencesSnapshot(state),
+    );
+    expect(roundTripped.selectedPlatforms.size).toBe(0);
+  });
+
   it('preferencesSnapshotJson is stable for unchanged state', () => {
     const state = {
       ...DEFAULT_FILTERS,

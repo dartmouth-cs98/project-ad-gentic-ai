@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { patchCampaignDraftPreferences } from '../api/campaigns';
 import { CAMPAIGNS_KEY } from './useCampaigns';
 import type { Campaign } from '../types';
@@ -32,6 +32,29 @@ function resolveHydrationFilterState(campaign: Campaign | undefined): FilterStat
   return cloneDefaultFilterState();
 }
 
+function syncCampaignDraftToCache(
+  queryClient: QueryClient,
+  campaignId: number,
+  updatedCampaign: Campaign,
+) {
+  queryClient.setQueriesData<Campaign[]>(
+    { queryKey: CAMPAIGNS_KEY },
+    (old) => {
+      if (!Array.isArray(old)) return old;
+      return old.map((c) =>
+        c.id === campaignId
+          ? {
+              ...c,
+              draft_generation_preferences: updatedCampaign.draft_generation_preferences,
+            }
+          : c,
+      );
+    },
+  );
+  queryClient.setQueryData([...CAMPAIGNS_KEY, campaignId], updatedCampaign);
+  void queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
+}
+
 /** Hydrate filter state from server; debounced autosave when preferences change. */
 export function usePersistedCampaignPreferences(
   activeCampaignId: number | undefined,
@@ -45,7 +68,7 @@ export function usePersistedCampaignPreferences(
   const hydratedCampaignIdRef = useRef<number | undefined>(undefined);
   const prevCampaignIdRef = useRef<number | undefined>(undefined);
   const activeCampaignIdRef = useRef(activeCampaignId);
-  const saveGenerationRef = useRef(0);
+  const saveGenerationByCampaignRef = useRef(new Map<number, number>());
   const skipAutosaveOnceRef = useRef(false);
   const pendingAutosaveRef = useRef<{ campaignId: number; state: FilterState } | null>(null);
   const [saveStatus, setSaveStatus] = useState<PreferencesSaveStatus>('idle');
@@ -56,7 +79,9 @@ export function usePersistedCampaignPreferences(
 
   const persistPreferences = useCallback(
     async (campaignId: number, state: FilterState) => {
-      const generation = ++saveGenerationRef.current;
+      const generation =
+        (saveGenerationByCampaignRef.current.get(campaignId) ?? 0) + 1;
+      saveGenerationByCampaignRef.current.set(campaignId, generation);
       const snapshotJson = preferencesSnapshotJson(state);
 
       if (activeCampaignIdRef.current === campaignId) {
@@ -69,25 +94,10 @@ export function usePersistedCampaignPreferences(
           buildGenerationPreferencesSnapshot(state),
         );
 
-        if (generation !== saveGenerationRef.current) return;
+        // Only apply if no newer save superseded this one for the same campaign.
+        if (saveGenerationByCampaignRef.current.get(campaignId) !== generation) return;
 
-        // Always sync cache for the saved campaign (including flush saves after switch).
-        queryClient.setQueriesData<Campaign[]>(
-          { queryKey: CAMPAIGNS_KEY },
-          (old) => {
-            if (!Array.isArray(old)) return old;
-            return old.map((c) =>
-              c.id === campaignId
-                ? {
-                    ...c,
-                    draft_generation_preferences: updatedCampaign.draft_generation_preferences,
-                  }
-                : c,
-            );
-          },
-        );
-        queryClient.setQueryData([...CAMPAIGNS_KEY, campaignId], updatedCampaign);
-        void queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
+        syncCampaignDraftToCache(queryClient, campaignId, updatedCampaign);
 
         if (activeCampaignIdRef.current === campaignId) {
           setLastSavedSnapshot(snapshotJson);
@@ -96,7 +106,7 @@ export function usePersistedCampaignPreferences(
           savedFadeTimerRef.current = setTimeout(() => setSaveStatus('idle'), SAVED_INDICATOR_MS);
         }
       } catch {
-        if (generation !== saveGenerationRef.current) return;
+        if (saveGenerationByCampaignRef.current.get(campaignId) !== generation) return;
         if (activeCampaignIdRef.current === campaignId) {
           setSaveStatus('error');
         }

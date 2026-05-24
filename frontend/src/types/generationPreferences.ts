@@ -34,7 +34,7 @@ function asStringArray(value: unknown, allowed: Set<string>, fallback: string[])
   return filtered.length > 0 ? filtered : [...fallback];
 }
 
-/** Preserve any non-empty platform labels from persisted JSON (UI may add placements over time). */
+/** Preserve platform labels from persisted JSON; empty array means none selected. */
 function parsePlatforms(value: unknown): Set<string> {
   if (!Array.isArray(value)) {
     return new Set(DEFAULT_FILTERS.selectedPlatforms);
@@ -42,9 +42,6 @@ function parsePlatforms(value: unknown): Set<string> {
   const labels = value.filter(
     (item): item is string => typeof item === 'string' && item.trim().length > 0,
   );
-  if (labels.length === 0) {
-    return new Set(DEFAULT_FILTERS.selectedPlatforms);
-  }
   return new Set(labels);
 }
 

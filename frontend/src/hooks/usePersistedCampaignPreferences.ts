@@ -64,19 +64,36 @@ export function usePersistedCampaignPreferences(
       }
 
       try {
-        await patchCampaignDraftPreferences(
+        const updatedCampaign = await patchCampaignDraftPreferences(
           campaignId,
           buildGenerationPreferencesSnapshot(state),
         );
 
         if (generation !== saveGenerationRef.current) return;
 
+        // Always sync cache for the saved campaign (including flush saves after switch).
+        queryClient.setQueriesData<Campaign[]>(
+          { queryKey: CAMPAIGNS_KEY },
+          (old) => {
+            if (!Array.isArray(old)) return old;
+            return old.map((c) =>
+              c.id === campaignId
+                ? {
+                    ...c,
+                    draft_generation_preferences: updatedCampaign.draft_generation_preferences,
+                  }
+                : c,
+            );
+          },
+        );
+        queryClient.setQueryData([...CAMPAIGNS_KEY, campaignId], updatedCampaign);
+        void queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
+
         if (activeCampaignIdRef.current === campaignId) {
           setLastSavedSnapshot(snapshotJson);
           setSaveStatus('saved');
           if (savedFadeTimerRef.current) clearTimeout(savedFadeTimerRef.current);
           savedFadeTimerRef.current = setTimeout(() => setSaveStatus('idle'), SAVED_INDICATOR_MS);
-          queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
         }
       } catch {
         if (generation !== saveGenerationRef.current) return;

@@ -86,6 +86,12 @@ Do **not** set `GOOGLE_GENAI_USE_VERTEXAI` for the built-in Veo path (Vertex/GCS
 | `AD_JOB_POLL_INTERVAL_SECONDS` | Default `5` |
 | `AD_JOB_MAX_ATTEMPTS` | Default `3` |
 
+### Credits (ad generation)
+
+| Variable | Role |
+|----------|------|
+| `CREDITS_ENFORCE` | When `true` (default), **`POST /ad-generation/generate-*`** deducts daily credits; set `false` to disable enforcement (`services/credits.py`) |
+
 ## CI (GitHub Actions)
 
 Backend workflows set at least:
@@ -100,6 +106,7 @@ Backend workflows set at least:
 |----------|------|
 | `VITE_ENV` | Unset defaults to **`local`** in `api/config.ts`; when `ENV === 'local'`, **`API_BASE_URL`** is `/api` |
 | `VITE_API_URL` | Backend origin for non-local builds and Vite proxy default (`vite.config.ts` uses it as proxy target, default `http://localhost:8000`) |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client id for **`@react-oauth/google`** sign-in (`App.tsx`, `api/config.ts`) |
 
 ## Local storage (browser)
 

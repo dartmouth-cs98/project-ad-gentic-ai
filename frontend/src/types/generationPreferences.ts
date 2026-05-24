@@ -45,17 +45,22 @@ function parsePlatforms(value: unknown): Set<string> {
   return new Set(labels);
 }
 
+/** Stable JSON order for set-backed fields (insertion order varies after toggles). */
+function sortedSetValues(values: Set<string>): string[] {
+  return [...values].sort((a, b) => a.localeCompare(b));
+}
+
 /** Snapshot current filter panel for persistence at plan approval or draft save. */
 export function buildGenerationPreferencesSnapshot(state: FilterState): GenerationPreferences {
   return {
     personalization_range: state.personalizationRange,
     variants_per_group: state.variantsPerGroup,
-    ad_formats: Array.from(state.adFormats),
+    ad_formats: sortedSetValues(state.adFormats),
     tone: state.tone,
     budget_tier: state.budgetTier,
     cta_style: state.ctaStyle,
     language: state.language,
-    platforms: Array.from(state.selectedPlatforms),
+    platforms: sortedSetValues(state.selectedPlatforms),
     color_mode: state.colorMode,
     ...(state.colorMode === 'custom' ? { custom_color: state.customColor } : {}),
   };

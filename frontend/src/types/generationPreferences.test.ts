@@ -64,6 +64,23 @@ describe('generationPreferences', () => {
     expect(roundTripped.selectedPlatforms.size).toBe(0);
   });
 
+  it('canonicalizes set-backed arrays for snapshot comparison', () => {
+    const defaults = {
+      ...DEFAULT_FILTERS,
+      selectedPlatforms: new Set(DEFAULT_FILTERS.selectedPlatforms),
+    };
+    const insertionOrderA = {
+      ...defaults,
+      adFormats: new Set(['images', 'videos'] as const),
+    };
+    const insertionOrderB = {
+      ...defaults,
+      adFormats: new Set(['videos', 'images'] as const),
+    };
+
+    expect(preferencesSnapshotJson(insertionOrderA)).toBe(preferencesSnapshotJson(insertionOrderB));
+  });
+
   it('preferencesSnapshotJson is stable for unchanged state', () => {
     const state = {
       ...DEFAULT_FILTERS,

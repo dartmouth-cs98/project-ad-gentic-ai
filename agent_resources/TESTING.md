@@ -26,6 +26,7 @@ We aim for a **short, fast base** of **unit tests**, a **middle layer** of **int
 
 - **API integration:** `TestClient` against **`main.app`**, **`dependency_overrides`** for `get_db` and `get_current_client_id`, **in-memory SQLite** (`StaticPool`), temporary removal of **`dbo`** schema on models for SQLite (`test_consumers.py`, `test_product.py`, etc.).
 - **Campaign delete:** **`test_delete_campaign.py`** (single `DELETE`, cascade order, 404/409, **403** cross-tenant); **`test_bulk_delete_campaigns.py`** (bulk partial success, dedupe, limits, **403** when any id is foreign-owned).
+- **Campaign publish:** **`test_run_campaign.py`**, **`test_campaign_publisher_fail_when_no_ads_created.py`**, **`test_persona_grouping.py`**, **`test_connection_loader.py`**.
 - **Route unit behavior:** e.g. **`test_ad_variants.py`** uses **`monkeypatch`** on env and CRUD functions to test SAS URL signing without Azure.
 - **Services:** **`test_persona_assignment_service.py`**, **`test_consumer_persona_processor.py`**, **`test_script_moderation_worker.py`** — mocks for LLM clients, **no network**.
 - **Workers / poller:** **`test_ad_job_worker.py`**, **`test_ad_job_poller.py`** — **`pytest.importorskip("azure.storage.blob")`** when imports pull Azure; **`patch`** / **`AsyncMock`** for `execute_ad_job`, `claim_ad_job`, etc.
@@ -34,7 +35,8 @@ We aim for a **short, fast base** of **unit tests**, a **middle layer** of **int
 
 ### Frontend (`frontend/`)
 
-- **Automated:** **`npm run lint`** and **`npm run build`** in CI only—**no** Jest/Vitest/Playwright wired in `package.json` yet.
+- **Automated:** **`npm run lint`**, **`npm run test`** (Vitest), and **`npm run build`** in CI.
+- **Vitest:** Pure helper tests in **`src/lib/*.test.ts`** today; no RTL/component suite yet.
 - **Typecheck:** **`npx tsc --noEmit`** locally (see [AGENTS.md](../AGENTS.md)).
 
 ### CI (GitHub Actions)
@@ -44,7 +46,7 @@ We aim for a **short, fast base** of **unit tests**, a **middle layer** of **int
 | **`run-tests.yml`** | `python -m pytest tests -v` in **`backend/`** with **`JWT_SECRET`**, **`DB_CONNECTION_STRING=sqlite:///test.db`**, **`ALLOWED_ORIGINS`**. **`conftest.py`** sets **`VEO_GENERATION_ENABLED=true`** for tests by default. |
 | **`backend-build.yaml`** | `python -c "from main import app"` with same env pattern. |
 | **`lint.yaml`** | Frontend **ESLint**. |
-| **`frontend-build.yaml`** | Frontend **Vite build**. |
+| **`frontend-build.yaml`** | Frontend **Vitest** (`npm run test`) + **Vite build**. |
 
 ---
 
@@ -58,7 +60,7 @@ We aim for a **short, fast base** of **unit tests**, a **middle layer** of **int
 | **`services/*` / `workers/*`** | **Unit** with mocks; if orchestration is thin, **integration** through route or poller test. |
 | **`main.py`** (lifespan, middleware, new router) | **Import smoke** + targeted test if behavior is observable. |
 | **Auth / tenant rules** | **Integration** with **`get_current_client_id`** override **and** negative cases (wrong/missing token). |
-| **Frontend UI** | Until component tests exist: **manual** critical path + keep **lint/build** green; add **Vitest + RTL** for new complex components if you introduce the stack. |
+| **Frontend UI** | Until component tests exist: **manual** critical path + keep **lint/test/build** green; add **Vitest + RTL** for new complex components if you introduce the stack. |
 | **Cross-service E2E** | **Manual** checklist or future Playwright/Cypress; document steps in PR when behavior is user-visible. |
 
 ---
@@ -102,7 +104,7 @@ Do **not** rely on this for CI; use for **local debugging** only.
 ### Frontend
 
 ```bash
-cd frontend && npm ci && npm run lint && npm run build
+cd frontend && npm ci && npm run lint && npm run test && npm run build
 npx tsc --noEmit
 ```
 

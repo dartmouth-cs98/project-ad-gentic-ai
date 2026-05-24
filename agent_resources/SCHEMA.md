@@ -73,6 +73,21 @@ When this file and code disagree, verify the live database, then update **both**
 | password_reset_expires_at | datetime2 | yes |  |  |
 | auth_provider | varchar(50) | yes |  |  |
 
+### campaign_publications
+| Column | Type | Nullable | Key | References |
+|---|---|---|---|---|
+| id | int | no | PK |  |
+| campaign_id | int | no | FK | campaigns.id |
+| external_platform | varchar(32) | no |  |  |
+| external_campaign_id | varchar(100) | no |  |  |
+| status | varchar(32) | no |  |  |
+| published_at | datetime2 | yes |  |  |
+| error_message | nvarchar(MAX) | yes |  |  |
+| created_at | datetime2 | no |  |  |
+| updated_at | datetime2 | no |  |  |
+
+Unique constraint: **`(campaign_id, external_platform)`** (`uq_camp_pub`).
+
 ### campaign_metrics
 | Column | Type | Nullable | Key | References |
 |---|---|---|---|---|
@@ -110,8 +125,6 @@ When this file and code disagree, verify the live database, then update **both**
 | brief | nvarchar(MAX) | yes |  |  |
 | meta_campaign_id | nvarchar(200) | yes |  |  |
 | platforms | nvarchar(MAX) | yes |  |  |
-| external_campaign_id | varchar(100) | yes |  |  |
-| external_platform | varchar(32) | yes |  |  |
 
 ### chat_messages
 | Column | Type | Nullable | Key | References |
@@ -189,7 +202,7 @@ When this file and code disagree, verify the live database, then update **both**
 |---|---|---|---|---|
 | id | int | no | PK |  |
 | business_client_id | int | no | FK | business_clients.id |
-| platform | nvarchar(60) | no |  |  |
+| platform | nvarchar(30) | no |  |  |
 | encrypted_token | nvarchar(MAX) | no |  |  |
 | token_expires_at | datetime2 | yes |  |  |
 | platform_account_id | nvarchar(200) | yes |  |  |
@@ -202,6 +215,7 @@ When this file and code disagree, verify the live database, then update **both**
 - `ad_variants.campaign_id` → `campaigns.id`
 - `ad_variants.consumer_id` → `consumers.id`
 - `ad_variants.product_id` → `products.id`
+- `campaign_publications.campaign_id` → `campaigns.id`
 - `campaign_metrics.campaign_id` → `campaigns.id`
 - `campaigns.business_client_id` → `business_clients.id`
 - `chat_messages.business_client_id` → `business_clients.id`
@@ -220,7 +234,8 @@ There are **no `ON DELETE CASCADE`** FKs in SQL Server for campaign children. **
 1. `consumer_events` (via `ad_variants` on the campaign)
 2. `ad_variants`
 3. `campaign_metrics`
-4. `chat_messages` (`campaign_id` only)
-5. `campaigns`
+4. `campaign_publications`
+5. `chat_messages` (`campaign_id` only)
+6. `campaigns`
 
 `ad_jobs` are not FK-linked to `campaigns`. Blob objects for variant videos are not removed on delete.

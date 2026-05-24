@@ -38,7 +38,7 @@ The backend is a **single deployable** (one `main.py`, one uvicorn process) with
 5. Handler runs: validates with **`schemas`**, calls **`crud`** / **`services`**.
 6. Response: Pydantic **`response_model`** or plain dict; **`HTTPException`** becomes JSON error with **`detail`**.
 
-**Background work:** The **`lifespan`** context runs **`_ensure_auth_columns_exist()`** on SQL Server (best-effort DDL for `business_clients` auth columns), then starts **`run_poller()`** as an **`asyncio`** task; the poller is **not** tied to a single HTTP request.
+**Background work:** The **`lifespan`** context runs **`_ensure_business_client_columns_exist()`** on SQL Server (best-effort DDL for `business_clients` auth + credits columns), then starts **`run_poller()`** as an **`asyncio`** task; the poller is **not** tied to a single HTTP request.
 
 ---
 
@@ -123,7 +123,7 @@ There is **no** global exception handler in `main.py` for logging/masking—**ad
 
 - **Prefixes:** Set in **`main.py`** (`/auth`, `/campaigns`, `/social-auth`, …). **OpenAPI** at **`/docs`**.
 - **REST style:** **GET list/detail**, **POST create**, **PUT update**, **DELETE** with **204** where appropriate.
-- **Worker routes:** Under **`/ad-job-worker`**, **`/ad-post-worker`** (hello + generation endpoints).
+- **Worker routes:** Under **`/ad-job-worker`**, **`/ad-post-worker`** (hello + ops/debug). **User-facing generation** is under **`/ad-generation`** (JWT + credits); deprecated **`/ad-job-worker/generate-*`** return **410**.
 - **Response models:** Prefer **`response_model=…`** for stable JSON shapes.
 - **Query params:** Filtering/skip/limit on list endpoints; some use **optional** `status`, **`batch_id`**, **`is_preview`** (variants).
 
@@ -166,7 +166,7 @@ When adding endpoints: **register router in `main.py`**, add **`tags`**, and mir
 | [TESTING.md](./TESTING.md) | pytest, fixtures, CI workflows. |
 | [references/](./references/) | HTTP paths, env vars, tables (lookup). |
 | [SCHEMA.md](./SCHEMA.md) | SQL Server columns and FK relationships. |
-| [exec-plans/](../exec-plans/) | Task execution plans (e.g. [campaign cascade delete](../exec-plans/2026-05-20-campaign-cascade-delete.md), [bulk delete API](../exec-plans/2026-05-20-campaign-bulk-delete-api.md)). |
+| [exec-plans/](../exec-plans/) | Task execution plans at repo root (when present). |
 | [design-docs/](./design-docs/) | Major changes: write design here before coding. |
 | [backend/README.md](../backend/README.md) | Runbook, ports, worker prefixes. |
 | [AGENTS.md](../AGENTS.md) | How to run the repo and CI summary. |

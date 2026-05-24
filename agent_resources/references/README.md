@@ -11,7 +11,7 @@ Short, **stable lookup tables** for day-to-day work. For narrative explanations,
 | [TESTING.md](../TESTING.md) | How to validate |
 | [SCHEMA.md](../SCHEMA.md) | Database tables, columns, FK relationships (authoritative for SQL Server) |
 | [design-docs/README.md](../design-docs/README.md) | Major-change design process (before implementation) |
-| [exec-plans/README.md](../../exec-plans/README.md) | Task-level execution plans (repo root) |
+| [exec-plans/](../../exec-plans/) | Task-level execution plans at repo root (when present) |
 
 Repo-root [AGENTS.md](../../AGENTS.md) is the contributor quick map (run, test, directories); it links here for lookups.
 

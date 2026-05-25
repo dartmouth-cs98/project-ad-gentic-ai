@@ -16,8 +16,6 @@ import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
 import { useCampaignAdVariants, useGeneratePreview, useUpdateCampaign, useApproveVariant } from '../hooks/useAdGeneration';
 
-// ─── Constants ──────────────────────────────────────────────────
-
 const WELCOME_NEW: ChatMessage = {
   id: 0,
   campaign_id: 0,
@@ -46,9 +44,6 @@ function buildWelcomeBack(campaign: Campaign | undefined, versions: Version[]): 
   };
 }
 
-// ─── Helpers ────────────────────────────────────────────────────
-
-/** Build a Version list from real ad variants, grouped by version_number. */
 function buildVersionsFromVariants(variants: AdVariant[]): Version[] {
   const map = new Map<number, { count: number; latest: string }>();
   for (const v of variants) {
@@ -75,8 +70,6 @@ function buildVersionsFromVariants(variants: AdVariant[]): Version[] {
     }));
 }
 
-// ─── Main Component ──────────────────────────────────────────────
-
 export function GenerateAdsPage() {
   const { profile } = useCompany();
   const { user } = useUser();
@@ -84,14 +77,12 @@ export function GenerateAdsPage() {
   const campaignStorageKey = `${SELECTED_CAMPAIGN_KEY_PREFIX}${businessClientId ?? 'anonymous'}`;
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // ─── Data hooks ──────────────────────────────────────────────
   const { data: campaigns = [], isLoading: isCampaignsLoading } = useCampaigns(businessClientId);
   const [filterState, filterDispatch] = useFilterState();
   const generatePreview = useGeneratePreview();
   const updateCampaign = useUpdateCampaign();
   const approveVariant = useApproveVariant();
 
-  // ─── Core state ──────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('idle');
   const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
@@ -102,55 +93,46 @@ export function GenerateAdsPage() {
   const [pendingAutoKickoff, setPendingAutoKickoff] = useState<Campaign | null>(null);
   const [input, setInput] = useState('');
   const [progressIdx, setProgressIdx] = useState(0);
-
-  // Campaign & version state
   const [activeCampaignId, setActiveCampaignId] = useState<number | undefined>(undefined);
   const [activeVersionNumber, setActiveVersionNumber] = useState<number | null>(null);
   const [versionCounter, setVersionCounter] = useState(1);
+  const [generatingVersionNumber, setGeneratingVersionNumber] = useState<number | null>(null);
+  const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set());
 
-  // ─── All variants for active campaign (always fetched) ───────
   const { data: allVariants = [] } = useCampaignAdVariants(activeCampaignId, {
     enabled: !!activeCampaignId,
     refetchInterval: phase === 'generating' ? 5000 : false,
   });
 
-  // ─── Derive versions & filtered variants ─────────────────────
   const versions = useMemo(() => buildVersionsFromVariants(allVariants), [allVariants]);
   const hasVariants = allVariants.length > 0;
 
-  // Auto-select latest version when variants first load or campaign changes
   useEffect(() => {
     if (versions.length > 0 && activeVersionNumber === null) {
-      // Latest version = highest version_number
       const maxVer = Math.max(...allVariants.map((v) => v.version_number));
       setActiveVersionNumber(maxVer);
       setVersionCounter(maxVer + 1);
     }
   }, [versions, activeVersionNumber, allVariants]);
 
-  // Reset version selection on campaign switch
   useEffect(() => {
     setActiveVersionNumber(null);
   }, [activeCampaignId]);
 
-  // Variants filtered to the active version
   const activeVersionVariants = useMemo(() => {
     if (activeVersionNumber === null) return allVariants;
     return allVariants.filter((v) => v.version_number === activeVersionNumber);
   }, [allVariants, activeVersionNumber]);
 
-  // Active version object for the header
   const activeVersion: Version = useMemo(() => {
     const found = versions.find((v) => v.id === `v${activeVersionNumber}`);
     return found ?? { id: 'v0', label: 'v0', timestamp: '', variantCount: 0 };
   }, [versions, activeVersionNumber]);
 
-  // ─── Chat messages (persisted via API) ────────────────────────
   const { data: serverMessages = [] } = useChatMessages(activeCampaignId);
   const sendMessage = useSendChatMessage();
   const chatCompletion = useChatCompletion();
 
-  // Show welcome message when no persisted messages exist
   const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
   const { saveStatus: preferencesSaveStatus } = usePersistedCampaignPreferences(
     activeCampaignId,
@@ -166,7 +148,6 @@ export function GenerateAdsPage() {
     [serverMessages, activeCampaign, versions],
   );
 
-  /** Persist an assistant message to the current campaign. */
   const sendAssistantMessage = (content: string, messageType: ChatMessage['message_type'] = 'message') => {
     if (!activeCampaignId) return;
     sendMessage.mutate({
@@ -177,7 +158,6 @@ export function GenerateAdsPage() {
     });
   };
 
-  /** Build filter context for the AI from current filter state. */
   const buildFilterContext = () => ({
     personalizationRange: filterState.personalizationRange,
     variantsPerGroup: filterState.variantsPerGroup,
@@ -190,15 +170,10 @@ export function GenerateAdsPage() {
     colorMode: filterState.colorMode,
   });
 
-  // Variants selection state
-  const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set());
-
-  // ─── Resizable panel ────────────────────────────────────────
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const { panelWidth: chatPanelWidth, handleDragStart } = useResizablePanel({
     containerRef: splitContainerRef,
   });
-
 
   useEffect(() => {
     if (!campaigns.length) return;
@@ -215,7 +190,6 @@ export function GenerateAdsPage() {
     setChatStarted(true);
   }, [campaigns, campaignStorageKey]);
 
-  // ─── URL param: ?productId=X → open stepper with product pre-selected ───
   useEffect(() => {
     const pid = searchParams.get('productId');
     if (!pid) return;
@@ -227,7 +201,6 @@ export function GenerateAdsPage() {
     setSearchParams({}, { replace: true });
   }, []);
 
-  // ─── Campaign selection from empty state ─────────────────────
   const handleStartChat = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
     setChatStarted(true);
@@ -243,7 +216,6 @@ export function GenerateAdsPage() {
     localStorage.setItem(campaignStorageKey, String(campaign.id));
   };
 
-  // ─── Express mode auto-approve ───────────────────────────────
   useEffect(() => {
     if (!expressMode) return;
     if (phase === 'generating' || phase === 'results') return;
@@ -256,7 +228,6 @@ export function GenerateAdsPage() {
     return () => clearTimeout(timer);
   }, [messages, expressMode, phase]);
 
-  // ─── Express mode auto-kickoff ────────────────────────────────
   useEffect(() => {
     if (!pendingAutoKickoff || !chatStarted || !activeCampaignId) return;
     const campaign = pendingAutoKickoff;
@@ -274,7 +245,6 @@ export function GenerateAdsPage() {
     });
   }, [chatStarted, activeCampaignId, pendingAutoKickoff]);
 
-  // ─── Progress animation during generating ───────────────────
   useEffect(() => {
     if (phase !== 'generating') return;
     setProgressIdx(0);
@@ -286,9 +256,6 @@ export function GenerateAdsPage() {
     }, 1200);
     return () => clearInterval(interval);
   }, [phase]);
-
-  // ─── Auto-transition: generating → results when variant completes ─
-  const [generatingVersionNumber, setGeneratingVersionNumber] = useState<number | null>(null);
 
   useEffect(() => {
     if (phase !== 'generating' || generatingVersionNumber === null) return;
@@ -305,8 +272,6 @@ export function GenerateAdsPage() {
       `Done! I've generated ${completedCount} preview ad variant${completedCount > 1 ? 's' : ''} (v${generatingVersionNumber}). Review them on the right, or tell me what to change.`,
     );
   }, [phase, allVariants, generatingVersionNumber]);
-
-  // ─── Handlers ───────────────────────────────────────────────
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -365,9 +330,7 @@ export function GenerateAdsPage() {
       generation_preferences: prefsSnapshot,
     };
 
-    sendAssistantMessage(
-      'Plan approved! Starting ad generation — this may take a few minutes...',
-    );
+    sendAssistantMessage('Plan approved! Starting ad generation — this may take a few minutes...');
     setPhase('generating');
     setGeneratingVersionNumber(newVersion);
 
@@ -420,9 +383,7 @@ export function GenerateAdsPage() {
       content: 'Declined',
     });
 
-    sendAssistantMessage(
-      "No problem — tell me what you'd like to change and I'll revise the plan.",
-    );
+    sendAssistantMessage("No problem — tell me what you'd like to change and I'll revise the plan.");
   };
 
   const handleCampaignSelect = (campaign: Campaign) => {
@@ -466,9 +427,6 @@ export function GenerateAdsPage() {
     });
   };
 
-  // ─── Render ─────────────────────────────────────────────────
-
-  // Determine the effective phase for the results panel
   // When idle but has variants, show them in "results" mode
   const resultsPanelPhase: Phase = phase !== 'idle' ? phase : (hasVariants ? 'results' : 'idle');
 
@@ -476,7 +434,6 @@ export function GenerateAdsPage() {
     <AppShell fullHeight>
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0, position: 'relative' }}>
 
-        {/* ── Campaign stepper — absolute overlay ── */}
         {showStepper && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 50,
@@ -494,12 +451,10 @@ export function GenerateAdsPage() {
           </div>
         )}
 
-        {/* ── Always-visible split workspace ── */}
         <div
           ref={splitContainerRef}
           style={{ display: 'flex', flex: 1, overflow: 'hidden' }}
         >
-          {/* Chat Panel */}
           <ChatPanel
             phase={phase}
             campaigns={campaigns}
@@ -527,14 +482,12 @@ export function GenerateAdsPage() {
             style={{ width: chatPanelWidth, flexShrink: 0 }}
           />
 
-          {/* Resize Handle */}
           <div
             className="gen-resize-handle"
             onMouseDown={handleDragStart}
             style={{ flexShrink: 0 }}
           />
 
-          {/* Results Panel */}
           <ResultsPanel
             phase={resultsPanelPhase}
             filterState={filterState}

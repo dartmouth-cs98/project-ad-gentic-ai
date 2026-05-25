@@ -125,14 +125,7 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
   };
 
   return (
-    <div className="prd-card" style={{ position: 'relative' }}>
-      <button
-        className="prd-card-del"
-        onClick={() => onDelete(product)}
-        aria-label="Delete product"
-      >
-        <TrashIcon />
-      </button>
+    <div className="prd-card">
       {/* Media */}
       <div className="prd-card-media">
         <div className="prd-card-stripes" />
@@ -182,7 +175,14 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
       </div>
 
       {/* Body */}
-      <div className="prd-card-body">
+      <div className="prd-card-body" style={{ position: 'relative' }}>
+        <button
+          className="prd-card-del"
+          onClick={() => onDelete(product)}
+          aria-label="Delete product"
+        >
+          <TrashIcon />
+        </button>
         <div className="prd-card-name">{product.name}</div>
 
         {product.description && (

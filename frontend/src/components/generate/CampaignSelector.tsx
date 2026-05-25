@@ -1,11 +1,5 @@
+// CampaignSelector — gen-* styled dropdown for switching campaigns
 import { useState, useRef, useEffect } from 'react';
-import {
-  FolderIcon,
-  ChevronDownIcon,
-  SearchIcon,
-  XIcon,
-  PlusIcon,
-} from 'lucide-react';
 import type { Campaign } from '../../types';
 
 interface CampaignSelectorProps {
@@ -16,6 +10,22 @@ interface CampaignSelectorProps {
   isLoading?: boolean;
 }
 
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 5l3 3 3-3" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M6 2v8M2 6h8" />
+    </svg>
+  );
+}
+
 export function CampaignSelector({
   campaigns,
   activeCampaignId,
@@ -23,133 +33,188 @@ export function CampaignSelector({
   onCreateCampaign,
   isLoading,
 }: CampaignSelectorProps) {
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
-
-  const filteredCampaigns = campaigns.filter(
-    (c) => c.name.toLowerCase().includes(search.toLowerCase()),
+  const filtered = campaigns.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   useEffect(() => {
-    if (showDropdown) {
-      setTimeout(() => searchRef.current?.focus(), 50);
-    }
-  }, [showDropdown]);
+    if (open) setTimeout(() => inputRef.current?.focus(), 40);
+  }, [open]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-campaign-dropdown]')) {
-        setShowDropdown(false);
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
         setSearch('');
       }
     };
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleSelect = (campaign: Campaign) => {
-    onSelect(campaign);
-    setShowDropdown(false);
+  const handleSelect = (c: Campaign) => {
+    onSelect(c);
+    setOpen(false);
     setSearch('');
   };
 
   return (
-    <div>
-      <div className="relative" data-campaign-dropdown>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDropdown(!showDropdown);
-          }}
-          disabled={isLoading}
-          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded bg-muted hover:bg-muted/80 border border-border transition-colors text-left"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <FolderIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-            <span className="text-xs font-medium text-foreground truncate">
-              {isLoading ? 'Loading...' : activeCampaign?.name ?? 'Select a campaign'}
-            </span>
-          </div>
-          <ChevronDownIcon
-            className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${
-              showDropdown ? 'rotate-180' : ''
-            }`}
-          />
-        </button>
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        disabled={isLoading}
+        className="as-btn-ghost"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 8px',
+          fontSize: 11,
+          fontFamily: "'Geist Mono', monospace",
+          letterSpacing: '0.06em',
+        }}
+      >
+        <span style={{ textTransform: 'uppercase', color: 'var(--as-ink-2)' }}>
+          {isLoading ? 'LOADING…' : 'SWITCH'}
+        </span>
+        <span style={{ color: 'var(--as-ink-3)', transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s', display: 'flex' }}>
+          <ChevronIcon />
+        </span>
+      </button>
 
-        {showDropdown && (
-          <div className="absolute left-0 right-0 top-full mt-1 bg-card rounded border border-border shadow-lg z-30 py-1.5 overflow-hidden">
-            {/* Search */}
-            <div className="px-2.5 pb-1.5 pt-0.5">
-              <div className="relative">
-                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search campaigns..."
-                  className="w-full pl-8 pr-3 py-2 bg-muted border border-border rounded text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:bg-background transition-all"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                {search && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSearch('');
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted transition-colors"
-                  >
-                    <XIcon className="w-3 h-3 text-muted-foreground" />
-                  </button>
-                )}
+      {open && (
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 4px)',
+          right: 0,
+          width: 260,
+          background: 'var(--as-bg)',
+          border: '1px solid var(--as-ink)',
+          zIndex: 40,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        }}>
+          {/* Search */}
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--as-rule)' }}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="SEARCH…"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: 11,
+                letterSpacing: '0.06em',
+                color: 'var(--as-ink)',
+                textTransform: 'uppercase',
+              }}
+            />
+          </div>
+
+          {/* Campaign list */}
+          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+            {filtered.length === 0 ? (
+              <div style={{
+                padding: '12px 12px',
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: 10,
+                color: 'var(--as-ink-3)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+              }}>
+                NO CAMPAIGNS FOUND
               </div>
-            </div>
-            <div className="border-t border-border" />
-            <div className="max-h-48 overflow-y-auto">
-              {filteredCampaigns.length === 0 ? (
-                <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-                  No campaigns found
-                </div>
-              ) : (
-                filteredCampaigns.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => handleSelect(c)}
-                    className={`w-full text-left px-3 py-2 hover:bg-muted transition-colors ${
-                      activeCampaignId === c.id ? 'bg-muted' : ''
-                    }`}
-                  >
-                    <p
-                      className={`text-sm font-medium truncate ${
-                        activeCampaignId === c.id ? 'text-foreground font-semibold' : 'text-foreground'
-                      }`}
-                    >
-                      {c.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {c.status} · {c.created_at}
-                    </p>
-                  </button>
-                ))
-              )}
-            </div>
-            <div className="border-t border-border mt-0.5 pt-0.5">
+            ) : filtered.map((c, i) => (
               <button
-                onClick={(e) => { e.stopPropagation(); setShowDropdown(false); onCreateCampaign?.(); }}
-                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                key={c.id}
+                onClick={() => handleSelect(c)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--as-rule)',
+                  background: activeCampaignId === c.id ? 'var(--as-paper)' : 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                }}
               >
-                <PlusIcon className="w-3.5 h-3.5" />
-                <span className="text-sm font-medium">New Campaign</span>
+                <span style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: 9.5,
+                  letterSpacing: '0.06em',
+                  color: 'var(--as-ink-3)',
+                  textTransform: 'uppercase',
+                  flexShrink: 0,
+                }}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span style={{
+                  fontSize: 13,
+                  color: 'var(--as-ink)',
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {c.name}
+                </span>
+                {activeCampaignId === c.id && (
+                  <span style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: 9,
+                    color: 'var(--as-accent)',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    flexShrink: 0,
+                  }}>
+                    ACTIVE
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* New campaign */}
+          {onCreateCampaign && (
+            <div style={{ borderTop: '1px solid var(--as-rule)' }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); setOpen(false); onCreateCampaign(); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                  color: 'var(--as-ink-2)',
+                }}
+              >
+                <PlusIcon />
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  NEW CAMPAIGN
+                </span>
               </button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

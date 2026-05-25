@@ -1,378 +1,741 @@
-import React, { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import {
-  SparklesIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
-  ArrowRightIcon,
-  ArrowUpRightIcon,
-  CheckIcon,
-  Loader2Icon,
-  XIcon,
-} from 'lucide-react';
+import { AppShell } from '../components/layout/AppShell';
+import { AppIcon } from '../components/ui/AppIcon';
+import { useCountUp } from '../hooks/useCountUp';
 
-const recentActivity = [
-  { id: 1, title: 'Campaign Launched', text: 'Summer Sale 2026 is now live across Meta and TikTok.', time: '2 hours ago', linkTo: '/campaign/1', linkLabel: 'Summer Sale 2026' },
-  { id: 2, title: 'New Variants Generated', text: 'AI created 12 new hooks for "Product Launch" targeting The Researcher.', time: '5 hours ago', linkTo: '/campaign/2', linkLabel: 'Product Launch' },
-  { id: 3, title: 'Creative Approved', text: '3 video variants approved for "Brand Awareness" campaign.', time: '1 day ago', linkTo: '/campaign/3', linkLabel: 'Brand Awareness' },
+// ── Sparkline ────────────────────────────────────────────────────────────────
+
+interface SparklineProps {
+  points: number[];
+  area?: boolean;
+  down?: boolean;
+  className?: string;
+}
+
+function Sparkline({ points, area = false, down = false, className = '' }: SparklineProps) {
+  const W = 200;
+  const H = area ? 38 : 26;
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const range = Math.max(1, max - min);
+  const coords = points.map((v, i) => {
+    const x = (i / (points.length - 1)) * W;
+    const y = H - ((v - min) / range) * (H - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const line = coords.join(' ');
+  const id = `sp-${Math.random().toString(36).slice(2, 7)}`;
+
+  return (
+    <svg
+      className={`as-kpi-spark${down ? ' dn' : ''}${className ? ' ' + className : ''}`}
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+    >
+      {area && (
+        <>
+          <defs>
+            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="currentColor" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polygon
+            points={`0,${H} ${line} ${W},${H}`}
+            fill={`url(#${id})`}
+          />
+        </>
+      )}
+      <polyline points={line} fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+// ── Table sparkline (smaller, fixed height) ──────────────────────────────────
+
+function TableSpark({ points, down = false }: { points: number[]; down?: boolean }) {
+  const W = 80;
+  const H = 22;
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const range = Math.max(1, max - min);
+  const coords = points.map((v, i) => {
+    const x = (i / (points.length - 1)) * W;
+    const y = H - ((v - min) / range) * (H - 3) - 1.5;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      style={{ width: W, height: H, color: down ? 'var(--as-ink-3)' : 'var(--as-accent)' }}
+    >
+      <polyline points={coords.join(' ')} fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+// ── Performance chart ─────────────────────────────────────────────────────────
+
+function genSeries(days: number, base: number, noise: number, trend: number): number[] {
+  return Array.from({ length: days }, (_, i) => {
+    const t = i / (days - 1);
+    return Math.max(0, base + trend * t * base + (Math.sin(i * 1.7) + Math.cos(i * 0.9 + 1.3)) * noise);
+  });
+}
+
+const CHART_SERIES = ['meta', 'tiktok', 'youtube', 'linkedin'] as const;
+type SeriesKey = typeof CHART_SERIES[number];
+const SERIES_LABELS: Record<SeriesKey, string> = { meta: 'META', tiktok: 'TIKTOK', youtube: 'YOUTUBE', linkedin: 'LINKEDIN' };
+const SERIES_OPACITY: Record<SeriesKey, number> = { meta: 1.0, tiktok: 0.75, youtube: 0.5, linkedin: 0.28 };
+const DAYS = 30;
+
+function PerformanceChart({ active }: { active: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 700, h: 240 });
+  const [drawn, setDrawn] = useState(false);
+  const [hover, setHover] = useState<number | null>(null);
+
+  // Draw-in animation trigger
+  useEffect(() => {
+    if (!active) return;
+    const id = setTimeout(() => setDrawn(true), 60);
+    return () => clearTimeout(id);
+  }, [active]);
+
+  // ResizeObserver
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: 240 }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const data = useMemo<Record<SeriesKey, number[]>>(() => ({
+    meta:     genSeries(DAYS, 18, 4, 0.45),
+    tiktok:   genSeries(DAYS, 12, 3, 0.7),
+    youtube:  genSeries(DAYS, 8, 2, 0.2),
+    linkedin: genSeries(DAYS, 5, 1.2, 0.05),
+  }), []);
+
+  const stacks = useMemo(() => {
+    return Array.from({ length: DAYS }, (_, i) => {
+      let cum = 0;
+      const row: Record<string, number> = {};
+      CHART_SERIES.forEach((s) => { cum += data[s][i]; row[s] = cum; });
+      row.total = cum;
+      return row;
+    });
+  }, [data]);
+
+  const maxTotal = Math.max(...stacks.map((s) => s.total)) * 1.05;
+  const { w: W, h: H } = size;
+  const padL = 36, padR = 8, padT = 12, padB = 22;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const xAt = (i: number) => padL + (i / (DAYS - 1)) * plotW;
+  const yAt = (v: number) => padT + plotH - (v / maxTotal) * plotH;
+
+  const areaPath = (s: SeriesKey) => {
+    const idx = CHART_SERIES.indexOf(s);
+    const prev = idx > 0 ? CHART_SERIES[idx - 1] : null;
+    const top = stacks.map((row, i) => `${xAt(i).toFixed(1)},${yAt(row[s]).toFixed(1)}`);
+    const bot = stacks.map((row, i) => `${xAt(i).toFixed(1)},${yAt(prev ? row[prev] : 0).toFixed(1)}`).reverse();
+    return `M ${top.join(' L ')} L ${bot.join(' L ')} Z`;
+  };
+
+  const linePath = (s: SeriesKey) =>
+    stacks.map((row, i) => `${i ? 'L' : 'M'} ${xAt(i).toFixed(1)},${yAt(row[s]).toFixed(1)}`).join(' ');
+
+  const gridYs = [0.25, 0.5, 0.75, 1.0].map((t) => padT + plotH * (1 - t));
+  const totalImps = stacks.reduce((a, b) => a + b.total, 0);
+
+  const dayLabel = (i: number) => {
+    const d = new Date(2026, 4, 1 + i);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+  };
+
+  const onMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const rel = Math.max(0, Math.min(1, (e.clientX - rect.left - padL) / plotW));
+    setHover(Math.round(rel * (DAYS - 1)));
+  };
+
+  return (
+    <div className="as-panel">
+      <div className="as-panel-head">
+        <span className="as-panel-title">Performance — Impressions</span>
+        <span className="as-mono as-small as-muted">{(totalImps / 1000).toFixed(0)}K · 30d</span>
+      </div>
+      <div className="as-chart-wrap" ref={containerRef} style={{ position: 'relative' }}>
+        <div className="as-chart-legend">
+          {CHART_SERIES.map((s) => (
+            <span key={s} className="as-legend-item">
+              <span className="as-legend-dot" style={{ opacity: SERIES_OPACITY[s] }} />
+              {SERIES_LABELS[s]}
+            </span>
+          ))}
+        </div>
+        <svg
+          className="as-chart-svg"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          onMouseMove={onMouseMove}
+          onMouseLeave={() => setHover(null)}
+        >
+          {/* gridlines */}
+          <g className="as-chart-grid">
+            {gridYs.map((y, i) => <line key={i} x1={padL} y1={y} x2={W - padR} y2={y} />)}
+          </g>
+          {/* y-axis labels */}
+          {[0, 0.25, 0.5, 0.75, 1.0].map((t, i) => (
+            <text key={i} className="as-chart-axis" x={padL - 6} y={padT + plotH * (1 - t) + 3} textAnchor="end">
+              {Math.round(maxTotal * t)}K
+            </text>
+          ))}
+          {/* x-axis labels */}
+          {[0, Math.floor(DAYS / 2), DAYS - 1].map((i) => (
+            <text key={i} className="as-chart-axis"
+              x={xAt(i)} y={H - 5}
+              textAnchor={i === 0 ? 'start' : i === DAYS - 1 ? 'end' : 'middle'}>
+              {dayLabel(i)}
+            </text>
+          ))}
+          {/* stacked areas + draw-in clip */}
+          <g style={{
+            clipPath: drawn ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
+            transition: 'clip-path 1.2s cubic-bezier(0.4,0,0.2,1)',
+          }}>
+            {[...CHART_SERIES].reverse().map((s) => (
+              <path key={s} d={areaPath(s)}
+                fill="currentColor" fillOpacity={SERIES_OPACITY[s] * 0.25} />
+            ))}
+            <path d={linePath(CHART_SERIES[CHART_SERIES.length - 1])}
+              fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </g>
+          {/* hover crosshair */}
+          {hover !== null && (
+            <>
+              <line
+                x1={xAt(hover)} y1={padT} x2={xAt(hover)} y2={padT + plotH}
+                stroke="var(--as-ink)" strokeWidth="1" strokeDasharray="2 3" opacity="0.6"
+              />
+              <circle cx={xAt(hover)} cy={yAt(stacks[hover].total)} r="3" fill="currentColor" />
+            </>
+          )}
+        </svg>
+        {hover !== null && (
+          <div className="as-chart-tooltip" style={{
+            left: `${((xAt(hover) / W) * 100).toFixed(1)}%`,
+            top: `${((yAt(stacks[hover].total) / H) * 100).toFixed(1)}%`,
+          }}>
+            <div className="as-chart-tooltip-date">{dayLabel(hover)}</div>
+            {CHART_SERIES.map((s) => (
+              <div key={s} className="as-chart-tooltip-row">
+                <span>{SERIES_LABELS[s]}</span>
+                <span>{Math.round(data[s][hover])}K</span>
+              </div>
+            ))}
+            <div className="as-chart-tooltip-row as-chart-tooltip-total">
+              <span>TOTAL</span>
+              <span>{Math.round(stacks[hover].total)}K</span>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="as-panel-foot">
+        <span className="as-mono as-small">METHOD · IMPRESSIONS ACROSS 4 PLATFORMS</span>
+        <a href="#" className="as-mono as-small" style={{ color: 'var(--as-ink)' }}>Open report ↗</a>
+      </div>
+    </div>
+  );
+}
+
+// ── Static mock data ─────────────────────────────────────────────────────────
+
+interface ActivityItem {
+  id: number;
+  live: boolean;
+  title: string;
+  text: string;
+  time: string;
+  linkTo: string;
+  linkLabel: string;
+}
+
+interface CampaignRow {
+  id: string;
+  name: string;
+  status: 'active' | 'completed' | 'paused';
+  metricLabel: string;
+  metricValue: string;
+  platform: string;
+  trend: 'up' | 'down' | 'flat';
+  trendValue: string;
+  spark: number[];
+}
+
+const recentActivity: ActivityItem[] = [
+  { id: 1, live: true,  title: 'Campaign launched',  text: 'Spring Reset · Aurora is now live across Meta and TikTok.', time: '02H AGO', linkTo: '/campaigns', linkLabel: 'SPRING RESET' },
+  { id: 2, live: false, title: '12 new variants',    text: 'AI generated 12 new hooks for "Product Launch" targeting The Researcher.',  time: '05H AGO', linkTo: '/campaigns', linkLabel: 'PRODUCT LAUNCH' },
+  { id: 3, live: false, title: 'Creative approved',  text: '3 video variants approved for the "Brand Awareness" campaign.',              time: '01D AGO', linkTo: '/campaigns', linkLabel: 'BRAND AWARENESS' },
+  { id: 4, live: false, title: 'Scoring complete',   text: 'Late-Night persona scoring finished — 4 candidates above 0.85.',            time: '02D AGO', linkTo: '/campaigns', linkLabel: 'LATE-NIGHT Q1' },
 ];
 
-const topCampaigns = [
-  { id: '1', name: 'Summer Sale 2026', status: 'active', metricLabel: 'Conversions', metricValue: '1,240', platform: 'Meta', trend: 'up' as const, trendValue: '+12%' },
-  { id: '2', name: 'Product Launch', status: 'active', metricLabel: 'CTR', metricValue: '4.8%', platform: 'TikTok', trend: 'up' as const, trendValue: '+0.6%' },
-  { id: '3', name: 'Brand Awareness', status: 'completed', metricLabel: 'Reach', metricValue: '450K', platform: 'YouTube', trend: 'down' as const, trendValue: '-3%' },
+const topCampaigns: CampaignRow[] = [
+  { id: '1', name: 'Spring Reset · Aurora',    status: 'active',    metricLabel: 'CONV',  metricValue: '1,240', platform: 'META',     trend: 'up',   trendValue: '+12%',  spark: [40,42,44,48,52,56,58,62] },
+  { id: '2', name: 'Late-Night Retarget',      status: 'active',    metricLabel: 'CTR',   metricValue: '4.8%',  platform: 'TIKTOK',   trend: 'up',   trendValue: '+0.6%', spark: [3.6,3.8,4.0,4.1,4.3,4.5,4.7,4.8] },
+  { id: '3', name: 'Brand Awareness Q1',       status: 'completed', metricLabel: 'REACH', metricValue: '450K',  platform: 'YOUTUBE',  trend: 'down', trendValue: '-3%',   spark: [88,84,82,80,78,76,74,72] },
+  { id: '4', name: 'Daypack Launch · Outdoor', status: 'active',    metricLabel: 'CTR',   metricValue: '2.9%',  platform: 'META',     trend: 'up',   trendValue: '+0.2%', spark: [2.4,2.5,2.6,2.7,2.7,2.8,2.9,2.9] },
+  { id: '5', name: 'Commute Series · Test',    status: 'paused',    metricLabel: 'CONV',  metricValue: '186',   platform: 'LINKEDIN', trend: 'flat', trendValue: '—',     spark: [22,21,22,23,22,22,21,22] },
 ];
 
-const timeRanges = [
-  { value: '7d', label: '7d' },
-  { value: '30d', label: '30d' },
-  { value: '90d', label: '90d' },
-  { value: 'all', label: 'All' },
+interface KpiDef {
+  idx: string;
+  label: string;
+  target: number;
+  kind: 'thousands' | 'money' | 'pct' | 'int';
+  trend: string;
+  up: boolean;
+  spark: number[];
+}
+
+const kpiData: KpiDef[] = [
+  { idx: 'K.01', label: 'TOTAL REACH',  target: 2_400_000, kind: 'thousands', trend: '+12%',  up: true,  spark: [12,14,15,17,18,17,19,22,21,24,26,28,27,29,32,34] },
+  { idx: 'K.02', label: 'AD SPEND',     target: 12.4,      kind: 'money',     trend: '+18%',  up: true,  spark: [4,5,6,7,8,9,9,10,11,12,12,12] },
+  { idx: 'K.03', label: 'AVG CTR',      target: 4.1,       kind: 'pct',       trend: '+0.3%', up: true,  spark: [3.4,3.5,3.6,3.5,3.7,3.8,3.9,3.9,4.0,4.0,4.1,4.1] },
+  { idx: 'K.04', label: 'CONVERSIONS',  target: 3820,      kind: 'int',       trend: '-2%',   up: false, spark: [320,360,380,400,390,380,400,410,390,380,360,340] },
+];
+
+const personaSignals = [
+  { initial: 'A', name: 'AURORA',     sub: 'F · 24 · URBAN',        fit: 0.94, dir: 'up'   as const, spark: [0.71,0.74,0.78,0.82,0.85,0.88,0.91,0.94] },
+  { initial: 'S', name: 'SKEPTIC',    sub: 'M · 38 · SUBURBAN',     fit: 0.71, dir: 'flat' as const, spark: [0.68,0.70,0.69,0.71,0.70,0.72,0.71,0.71] },
+  { initial: 'L', name: 'LATE-NIGHT', sub: 'F · 29 · METROPOLITAN', fit: 0.88, dir: 'up'   as const, spark: [0.74,0.76,0.78,0.80,0.83,0.85,0.87,0.88] },
+  { initial: 'C', name: 'COMMUTE',    sub: 'M · 32 · URBAN',        fit: 0.79, dir: 'down' as const, spark: [0.85,0.83,0.82,0.81,0.80,0.79,0.78,0.79] },
+  { initial: 'O', name: 'OUTDOOR',    sub: 'X · 26 · EXURBAN',      fit: 0.66, dir: 'up'   as const, spark: [0.58,0.60,0.62,0.63,0.65,0.65,0.66,0.66] },
 ];
 
 const platforms = [
-  { id: 'meta', label: 'Meta' },
-  { id: 'tiktok', label: 'TikTok' },
-  { id: 'youtube', label: 'YouTube' },
-  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'meta', label: 'Meta' }, { id: 'tiktok', label: 'TikTok' },
+  { id: 'youtube', label: 'YouTube' }, { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'x', label: 'X' },
 ];
-
 const regions = [
-  { id: 'na', label: 'North America' },
-  { id: 'eu', label: 'Europe' },
-  { id: 'apac', label: 'Asia Pacific' },
-  { id: 'global', label: 'Global' },
+  { id: 'na', label: 'North America' }, { id: 'eu', label: 'Europe' },
+  { id: 'apac', label: 'Asia Pacific' }, { id: 'global', label: 'Global' },
 ];
+const GOALS = ['Brand awareness', 'Lead gen', 'Direct sales', 'Engagement', 'Other'] as const;
 
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20';
-const labelClass = 'block text-sm font-medium mb-1.5';
-const gradientText: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-  backgroundClip: 'text',
-  padding: '0 3px',
-  margin: '0 -3px',
-};
+// ── Formatters ────────────────────────────────────────────────────────────────
+
+function formatKpi(n: number, kind: KpiDef['kind']): string {
+  if (kind === 'pct')       return `${n.toFixed(1)}%`;
+  if (kind === 'money')     return `$${n.toFixed(1)}K`;
+  if (kind === 'thousands') {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+    return Math.round(n).toLocaleString();
+  }
+  return Math.round(n).toLocaleString();
+}
+
+// ── KPI card ─────────────────────────────────────────────────────────────────
+
+function KpiCard({ kpi, hero, active }: { kpi: KpiDef; hero: boolean; active: boolean }) {
+  const v = useCountUp(kpi.target, { active });
+
+  return (
+    <div className={`as-kpi${hero ? ' as-kpi-hero' : ''}`}>
+      <div className="as-kpi-label">
+        <span className="idx">{kpi.idx}</span>
+        <span>{kpi.label}</span>
+      </div>
+      <div className="as-kpi-val as-tabular">{formatKpi(v, kpi.kind)}</div>
+      <div className="as-kpi-row">
+        <span className={`as-kpi-trend${kpi.up ? '' : ' dn'}`}>
+          {kpi.up ? '▲' : '▼'} {kpi.trend}
+          {hero && <span className="vs">VS PRIOR 30D</span>}
+        </span>
+        <Sparkline points={kpi.spark} area={hero} down={!kpi.up} />
+      </div>
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const authFlow = localStorage.getItem('adgentic_auth_flow');
-  const isReturningUser = authFlow === 'signin';
-  const userName = localStorage.getItem('adgentic_last_name');
-  const firstName = userName ? userName.split(' ')[0] : 'there';
+  const rawName   = localStorage.getItem('adgentic_last_name') ?? '';
+  const firstName = rawName ? rawName.split(' ')[0] : 'there';
 
-  const [timeRange, setTimeRange] = useState('30d');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [timeRange, setTimeRange]         = useState('30D');
+  const [showModal, setShowModal]         = useState(false);
+  const [kpiActive, setKpiActive]         = useState(false);
   const [isAutofilling, setIsAutofilling] = useState(false);
-  const [customGoal, setCustomGoal] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [newCampaign, setNewCampaign] = useState({
-    name: '',
-    product: '',
-    targetAudience: '',
-    goal: '',
-    platforms: [] as string[],
-    region: '',
+  const [customGoal, setCustomGoal]       = useState('');
+  const [errors, setErrors]               = useState<Record<string, string>>({});
+  const [newCampaign, setNewCampaign]     = useState({
+    name: '', product: '', targetAudience: '', goal: '', platforms: [] as string[], region: '',
   });
-const togglePlatform = (platformId: string) => {
-    setNewCampaign({
-      ...newCampaign,
-      platforms: newCampaign.platforms.includes(platformId)
-        ? newCampaign.platforms.filter((p) => p !== platformId)
-        : [...newCampaign.platforms, platformId],
-    });
-  };
+
+  // Trigger count-up on mount (one frame delay so layout is ready)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setKpiActive(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // ESC closes modal
+  useEffect(() => {
+    if (!showModal) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowModal(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showModal]);
+
+  // Lock body scroll when modal open
+  useEffect(() => {
+    document.body.style.overflow = showModal ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [showModal]);
+
+  const togglePlatform = (id: string) =>
+    setNewCampaign((c) => ({
+      ...c,
+      platforms: c.platforms.includes(id)
+        ? c.platforms.filter((p) => p !== id)
+        : [...c.platforms, id],
+    }));
 
   const handleAutofill = () => {
     setIsAutofilling(true);
     setTimeout(() => {
-      setNewCampaign({ ...newCampaign, platforms: ['meta', 'tiktok'], region: 'na', goal: 'sales', targetAudience: 'Tech-savvy millennials interested in productivity tools.' });
+      setNewCampaign((c) => ({ ...c, platforms: ['meta', 'tiktok'], region: 'na', goal: 'Direct sales', targetAudience: 'Tech-savvy millennials interested in productivity tools.' }));
       setIsAutofilling(false);
-    }, 1500);
+    }, 1100);
   };
 
-  const handleCreateCampaign = () => {
-    const newErrors: Record<string, string> = {};
-    if (!newCampaign.name) newErrors.name = 'Campaign name is required';
-    if (!newCampaign.product) newErrors.product = 'Product/Service is required';
-    if (!newCampaign.targetAudience) newErrors.targetAudience = 'Target audience is required';
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    setShowCreateModal(false);
-    navigate('/generate', { state: { campaignContext: { ...newCampaign, goal: newCampaign.goal === 'other' ? customGoal : newCampaign.goal } } });
+  const handleCreate = () => {
+    const errs: Record<string, string> = {};
+    if (!newCampaign.name)           errs.name           = 'Campaign name is required';
+    if (!newCampaign.product)        errs.product        = 'Product / service is required';
+    if (!newCampaign.targetAudience) errs.targetAudience = 'Target audience is required';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setShowModal(false);
+    navigate('/generate', { state: { campaignContext: { ...newCampaign, goal: newCampaign.goal === 'Other' ? customGoal : newCampaign.goal } } });
   };
 
   return (
-    <DashboardLayout>
+    <AppShell
+      timeRange={timeRange}
+      onTimeRangeChange={setTimeRange}
+      showNewCampaign
+      onNewCampaign={() => setShowModal(true)}
+    >
+      <div className="as-canvas">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* ── Page head ── */}
+        <div className="as-page-head">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {isReturningUser ? (
-                <>Welcome back, <em className="font-serif italic" style={gradientText}>{firstName}</em></>
-              ) : <><em className="font-serif italic" style={gradientText}>Ad-gentic</em> Dashboard</>}
+            <span className="as-eyebrow">— DASHBOARD · {timeRange}</span>
+            <h1>
+              Welcome back, {firstName}.{' '}
+              <span style={{ color: 'var(--as-ink-2)' }}>Two campaigns running today.</span>
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {isReturningUser ? "Here's what's happening with your campaigns." : "Your advertising hub — let's get started."}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {isReturningUser && (
-              <div className="inline-flex items-center bg-muted border border-border rounded-lg p-1">
-                {timeRanges.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => setTimeRange(r.value)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeRange === r.value ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              New Campaign
-            </button>
           </div>
         </div>
 
-        {isReturningUser ? (
-          <>
-            {/* Stats row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {[
-                { label: 'Total Reach', value: '2.4M', change: '+12%', up: true, accent: 'border-amber-500' },
-                { label: 'Ad Spend', value: '$12.4K', change: '+18%', up: true, accent: 'border-emerald-500' },
-                { label: 'Avg. CTR', value: '4.1%', change: '+0.3%', up: true, accent: 'border-violet-500' },
-                { label: 'Conversions', value: '3,820', change: '-2%', up: false, accent: 'border-orange-500' },
-              ].map(({ label, value, change, up, accent }) => (
-                <div key={label} className={`border-t-2 ${accent} pt-4`}>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">{label}</p>
-                  <p className="text-2xl font-semibold tracking-tight mb-1" style={gradientText}>{value}</p>
-                  <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${up ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {up ? <TrendingUpIcon className="w-3 h-3" /> : <TrendingDownIcon className="w-3 h-3" />}
-                    {change}
-                  </span>
-                </div>
-              ))}
+        {/* ── KPI strip ── */}
+        <div className="as-kpi-strip">
+          <div className="as-kpi-strip-head">
+            <span style={{ fontFamily: "'Geist Mono',monospace", fontSize: 10.5, letterSpacing: '0.08em', color: 'var(--as-ink-2)', textTransform: 'uppercase' }}>
+              — ROLLING {timeRange} · 04 SIGNALS
+            </span>
+            <span className="as-live-mark">
+              <span className="d" />
+              LIVE
+            </span>
+          </div>
+          <div className="as-kpi-strip-row">
+            {kpiData.map((k, i) => (
+              <KpiCard key={k.label} kpi={k} hero={i === 0} active={kpiActive} />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Performance + Persona signal ── */}
+        <div className="as-grid-2" style={{ marginBottom: 24 }}>
+          <PerformanceChart active={kpiActive} />
+          <PersonaSignalPanel active={kpiActive} />
+        </div>
+
+        {/* ── Activity + Campaigns ── */}
+        <div className="as-grid-2 flip" style={{ marginBottom: 24 }}>
+          <ActivityFeedPanel />
+          <CampaignsTablePanel navigate={navigate} />
+        </div>
+
+      </div>
+
+      {/* ── New Campaign Modal ── */}
+      {showModal && (
+        <div
+          className="as-modal-overlay"
+          onClick={() => setShowModal(false)}
+          style={{ animation: 'as-modal-fadein 0.2s ease' }}
+        >
+          <div className="as-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="as-modal-head">
+              <div>
+                <div className="as-modal-eyebrow">— NEW · CAMPAIGN</div>
+                <div className="as-modal-title">Brief</div>
+              </div>
+              <button className="as-modal-close" onClick={() => setShowModal(false)} aria-label="Close">
+                <AppIcon name="x" size={14} />
+              </button>
             </div>
 
-            {/* Main content */}
-            <div className="grid grid-cols-12 gap-6">
-              {/* Activity feed */}
-              <div className="col-span-12 lg:col-span-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Activity</h2>
-                <div className="border border-border divide-y divide-border">
-                  {recentActivity.map((activity, i) => {
-                    const accent = ['border-l-amber-500', 'border-l-violet-500', 'border-l-emerald-500'][i];
-                    return (
-                      <div key={activity.id} className={`p-4 border-l-2 ${accent}`}>
-                        <p className="text-sm font-medium leading-snug">{activity.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{activity.text}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <Link to={activity.linkTo} className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline font-medium">
-                            View <ArrowUpRightIcon className="w-3 h-3" />
-                          </Link>
-                          <span className="text-xs text-muted-foreground">{activity.time}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div className="as-modal-body">
+              {/* Auto-fill */}
+              <button className="as-autofill-btn" onClick={handleAutofill} disabled={isAutofilling}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: 'var(--as-accent)', display: 'grid', placeItems: 'center', width: 16, height: 16 }}>
+                    <AppIcon name={isAutofilling ? 'loader' : 'wand'} size={14} />
+                  </span>
+                  <div>
+                    <div style={{ fontFamily: "'Geist Mono',monospace", fontSize: 10, letterSpacing: '0.08em', color: 'var(--as-ink-2)', textTransform: 'uppercase', marginBottom: 2 }}>AUTO-FILL</div>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>Draft from workspace profile</div>
+                  </div>
+                </div>
+                <AppIcon name="arrow" size={14} />
+              </button>
+
+              {/* Campaign name */}
+              <div className="as-field">
+                <label className="as-field-label">Campaign name <span className="as-field-required">*</span></label>
+                <input className="as-input" placeholder="e.g. Spring Reset · Aurora"
+                  value={newCampaign.name}
+                  onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })} />
+                {errors.name && <span className="as-field-error">{errors.name}</span>}
+              </div>
+
+              {/* Product + Region */}
+              <div className="as-field-row">
+                <div className="as-field">
+                  <label className="as-field-label">Product / service <span className="as-field-required">*</span></label>
+                  <input className="as-input" placeholder="What are you advertising?"
+                    value={newCampaign.product}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, product: e.target.value })} />
+                  {errors.product && <span className="as-field-error">{errors.product}</span>}
+                </div>
+                <div className="as-field">
+                  <label className="as-field-label">Region</label>
+                  <select className="as-select" value={newCampaign.region}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, region: e.target.value })}>
+                    <option value="">Select region</option>
+                    {regions.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+                  </select>
                 </div>
               </div>
 
-              {/* Top campaigns */}
-              <div className="col-span-12 lg:col-span-8">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Top Campaigns</h2>
-                <div className="border border-border divide-y divide-border">
-                  {topCampaigns.map((campaign) => (
-                    <div
-                      key={campaign.id}
-                      className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer group"
-                      onClick={() => navigate(`/campaign/${campaign.id}`)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${campaign.status === 'active' ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
-                        <div>
-                          <p className="text-sm font-medium">{campaign.name}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{campaign.platform} · {campaign.status}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <p className="text-base font-semibold tracking-tight">{campaign.metricValue}</p>
-                          <p className="text-xs text-muted-foreground">{campaign.metricLabel}</p>
-                        </div>
-                        <span className={`text-xs font-medium ${campaign.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
-                          {campaign.trendValue}
+              {/* Target audience */}
+              <div className="as-field">
+                <label className="as-field-label">Target audience <span className="as-field-required">*</span></label>
+                <textarea className="as-textarea" rows={3}
+                  placeholder="Age, interests, behaviors, goals…"
+                  value={newCampaign.targetAudience}
+                  onChange={(e) => setNewCampaign({ ...newCampaign, targetAudience: e.target.value })} />
+                {errors.targetAudience && <span className="as-field-error">{errors.targetAudience}</span>}
+              </div>
+
+              {/* Campaign goal — chips */}
+              <div className="as-field">
+                <label className="as-field-label">Campaign goal</label>
+                <div className="as-chip-group">
+                  {GOALS.map((g) => (
+                    <button key={g} type="button"
+                      className={`as-chip${newCampaign.goal === g ? ' on' : ''}`}
+                      onClick={() => setNewCampaign({ ...newCampaign, goal: g })}>
+                      {newCampaign.goal === g && (
+                        <span style={{ display: 'grid', placeItems: 'center', width: 12, height: 12 }}>
+                          <AppIcon name="check" size={12} />
                         </span>
-                        <ArrowRightIcon className="w-4 h-4 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
-                      </div>
-                    </div>
+                      )}
+                      {g}
+                    </button>
                   ))}
                 </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Getting started */}
-            <div className="mb-8">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Get started</h2>
-              <div className="border border-border divide-y divide-border">
-                {[
-                  { step: '01', title: 'Add your product', desc: 'Define what you\'re advertising — name, description, and images.', label: 'Add product', path: '/products' },
-                  { step: '02', title: 'Import customer data', desc: 'Upload your audience so the AI can build behavioral personas for targeting.', label: 'Import data', path: '/customer-data' },
-                  { step: '03', title: 'Generate your first campaign', desc: 'Chat with the AI Strategist to plan and generate persona-targeted video ads.', label: 'Start generating', path: '/generate' },
-                ].map(({ step, title, desc, label, path }) => (
-                  <div
-                    key={step}
-                    onClick={() => navigate(path)}
-                    className="flex items-center gap-6 px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors group"
-                  >
-                    <span className="text-xs font-mono font-semibold flex-shrink-0 w-6" style={gradientText}>{step}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-                    </div>
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded text-xs font-medium text-muted-foreground group-hover:border-foreground/40 group-hover:text-foreground transition-colors flex-shrink-0">
-                      {label} <ArrowRightIcon className="w-3 h-3" />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Empty state panels */}
-            <div className="grid grid-cols-12 gap-6">
-              <div className="col-span-12 lg:col-span-8">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Performance Overview</h2>
-                <div className="border border-border p-8 flex flex-col items-center justify-center min-h-[240px] text-center">
-                  <p className="text-5xl font-semibold text-muted-foreground/10 mb-4 tracking-tight">—</p>
-                  <p className="text-sm font-medium mb-1">No performance data yet</p>
-                  <p className="text-xs text-muted-foreground max-w-xs mb-4">Launch your first campaign to see real-time metrics for reach, conversions, CTR, and ad spend.</p>
-                  <button
-                    onClick={() => navigate('/generate')}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
-                  >
-                    Create your first ad
-                  </button>
-                </div>
-              </div>
-              <div className="col-span-12 lg:col-span-4">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Activity</h2>
-                <div className="border border-border p-6 flex flex-col items-center justify-center min-h-[240px] text-center">
-                  <p className="text-sm font-medium mb-1">No activity yet</p>
-                  <p className="text-xs text-muted-foreground max-w-[180px]">Campaign launches and ad generations will appear here.</p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      {/* Create Campaign Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-          <div className="relative w-full max-w-lg bg-card border border-border rounded p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold">New Campaign</h2>
-              <button onClick={() => setShowCreateModal(false)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground">
-                <XIcon className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <button
-                onClick={handleAutofill}
-                disabled={isAutofilling}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded text-sm hover:bg-muted transition-colors disabled:opacity-50"
-              >
-                {isAutofilling ? (
-                  <><Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" /> Auto-filling...</>
-                ) : (
-                  <><SparklesIcon className="w-4 h-4 text-muted-foreground" /> Auto-fill from profile</>
-                )}
-              </button>
-
-              <div>
-                <label className={labelClass}>Campaign Name <span className="text-red-500">*</span></label>
-                <input className={inputClass} placeholder="e.g., Summer Sale 2026" value={newCampaign.name} onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })} />
-                {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
-              </div>
-
-              <div>
-                <label className={labelClass}>Product / Service <span className="text-red-500">*</span></label>
-                <input className={inputClass} placeholder="What are you advertising?" value={newCampaign.product} onChange={(e) => setNewCampaign({ ...newCampaign, product: e.target.value })} />
-                {errors.product && <p className="text-xs text-red-500 mt-1">{errors.product}</p>}
-              </div>
-
-              <div>
-                <label className={labelClass}>Target Audience <span className="text-red-500">*</span></label>
-                <textarea className={`${inputClass} resize-none`} rows={3} placeholder="Describe who you want to reach..." value={newCampaign.targetAudience} onChange={(e) => setNewCampaign({ ...newCampaign, targetAudience: e.target.value })} />
-                {errors.targetAudience && <p className="text-xs text-red-500 mt-1">{errors.targetAudience}</p>}
-              </div>
-
-              <div>
-                <label className={labelClass}>Campaign Goal</label>
-                <select className={`${inputClass}`} value={newCampaign.goal} onChange={(e) => setNewCampaign({ ...newCampaign, goal: e.target.value })}>
-                  <option value="">Select goal</option>
-                  <option value="awareness">Brand Awareness</option>
-                  <option value="leads">Lead Generation</option>
-                  <option value="sales">Direct Sales</option>
-                  <option value="engagement">Engagement</option>
-                  <option value="other">Other</option>
-                </select>
-                {newCampaign.goal === 'other' && (
-                  <input className={`${inputClass} mt-2`} placeholder="Describe your specific goal..." value={customGoal} onChange={(e) => setCustomGoal(e.target.value)} />
+                {newCampaign.goal === 'Other' && (
+                  <input className="as-input" style={{ marginTop: 8 }}
+                    placeholder="Describe your specific goal…"
+                    value={customGoal}
+                    onChange={(e) => setCustomGoal(e.target.value)} />
                 )}
               </div>
 
-              <div>
-                <label className={labelClass}>Target Platforms</label>
-                <div className="flex flex-wrap gap-2">
+              {/* Platforms — chips */}
+              <div className="as-field">
+                <label className="as-field-label">Platforms</label>
+                <div className="as-chip-group">
                   {platforms.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => togglePlatform(p.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm transition-colors ${newCampaign.platforms.includes(p.id) ? 'border-foreground bg-foreground/8 text-foreground' : 'border-border text-muted-foreground hover:border-foreground/30'}`}
-                    >
-                      {newCampaign.platforms.includes(p.id) && <CheckIcon className="w-3.5 h-3.5" />}
+                    <button key={p.id} type="button"
+                      className={`as-chip${newCampaign.platforms.includes(p.id) ? ' on' : ''}`}
+                      onClick={() => togglePlatform(p.id)}>
+                      {newCampaign.platforms.includes(p.id) && (
+                        <span style={{ display: 'grid', placeItems: 'center', width: 12, height: 12 }}>
+                          <AppIcon name="check" size={12} />
+                        </span>
+                      )}
                       {p.label}
                     </button>
                   ))}
                 </div>
               </div>
-
-              <div>
-                <label className={labelClass}>Target Region</label>
-                <select className={inputClass} value={newCampaign.region} onChange={(e) => setNewCampaign({ ...newCampaign, region: e.target.value })}>
-                  <option value="">Select region</option>
-                  {regions.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-                </select>
-              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-border">
-              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateCampaign}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                <SparklesIcon className="w-4 h-4" />
-                Create & Generate Ads
-              </button>
+            <div className="as-modal-foot">
+              <span style={{ fontFamily: "'Geist Mono',monospace", fontSize: 10.5, color: 'var(--as-ink-2)', letterSpacing: '0.06em' }}>
+                — ESC TO CANCEL
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="as-btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+                <button className="as-btn-solid" onClick={handleCreate}>
+                  <span style={{ display: 'grid', placeItems: 'center', width: 14, height: 14 }}>
+                    <AppIcon name="sparkles" size={14} />
+                  </span>
+                  Create &amp; generate →
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </AppShell>
+  );
+}
+
+// ── Persona signal panel ──────────────────────────────────────────────────────
+
+function PersonaSignalPanel({ active }: { active: boolean }) {
+  return (
+    <div className="as-panel">
+      <div className="as-panel-head">
+        <span className="as-panel-title">Persona signal</span>
+        <span className="as-mono as-small as-muted">5 · ACTIVE</span>
+      </div>
+      <div className="as-persona-list">
+        {personaSignals.map((p) => (
+          <div key={p.name} className="as-persona-row">
+            <div className="as-persona-avatar">{p.initial}</div>
+            <div className="as-persona-meta">
+              <div className="as-persona-name">{p.name}</div>
+              <div className="as-persona-sub">{p.sub}</div>
+            </div>
+            {/* Trend mini-graph */}
+            <svg viewBox="0 0 36 22" preserveAspectRatio="none" style={{ width: 36, height: 22 }}>
+              <polyline
+                points={p.spark.map((v, i) => `${(i / (p.spark.length - 1)) * 36},${22 - v * 20}`).join(' ')}
+                fill="none"
+                stroke={p.dir === 'down' ? 'var(--as-ink-3)' : 'var(--as-accent)'}
+                strokeWidth="1.2"
+              />
+            </svg>
+            <div>
+              <div className="as-persona-fit as-tabular">{p.fit.toFixed(2)}</div>
+              <span className="as-persona-fit-bar">
+                <span
+                  className={`as-persona-fit-fill${p.fit >= 0.85 ? ' high' : ''}`}
+                  style={{ width: active ? `${p.fit * 100}%` : '0%', transition: 'width 1s ease' }}
+                />
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="as-panel-foot">
+        <span className="as-mono as-small">FIT · ROLLING 30D</span>
+        <a href="#" className="as-mono as-small" style={{ color: 'var(--as-ink)' }}>All personas ↗</a>
+      </div>
+    </div>
+  );
+}
+
+// ── Activity feed panel ───────────────────────────────────────────────────────
+
+function ActivityFeedPanel() {
+  return (
+    <div className="as-panel">
+      <div className="as-panel-head">
+        <span className="as-panel-title">Activity</span>
+        <span className="as-mono as-small as-muted">LIVE · {recentActivity.length} EVENTS</span>
+      </div>
+      <div className="as-activity-list">
+        {recentActivity.map((a) => (
+          <div key={a.id} className="as-activity-item">
+            <div className={`as-activity-dot${a.live ? ' live' : ''}`} style={{ position: 'relative' }} />
+            <div className="as-activity-content">
+              <div className="as-activity-title">{a.title}</div>
+              <div className="as-activity-text">{a.text}</div>
+              <div className="as-activity-meta">
+                <Link to={a.linkTo} className="as-activity-link">→ {a.linkLabel}</Link>
+                <span>{a.time}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Campaigns table panel ─────────────────────────────────────────────────────
+
+function CampaignsTablePanel({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  return (
+    <div className="as-panel">
+      <div className="as-panel-head">
+        <span className="as-panel-title">Top campaigns</span>
+        <a href="#" className="as-mono as-small" style={{ color: 'var(--as-ink)' }}>View all ↗</a>
+      </div>
+      <table className="as-table">
+        <thead>
+          <tr>
+            <th className="as-t-idx">#</th>
+            <th>Campaign</th>
+            <th>Platform</th>
+            <th>Status</th>
+            <th style={{ textAlign: 'right' }}>Metric</th>
+            <th style={{ textAlign: 'right' }}>Trend</th>
+            <th style={{ width: 90 }}>Δ 7d</th>
+          </tr>
+        </thead>
+        <tbody>
+          {topCampaigns.map((c, i) => (
+            <tr key={c.id} onClick={() => navigate(`/campaigns`)}>
+              <td className="as-t-idx">{String(i + 1).padStart(2, '0')}</td>
+              <td className="as-t-name">{c.name}</td>
+              <td className="as-t-platform">{c.platform}</td>
+              <td>
+                <span className={`as-t-status${c.status === 'active' ? ' active' : ''}`}>
+                  <span className="d" />{c.status}
+                </span>
+              </td>
+              <td>
+                <div className="as-t-metric">{c.metricValue}</div>
+                <div className="as-t-metric-label">{c.metricLabel}</div>
+              </td>
+              <td className={`as-t-trend ${c.trend === 'up' ? 'up' : c.trend === 'down' ? 'dn' : ''}`}>
+                {c.trend === 'up' ? '▲ ' : c.trend === 'down' ? '▼ ' : '· '}{c.trendValue}
+              </td>
+              <td>
+                <TableSpark points={c.spark} down={c.trend === 'down'} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

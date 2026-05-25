@@ -1,3 +1,4 @@
+// ChatPanel — gen-chat-panel wrapper
 import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
@@ -29,7 +30,6 @@ interface ChatPanelProps {
   // Plan actions
   onApprovePlan?: (message: ChatMessage) => void;
   onDeclinePlan?: (message: ChatMessage) => void;
-  // Passed through to PlanCard so it can show the auto-approve status badge
   expressMode?: boolean;
   // Selection
   selectedVariantCount: number;
@@ -40,6 +40,8 @@ interface ChatPanelProps {
   variantCount: number;
   style?: React.CSSProperties;
   className?: string;
+  // Disabled (no campaign selected yet)
+  disabled?: boolean;
 }
 
 export function ChatPanel({
@@ -68,10 +70,11 @@ export function ChatPanel({
   variantCount,
   style,
   className,
+  disabled,
 }: ChatPanelProps) {
   return (
     <div
-      className={`flex flex-col h-full bg-card border-r border-border relative ${className ?? ''}`}
+      className={`gen-chat-panel${disabled ? ' gen-chat-disabled' : ''}${className ? ` ${className}` : ''}`}
       style={style}
     >
       <ChatHeader
@@ -96,6 +99,7 @@ export function ChatPanel({
         onApprovePlan={onApprovePlan}
         onDeclinePlan={onDeclinePlan}
         expressMode={expressMode}
+        disabled={disabled}
       />
 
       <ChatInput
@@ -103,7 +107,7 @@ export function ChatPanel({
         onChange={onInputChange}
         onSend={onSend}
         phase={phase}
-        disabled={isAiLoading}
+        disabled={disabled || isAiLoading}
         selectedVariantCount={selectedVariantCount}
         onClearSelection={onClearSelection}
       />

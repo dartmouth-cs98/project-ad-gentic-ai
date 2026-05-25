@@ -1,13 +1,6 @@
+// CampaignTable — cmp-table styled with gen-* aesthetic
 import { Link, useNavigate } from 'react-router-dom';
-import { EditIcon, TrashIcon } from 'lucide-react';
 import type { CampaignItem } from './CampaignGridCard';
-
-const statusStyles = {
-  active: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  completed: 'bg-muted text-muted-foreground',
-  draft: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
-  paused: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-} as const;
 
 interface CampaignTableProps {
   campaigns: CampaignItem[];
@@ -19,75 +12,69 @@ interface CampaignTableProps {
 
 export function CampaignTable({ campaigns, selectedCampaigns, onToggleSelection, onToggleSelectAll, onDeleteClick }: CampaignTableProps) {
   const navigate = useNavigate();
+  const allSelected = selectedCampaigns.length === campaigns.length && campaigns.length > 0;
 
   return (
-    <div className="bg-card border border-border rounded overflow-hidden">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-border">
+    <div className="cmp-table-wrap">
+      <table className="cmp-table">
+        <thead>
           <tr>
-            <th className="px-4 py-3 w-10">
+            <th style={{ width: 40, padding: '9px 14px' }}>
               <input
                 type="checkbox"
-                checked={selectedCampaigns.length === campaigns.length && campaigns.length > 0}
+                className="cmp-check"
+                checked={allSelected}
                 onChange={onToggleSelectAll}
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
               />
             </th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Name</th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Product</th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Goal</th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Created</th>
-            <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-right">Actions</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Product</th>
+            <th>Goal</th>
+            <th>Created</th>
+            <th className="r">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">
-          {campaigns.map((campaign) => (
-            <tr
-              key={campaign.id}
-              className={`transition-colors ${selectedCampaigns.includes(campaign.id) ? 'bg-muted/50' : 'hover:bg-muted/30'}`}
-            >
-              <td className="px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={selectedCampaigns.includes(campaign.id)}
-                  onChange={() => onToggleSelection(campaign.id)}
-                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                />
-              </td>
-              <td className="px-4 py-3">
-                <Link to={`/campaign/${campaign.id}`} className="font-medium hover:text-foreground transition-colors">
-                  {campaign.name}
-                </Link>
-              </td>
-              <td className="px-4 py-3">
-                <span className={`text-xs px-2 py-0.5 rounded font-medium ${statusStyles[campaign.status]}`}>
-                  {campaign.status}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-muted-foreground">{campaign.product}</td>
-              <td className="px-4 py-3 text-muted-foreground max-w-[12rem] truncate" title={campaign.objective}>
-                {campaign.objective}
-              </td>
-              <td className="px-4 py-3 text-muted-foreground">{campaign.dateCreated}</td>
-              <td className="px-4 py-3 text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => navigate(`/campaign/${campaign.id}`)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-border rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                  >
-                    <EditIcon className="w-3.5 h-3.5" /> Edit
-                  </button>
-                  <button
-                    onClick={() => onDeleteClick(campaign.id, campaign.name)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-red-500/20 rounded hover:bg-red-500/10 transition-colors text-red-500"
-                  >
-                    <TrashIcon className="w-3.5 h-3.5" /> Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+        <tbody>
+          {campaigns.map((c) => {
+            const selected = selectedCampaigns.includes(c.id);
+            return (
+              <tr key={c.id} className={selected ? 'selected' : ''}>
+                <td style={{ padding: '11px 14px' }}>
+                  <input
+                    type="checkbox"
+                    className="cmp-check"
+                    checked={selected}
+                    onChange={() => onToggleSelection(c.id)}
+                  />
+                </td>
+                <td className="name">
+                  <Link to={`/campaign/${c.id}`}>{c.name}</Link>
+                </td>
+                <td>
+                  <span className={`cmp-status ${c.status}`}>
+                    <span className="d" />
+                    {c.status}
+                  </span>
+                </td>
+                <td>{c.product}</td>
+                <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.objective}
+                </td>
+                <td>{c.dateCreated}</td>
+                <td className="r">
+                  <div className="cmp-row-actions">
+                    <button className="cmp-row-btn" onClick={() => navigate(`/campaign/${c.id}`)}>
+                      Edit
+                    </button>
+                    <button className="cmp-row-btn danger" onClick={() => onDeleteClick(c.id, c.name)}>
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

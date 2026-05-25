@@ -1,16 +1,7 @@
+// CampaignsPage — Swiss/Linear editorial theme
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import {
-  LayoutGridIcon,
-  ListIcon,
-  SearchIcon,
-  PlusIcon,
-  XIcon,
-  Loader2Icon,
-  MegaphoneIcon,
-  AlertCircleIcon,
-} from 'lucide-react';
+import { AppShell } from '../components/layout/AppShell';
 
 import { CampaignGridCard } from '../components/campaigns/CampaignGridCard';
 import { CampaignTable } from '../components/campaigns/CampaignTable';
@@ -28,10 +19,63 @@ import {
 } from '../lib/campaignsList';
 import type { Campaign } from '../types';
 
-/** Stable fallback while campaigns query has no data (avoids a new `[]` each render). */
 const EMPTY_CAMPAIGNS: Campaign[] = [];
 
-// ---------- Component ----------
+// ── Icons ────────────────────────────────────────────────────────
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={13} height={13}>
+      <path d="M7 2v10M2 7h10" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={12} height={12}>
+      <circle cx="5.5" cy="5.5" r="4" />
+      <path d="M9 9l3.5 3.5" />
+    </svg>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
+      <rect x="1" y="1" width="5" height="5" />
+      <rect x="8" y="1" width="5" height="5" />
+      <rect x="1" y="8" width="5" height="5" />
+      <rect x="8" y="8" width="5" height="5" />
+    </svg>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={13} height={13}>
+      <path d="M1 3h12M1 7h12M1 11h12" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function MegaphoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={34} height={34}>
+      <path d="M3 11v2M18 4l2-2M18 20l2 2M6 15h2a2 2 0 002-2v-2a2 2 0 00-2-2H6L3 7v10l3-2zM18 9v6" />
+    </svg>
+  );
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
 
 function parseProductIds(raw: string | null): number[] {
   if (!raw) return [];
@@ -44,30 +88,32 @@ function parseProductIds(raw: string | null): number[] {
   }
 }
 
+// ── Component ────────────────────────────────────────────────────
+
 export function CampaignsPage() {
   const { user, loading: userLoading } = useUser();
   const businessClientId = user?.client_id;
-  const canManageCampaigns = typeof businessClientId === 'number' && businessClientId > 0;
+  const canManage = typeof businessClientId === 'number' && businessClientId > 0;
 
   const { data: rawCampaignsData, isLoading, isError, error } = useCampaigns(businessClientId);
   const { data: productsData } = useProducts(businessClientId);
   const rawCampaigns = rawCampaignsData ?? EMPTY_CAMPAIGNS;
   const products = productsData ?? [];
+
   const deleteMutation = useDeleteCampaign();
   const updateMutation = useUpdateCampaign();
 
-  const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('all');
-
+  const [dateRange, setDateRange] = useState<DateRangePreset>('all');
   const campaignsByDate = useMemo(
-    () => filterCampaignsByDatePreset(rawCampaigns, dateRangePreset),
-    [rawCampaigns, dateRangePreset],
+    () => filterCampaignsByDatePreset(rawCampaigns, dateRange),
+    [rawCampaigns, dateRange],
   );
 
   const goalOptions = useMemo(() => distinctGoalsFromCampaigns(campaignsByDate), [campaignsByDate]);
 
   useEffect(() => {
     const allowed = new Set(distinctGoalsFromCampaigns(campaignsByDate));
-    setSelectedObjectives((prev) => {
+    setSelectedGoals((prev) => {
       const next = prev.filter((g) => allowed.has(g));
       if (next.length === prev.length && next.every((g, i) => g === prev[i])) return prev;
       return next;
@@ -75,59 +121,40 @@ export function CampaignsPage() {
   }, [campaignsByDate]);
 
   const campaigns = useMemo(
-    () =>
-      campaignsByDate.map((c) => {
-        const item = campaignToItem(c);
-        const firstProductId = parseProductIds(c.product_ids)[0];
-        const product = products.find((p) => p.id === firstProductId);
-        const productImage = product?.image_urls?.[0];
-        return {
-          ...item,
-          thumbnail: productImage,
-        };
-      }),
+    () => campaignsByDate.map((c) => {
+      const item = campaignToItem(c);
+      const firstProductId = parseProductIds(c.product_ids)[0];
+      const product = products.find((p) => p.id === firstProductId);
+      return { ...item, thumbnail: product?.image_urls?.[0] };
+    }),
     [campaignsByDate, products],
   );
 
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<{ id: number; name: string } | null>(null);
 
-  const toggleObjective = (objective: string) => {
-    setSelectedObjectives((prev) =>
-      prev.includes(objective)
-        ? prev.filter((o) => o !== objective)
-        : [...prev, objective],
-    );
-  };
-
-  const filteredCampaigns = campaigns.filter((campaign) => {
+  const filteredCampaigns = campaigns.filter((c) => {
     const matchesSearch =
-      campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.product.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesObjective =
-      selectedObjectives.length === 0 || selectedObjectives.includes(campaign.objective);
-    return matchesSearch && matchesObjective;
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.product.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGoal = selectedGoals.length === 0 || selectedGoals.includes(c.objective);
+    return matchesSearch && matchesGoal;
   });
 
-  const toggleCampaignSelection = (id: string) => {
-    setSelectedCampaigns((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    );
-  };
+  const toggleGoal = (g: string) =>
+    setSelectedGoals((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]);
 
-  const toggleSelectAll = () => {
-    if (selectedCampaigns.length === filteredCampaigns.length) {
-      setSelectedCampaigns([]);
-    } else {
-      setSelectedCampaigns(filteredCampaigns.map((c) => c.id));
-    }
-  };
+  const toggleSelection = (id: string) =>
+    setSelectedCampaigns((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]);
+
+  const toggleSelectAll = () =>
+    setSelectedCampaigns(selectedCampaigns.length === filteredCampaigns.length ? [] : filteredCampaigns.map((c) => c.id));
 
   const handleBulkPause = async () => {
     await Promise.all(
@@ -139,9 +166,7 @@ export function CampaignsPage() {
   };
 
   const handleBulkDelete = async () => {
-    await Promise.all(
-      selectedCampaigns.map((id) => deleteMutation.mutateAsync(Number(id))),
-    );
+    await Promise.all(selectedCampaigns.map((id) => deleteMutation.mutateAsync(Number(id))));
     setSelectedCampaigns([]);
   };
 
@@ -153,273 +178,241 @@ export function CampaignsPage() {
   const handleConfirmDelete = () => {
     if (!campaignToDelete) return;
     deleteMutation.mutate(campaignToDelete.id, {
-      onSuccess: () => {
-        setShowDeleteModal(false);
-        setCampaignToDelete(null);
-      },
+      onSuccess: () => { setShowDeleteModal(false); setCampaignToDelete(null); },
     });
   };
 
-  const openCreateModal = () => {
-    if (!canManageCampaigns) return;
-    setShowCreateModal(true);
-  };
-
-  const dateRangeSelectId = 'campaigns-date-range';
+  const DATE_PRESETS: { id: DateRangePreset; label: string }[] = [
+    { id: '7d', label: '7D' },
+    { id: '30d', label: '30D' },
+    { id: '90d', label: '90D' },
+    { id: 'all', label: 'ALL' },
+  ];
 
   return (
-    <DashboardLayout>
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Manage and track your ad campaigns.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center bg-muted border border-border rounded p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <LayoutGridIcon className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <ListIcon className="w-4 h-4" />
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              disabled={!canManageCampaigns}
-              title={!canManageCampaigns ? 'A business client is required to create campaigns.' : undefined}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Create Campaign
-            </button>
-          </div>
-        </div>
+    <AppShell>
+      <div className="as-main">
+        <div className="as-canvas">
 
-        {!userLoading && user && !canManageCampaigns && (
-          <div
-            className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
-            role="status"
-          >
-            Your profile does not have a business client id yet. Campaigns cannot be loaded or created until one is
-            assigned.
-          </div>
-        )}
-
-        {selectedCampaigns.length > 0 && (
-          <div className="mb-4 flex items-center gap-3 bg-muted border border-border rounded px-4 py-3">
-            <span className="text-sm font-medium text-foreground">
-              {selectedCampaigns.length} campaign{selectedCampaigns.length > 1 ? 's' : ''} selected
-            </span>
-            <div className="flex-1" />
-            <button
-              type="button"
-              onClick={handleBulkPause}
-              className="px-3 py-1.5 text-sm border border-border rounded hover:bg-muted transition-colors"
-            >
-              Pause Selected
-            </button>
-            <button
-              type="button"
-              onClick={handleBulkDelete}
-              className="px-3 py-1.5 text-sm border border-red-500/30 text-red-500 rounded hover:bg-red-500/10 transition-colors"
-            >
-              Delete Selected
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedCampaigns([])}
-              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {!userLoading && !user ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-            <MegaphoneIcon className="w-8 h-8 text-muted-foreground mb-4" />
-            <h2 className="text-base font-semibold mb-1">Sign in to view campaigns</h2>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-              You need an account to load your campaigns and create new ones.
-            </p>
-            <Link
-              to="/sign-in"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              Sign in
-            </Link>
-          </div>
-        ) : (
-        <div className="flex gap-8">
-          <div className="w-56 flex-shrink-0 space-y-6">
-            <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search campaigns..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20 placeholder:text-muted-foreground"
-              />
-            </div>
-
+          {/* Page header */}
+          <div className="as-page-head">
             <div>
-              <label htmlFor={dateRangeSelectId} className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                Date range
-              </label>
-              <select
-                id={dateRangeSelectId}
-                value={dateRangePreset}
-                onChange={(e) => setDateRangePreset(e.target.value as DateRangePreset)}
-                className="w-full px-3 py-2 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20"
-              >
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
-                <option value="all">All time</option>
-              </select>
-              <p className="mt-1.5 text-xs text-muted-foreground">Filters by campaign created date.</p>
+              <span className="as-eyebrow">— CAMPAIGNS</span>
+              <h1>
+                Campaigns
+                {rawCampaigns.length > 0 && <span className="muted"> · {rawCampaigns.length}</span>}
+              </h1>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* View toggle */}
+              <div className="cmp-view-toggle">
+                <button
+                  className={`cmp-view-btn${viewMode === 'grid' ? ' on' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                  title="Grid view"
+                >
+                  <GridIcon />
+                </button>
+                <button
+                  className={`cmp-view-btn${viewMode === 'table' ? ' on' : ''}`}
+                  onClick={() => setViewMode('table')}
+                  title="Table view"
+                >
+                  <ListIcon />
+                </button>
+              </div>
+              <button
+                className="as-btn-solid"
+                onClick={() => canManage && setShowCreateModal(true)}
+                disabled={!canManage}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
+              >
+                <PlusIcon />
+                Create Campaign
+              </button>
+            </div>
+          </div>
 
-            {goalOptions.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Goal</h3>
-                <div className="space-y-2">
-                  {goalOptions.map((objective) => (
-                    <label
-                      key={objective}
-                      className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+          {/* Warn: no business client */}
+          {!userLoading && user && !canManage && (
+            <div className="cmp-warn">
+              <span className="cmp-warn-dot" />
+              Your profile does not have a business client ID. Campaigns cannot be loaded or created until one is assigned.
+            </div>
+          )}
+
+          {/* Bulk selection bar */}
+          {selectedCampaigns.length > 0 && (
+            <div className="cmp-selection-bar">
+              <span className="cmp-selection-count">{selectedCampaigns.length} selected</span>
+              <div style={{ flex: 1 }} />
+              <button className="cmp-sb-btn" onClick={handleBulkPause}>Pause</button>
+              <button className="cmp-sb-btn danger" onClick={handleBulkDelete}>Delete</button>
+              <button className="cmp-sb-clear" onClick={() => setSelectedCampaigns([])} aria-label="Clear selection">
+                <XIcon />
+              </button>
+            </div>
+          )}
+
+          {/* Not signed in */}
+          {!userLoading && !user ? (
+            <div className="prd-state">
+              <div className="prd-state-icon"><MegaphoneIcon /></div>
+              <h2>Sign in to view campaigns</h2>
+              <p>You need an account to load your campaigns and create new ones.</p>
+              <Link to="/sign-in" className="as-btn-solid" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}>
+                Sign in
+              </Link>
+            </div>
+          ) : (
+            <>
+              {/* Toolbar: search + date range + goal filters */}
+              <div className="cmp-toolbar">
+                <div className="cmp-search-wrap">
+                  <SearchIcon />
+                  <input
+                    type="text"
+                    className="cmp-search"
+                    placeholder="Search campaigns…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                {/* Date range pills */}
+                <div className="as-pill-group">
+                  {DATE_PRESETS.map((d) => (
+                    <button
+                      key={d.id}
+                      className={`as-pill${dateRange === d.id ? ' on' : ''}`}
+                      onClick={() => setDateRange(d.id)}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedObjectives.includes(objective)}
-                        onChange={() => toggleObjective(objective)}
-                        className="rounded border-border text-primary focus:ring-primary"
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Goal filter chips */}
+              {goalOptions.length > 0 && (
+                <div className="cmp-filter-row">
+                  <span className="cmp-filter-label">Goal</span>
+                  {goalOptions.map((g) => (
+                    <button
+                      key={g}
+                      className={`as-pill${selectedGoals.includes(g) ? ' on' : ''}`}
+                      onClick={() => toggleGoal(g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                  {selectedGoals.length > 0 && (
+                    <button
+                      className="as-btn-ghost"
+                      onClick={() => setSelectedGoals([])}
+                      style={{ padding: '3px 8px', fontSize: 10 }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Loading */}
+              {isLoading && (
+                <div className="prd-state">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={20} height={20} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+                    <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Error */}
+              {isError && (
+                <div className="prd-state">
+                  <h2>Failed to load campaigns</h2>
+                  <p>{error instanceof Error ? error.message : String(error ?? 'Unknown error')}</p>
+                </div>
+              )}
+
+              {/* Empty — no campaigns at all */}
+              {!isLoading && !isError && canManage && rawCampaigns.length === 0 && (
+                <div className="prd-state">
+                  <div className="prd-state-icon"><MegaphoneIcon /></div>
+                  <h2>No campaigns yet</h2>
+                  <p>Create your first campaign to start reaching your audience with AI-generated ads.</p>
+                  <button
+                    className="as-btn-solid"
+                    onClick={() => setShowCreateModal(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
+                  >
+                    <PlusIcon />
+                    Create your first campaign
+                  </button>
+                </div>
+              )}
+
+              {/* Empty — date range filter removes all */}
+              {!isLoading && !isError && canManage && rawCampaigns.length > 0 && campaigns.length === 0 && (
+                <div className="prd-state">
+                  <h2>No campaigns in this period</h2>
+                  <p>Try "ALL TIME" or a longer date window.</p>
+                  <button className="as-btn-ghost" onClick={() => setDateRange('all')} style={{ padding: '7px 16px' }}>
+                    Show all time
+                  </button>
+                </div>
+              )}
+
+              {/* Empty — search/goal filter removes all */}
+              {!isLoading && !isError && canManage && campaigns.length > 0 && filteredCampaigns.length === 0 && (
+                <div className="prd-state">
+                  <h2>No matches</h2>
+                  <p>Try adjusting your search or goal filters.</p>
+                </div>
+              )}
+
+              {/* Campaign list */}
+              {!isLoading && !isError && filteredCampaigns.length > 0 && (
+                viewMode === 'grid' ? (
+                  <div className="cmp-grid">
+                    {filteredCampaigns.map((c) => (
+                      <CampaignGridCard
+                        key={c.id}
+                        campaign={c}
+                        isSelected={selectedCampaigns.includes(c.id)}
+                        onToggleSelection={toggleSelection}
                       />
-                      <span className="truncate" title={objective}>
-                        {objective}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+                    ))}
+                  </div>
+                ) : (
+                  <CampaignTable
+                    campaigns={filteredCampaigns}
+                    selectedCampaigns={selectedCampaigns}
+                    onToggleSelection={toggleSelection}
+                    onToggleSelectAll={toggleSelectAll}
+                    onDeleteClick={handleDeleteClick}
+                  />
+                )
+              )}
+            </>
+          )}
 
-          <div className="flex-1">
-            {isLoading && (
-              <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-                <Loader2Icon className="w-6 h-6 animate-spin mb-3" />
-                <p className="text-sm">Loading campaigns...</p>
-              </div>
-            )}
-
-            {isError && (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <AlertCircleIcon className="w-8 h-8 text-red-500 mb-3" />
-                <h2 className="text-base font-semibold mb-1">Failed to load campaigns</h2>
-                <p className="text-sm text-muted-foreground">
-                  {error instanceof Error ? error.message : String(error ?? 'Unknown error')}
-                </p>
-              </div>
-            )}
-
-            {!isLoading && !isError && canManageCampaigns && rawCampaigns.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <MegaphoneIcon className="w-8 h-8 text-muted-foreground mb-4" />
-                <h2 className="text-base font-semibold mb-1">No campaigns yet</h2>
-                <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-                  Create your first campaign to start reaching your audience with AI-generated ads.
-                </p>
-                <button
-                  type="button"
-                  onClick={openCreateModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                  Create your first campaign
-                </button>
-              </div>
-            )}
-
-            {!isLoading && !isError && canManageCampaigns && rawCampaigns.length > 0 && campaigns.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <MegaphoneIcon className="w-8 h-8 text-muted-foreground mb-4" />
-                <h2 className="text-base font-semibold mb-1">No campaigns in this date range</h2>
-                <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                  Try choosing &ldquo;All time&rdquo; or a longer window. Filters use each campaign&rsquo;s created date.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setDateRangePreset('all')}
-                  className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
-                >
-                  Show all time
-                </button>
-              </div>
-            )}
-
-            {!isLoading && !isError && canManageCampaigns && campaigns.length > 0 && filteredCampaigns.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <SearchIcon className="w-8 h-8 text-muted-foreground mb-3" />
-                <h2 className="text-base font-semibold mb-1">No campaigns match your filters</h2>
-                <p className="text-sm text-muted-foreground">Try adjusting your search, date range, or goal filters.</p>
-              </div>
-            )}
-
-            {!isLoading && !isError && filteredCampaigns.length > 0 && (
-              viewMode === 'grid' ? (
-                <div className="grid grid-cols-2 gap-6">
-                  {filteredCampaigns.map((campaign) => (
-                    <CampaignGridCard
-                      key={campaign.id}
-                      campaign={campaign}
-                      isSelected={selectedCampaigns.includes(campaign.id)}
-                      onToggleSelection={toggleCampaignSelection}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <CampaignTable
-                  campaigns={filteredCampaigns}
-                  selectedCampaigns={selectedCampaigns}
-                  onToggleSelection={toggleCampaignSelection}
-                  onToggleSelectAll={toggleSelectAll}
-                  onDeleteClick={handleDeleteClick}
-                />
-              )
-            )}
-          </div>
         </div>
-        )}
+      </div>
 
-        {showCreateModal && typeof businessClientId === 'number' && businessClientId > 0 && (
-          <CreateCampaignModal
-            businessClientId={businessClientId}
-            onClose={() => setShowCreateModal(false)}
-          />
-        )}
-
-        {showDeleteModal && campaignToDelete && (
-          <DeleteCampaignModal
-            campaignName={campaignToDelete.name}
-            isLoading={deleteMutation.isPending}
-            onClose={() => {
-              setShowDeleteModal(false);
-              setCampaignToDelete(null);
-            }}
-            onConfirm={handleConfirmDelete}
-          />
-        )}
-    </DashboardLayout>
+      {showCreateModal && canManage && (
+        <CreateCampaignModal
+          businessClientId={businessClientId!}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+      {showDeleteModal && campaignToDelete && (
+        <DeleteCampaignModal
+          campaignName={campaignToDelete.name}
+          isLoading={deleteMutation.isPending}
+          onClose={() => { setShowDeleteModal(false); setCampaignToDelete(null); }}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
+    </AppShell>
   );
 }

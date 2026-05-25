@@ -1,19 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  MessageSquareIcon,
-  Trash2Icon,
-  XIcon,
-  SlidersHorizontalIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-  CheckCircle2Icon,
-} from 'lucide-react';
-import { FilterControls } from './FilterControls';
+// ResultsPanel — full spec implementation:
+//   idle + !chatStarted → PickCampaignState
+//   idle + chatStarted + no variants → EmptyBriefState
+//   generating → GeneratingView (progress meter)
+//   results → variant grid with selection bar + filter drawer
+import { useState } from 'react';
+import { FilterPanel } from './FilterPanel';
 import { AdVariantCard } from './AdVariantCard';
 import { GeneratingView } from './GeneratingView';
 import { VariantGroupSection } from '../shared/VariantGroupSection';
-import type { Phase } from './types';
+import type { Phase, Version } from './types';
 import type { AdVariant } from '../../types';
+import type { Campaign } from '../../types';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters } from '../../hooks/useFilterState';
 import { useGroupedVariants } from '../../hooks/useGroupedVariants';
@@ -24,6 +21,10 @@ interface ResultsPanelProps {
   filterDispatch: React.Dispatch<FilterAction>;
   adVariants: AdVariant[];
   progressIdx: number;
+  // Version (optional)
+  versions?: Version[];
+  activeVersion?: Version;
+  onVersionSelect?: (v: Version) => void;
   // Selection
   selectedVariants: Set<string>;
   onVariantToggle: (variantId: string) => void;
@@ -34,7 +35,173 @@ interface ResultsPanelProps {
   onApproveSelected: () => void;
   // Filters
   onApplyFilters?: () => void;
+  // Pick-campaign / empty-brief state props
+  chatStarted: boolean;
+  campaigns: Campaign[];
+  isCampaignsLoading?: boolean;
+  onCampaignSelect: (c: Campaign) => void;
+  onNewCampaign: () => void;
+  onSendExample?: (text: string) => void;
 }
+
+// ── Icons ─────────────────────────────────────────────────────────
+
+function SlidersIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={13} height={13}>
+      <path d="M1 3h12M1 7h12M1 11h12" />
+      <circle cx="4" cy="3" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="7" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="5" cy="11" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={13} height={13}>
+      <path d="M2 2l10 10M12 2L2 12" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width={14} height={14}>
+      <path d="M2 7h10M8 3l4 4-4 4" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={18} height={18}>
+      <path d="M9 3v12M3 9h12" />
+    </svg>
+  );
+}
+
+// ── Pick Campaign State ────────────────────────────────────────────
+
+function PickCampaignState({
+  campaigns,
+  isLoading,
+  onPick,
+  onNew,
+}: {
+  campaigns: Campaign[];
+  isLoading?: boolean;
+  onPick: (c: Campaign) => void;
+  onNew: () => void;
+}) {
+  return (
+    <div className="gen-pick-state">
+      <div className="gen-pick-inner">
+        <span className="gen-pick-eyebrow">— GENERATE · NEW SESSION</span>
+        <h2 className="gen-pick-h">Pick a campaign to begin.</h2>
+        <p className="gen-pick-deck">
+          The strategist needs a campaign context — product, audience, goals — before it can
+          draft a plan. Continue an existing one or start fresh.
+        </p>
+
+        <div className="gen-pick-list">
+          <div className="gen-pick-list-h">
+            {isLoading ? 'LOADING…' : `RECENT · ${Math.min(campaigns.length, 5)}`}
+          </div>
+          {isLoading ? (
+            [1,2,3].map((i) => (
+              <div key={i} style={{
+                height: 56,
+                borderTop: '1px solid var(--as-rule)',
+                background: 'var(--as-paper)',
+                opacity: 0.5,
+                animation: 'as-pulse 1.4s ease-in-out infinite',
+              }} />
+            ))
+          ) : campaigns.slice(0, 5).map((c, i) => (
+            <button
+              key={c.id}
+              className="gen-pick-row"
+              onClick={() => onPick(c)}
+            >
+              <span className="gen-pick-idx">
+                CMP · {String(i + 1).padStart(2, '0')}
+              </span>
+              <div className="gen-pick-name-block">
+                <span className="gen-pick-name">{c.name}</span>
+                <div className="gen-pick-row-meta">
+                  <span>{c.goal ?? 'NO GOAL SET'}</span>
+                  <span className="sep">·</span>
+                  <span>{c.status?.toUpperCase()}</span>
+                </div>
+              </div>
+              <span className={`gen-pick-status status-${c.status ?? 'draft'}`}>
+                <span className="d" />
+                {c.status}
+              </span>
+              <span className="gen-pick-arr"><ArrowIcon /></span>
+            </button>
+          ))}
+        </div>
+
+        <div className="gen-pick-divider">
+          <span>— OR —</span>
+        </div>
+
+        <button className="gen-pick-new" onClick={onNew}>
+          <span className="gen-pick-new-icon"><PlusIcon /></span>
+          <div className="gen-pick-new-text">
+            <span className="gen-pick-new-title">Start a new campaign</span>
+            <span className="gen-pick-new-sub">CMP · {String(campaigns.length + 1).padStart(2, '0')} · DRAFT</span>
+          </div>
+          <span className="gen-pick-arr"><ArrowIcon /></span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Empty Brief State (campaign set, no variants yet) ───────────────
+
+const EXAMPLES = [
+  { idx: 'EX.01', text: 'Generate 6 ads for our product — use the late-night persona, urban commute angle.' },
+  { idx: 'EX.02', text: 'Same audience, focus on the rain-ready hook this time, drop the price mentions.' },
+  { idx: 'EX.03', text: 'Try a more confident tone for the Skeptic persona; everything else stays the same.' },
+];
+
+function EmptyBriefState({ onTry }: { onTry: (text: string) => void }) {
+  return (
+    <div className="gen-empty-brief">
+      <div className="gen-empty-brief-inner">
+        <div className="gen-corner-marks">
+          <div className="gen-corner-plus">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" width={20} height={20}>
+              <path d="M10 3v14M3 10h14" />
+            </svg>
+          </div>
+        </div>
+
+        <h2 className="gen-empty-h">Brief the strategist.</h2>
+        <p className="gen-empty-deck">
+          Tell us what you want to advertise. We'll draft a plan, score it against your
+          personas, and ship six variants you can approve.
+        </p>
+
+        <div className="gen-hints">
+          {EXAMPLES.map((e) => (
+            <button key={e.idx} className="gen-hint" onClick={() => onTry(e.text)}>
+              <span className="h-idx">{e.idx}</span>
+              <span className="h-text">{e.text}</span>
+              <span className="h-enter">↵</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────
 
 export function ResultsPanel({
   phase,
@@ -42,6 +209,9 @@ export function ResultsPanel({
   filterDispatch,
   adVariants,
   progressIdx,
+  versions,
+  activeVersion,
+  onVersionSelect,
   selectedVariants,
   onVariantToggle,
   onClearSelection,
@@ -49,189 +219,163 @@ export function ResultsPanel({
   onDeleteSelected,
   onApproveSelected,
   onApplyFilters,
+  chatStarted,
+  campaigns,
+  isCampaignsLoading,
+  onCampaignSelect,
+  onNewCampaign,
+  onSendExample,
 }: ResultsPanelProps) {
-  const rightPanelRef = useRef<HTMLDivElement>(null);
-  const [variantCols, setVariantCols] = useState(2);
-  const [showFilters, setShowFilters] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const activeFilterCount = countActiveFilters(filterState);
   const groups = useGroupedVariants(adVariants);
-
-  // Responsive variant grid columns
-  useEffect(() => {
-    if (!rightPanelRef.current || phase !== 'results') return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const w = entry.contentRect.width;
-        if (w < 500) setVariantCols(1);
-        else if (w < 800) setVariantCols(2);
-        else if (w < 1100) setVariantCols(3);
-        else setVariantCols(4);
-      }
-    });
-    observer.observe(rightPanelRef.current);
-    return () => observer.disconnect();
-  }, [phase]);
+  const selectedCount = selectedVariants.size;
+  const versionList = versions ?? [];
+  const activeVer = activeVersion ?? { id: 'v0', label: 'v0', timestamp: '', variantCount: 0 };
 
   return (
-    <div ref={rightPanelRef} className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-      {/* GENERATING */}
+    <div className="gen-results-panel">
+
+      {/* ── Pick campaign (no chat started) ── */}
+      {!chatStarted && (
+        <PickCampaignState
+          campaigns={campaigns}
+          isLoading={isCampaignsLoading}
+          onPick={onCampaignSelect}
+          onNew={onNewCampaign}
+        />
+      )}
+
+      {/* ── Empty brief (campaign set, idle, no variants) ── */}
+      {chatStarted && phase === 'idle' && adVariants.length === 0 && (
+        <EmptyBriefState onTry={(text) => onSendExample?.(text)} />
+      )}
+
+      {/* ── Generating ── */}
       {phase === 'generating' && (
         <GeneratingView progressIdx={progressIdx} variantCount={6} />
       )}
 
-      {/* RESULTS */}
+      {/* ── Results ── */}
       {phase === 'results' && (
         <>
-          {/* Preferences Toolbar */}
-          <div className="flex-shrink-0 bg-card border-b border-border">
-            {/* Toggle header */}
-            <div className="px-5 py-2.5 flex items-center justify-between">
+          {/* Head bar */}
+          <div className="gen-results-head">
+            <span className="gen-results-context">
+              — RESULTS · {adVariants.length} VARIANTS
+            </span>
+
+            {versionList.length > 0 && (
+              <div className="gen-version-row">
+                <span className="gen-version-label">VERSIONS</span>
+                {versionList.map((v) => (
+                  <button
+                    key={v.id}
+                    className={`gen-version-chip${v.id === activeVer.id ? ' on' : ''}`}
+                    onClick={() => onVersionSelect?.(v)}
+                  >
+                    <span>{v.label}</span>
+                    <span className="vcount">· {v.variantCount}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="gen-head-actions">
               <button
-                onClick={() => setShowFilters((v) => !v)}
-                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                className="as-btn-ghost"
+                onClick={() => setDrawerOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', fontSize: 12 }}
               >
-                <SlidersHorizontalIcon className="w-4 h-4 text-muted-foreground" />
-                {showFilters ? 'Hide Preferences' : 'Show Preferences'}
-                {!showFilters && activeFilterCount > 0 && (
-                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold">
+                <SlidersIcon />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: 10,
+                    background: 'var(--as-accent)',
+                    color: 'white',
+                    padding: '1px 5px',
+                    letterSpacing: '0.02em',
+                  }}>
                     {activeFilterCount}
                   </span>
                 )}
-                {showFilters ? (
-                  <ChevronUpIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                ) : (
-                  <ChevronDownIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                )}
               </button>
-              {showFilters && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => filterDispatch({ type: 'RESET' })}
-                    className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    onClick={onApplyFilters}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Apply
+            </div>
+
+            {/* Selection bar overlays head */}
+            {selectedCount > 0 && (
+              <div className="gen-selection-bar">
+                <span className="gen-selection-count">{selectedCount} SELECTED</span>
+                <div className="gen-selection-actions">
+                  <button className="gen-sb-btn" onClick={onReviseSelected}>Revise</button>
+                  <button className="gen-sb-btn" onClick={onDeleteSelected}>Delete</button>
+                  <button className="gen-sb-btn primary" onClick={onApproveSelected}>
+                    Approve {selectedCount}
                   </button>
                 </div>
-              )}
-            </div>
-            {/* Collapsible filter controls */}
-            {showFilters && (
-              <div className="px-5 pb-3">
-                <FilterControls filterState={filterState} filterDispatch={filterDispatch} compact />
+                <button className="gen-sb-clear" onClick={onClearSelection} aria-label="Clear selection">
+                  <XIcon />
+                </button>
               </div>
             )}
           </div>
 
-          {/* Selection Action Bar — always visible once variants exist */}
-          {adVariants.length > 0 && (
-            <div className="flex-shrink-0 bg-card border-b border-border px-5 py-2.5 flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedVariants.size === adVariants.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        adVariants
-                          .filter((v) => !selectedVariants.has(String(v.id)))
-                          .forEach((v) => onVariantToggle(String(v.id)));
-                      } else {
-                        onClearSelection();
-                      }
-                    }}
-                    className="w-3.5 h-3.5 rounded accent-blue-600"
-                  />
-                </label>
-                <span className="text-sm font-medium text-muted-foreground">
-                  {selectedVariants.size > 0
-                    ? `${selectedVariants.size} variant${selectedVariants.size > 1 ? 's' : ''} selected`
-                    : 'Select variants to take action'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <button
-                  onClick={onApproveSelected}
-                  disabled={selectedVariants.size === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-emerald-700"
-                >
-                  <CheckCircle2Icon className="w-3.5 h-3.5" />
-                  {selectedVariants.size === adVariants.length ? 'Approve All' : 'Approve Selected'}
-                </button>
-                <button
-                  onClick={onReviseSelected}
-                  disabled={selectedVariants.size === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-blue-700"
-                >
-                  <MessageSquareIcon className="w-3.5 h-3.5" />
-                  Revise Selected
-                </button>
-                <button
-                  onClick={onDeleteSelected}
-                  disabled={selectedVariants.size === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-red-500/20 text-red-500 text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-red-500/10"
-                >
-                  <Trash2Icon className="w-3.5 h-3.5" />
-                  Delete
-                </button>
-                {selectedVariants.size > 0 && (
-                  <>
-                    <div className="w-px h-5 bg-border mx-0.5" />
-                    <button
-                      onClick={onClearSelection}
-                      className="p-1 rounded hover:bg-muted transition-colors"
-                      aria-label="Clear selection"
-                    >
-                      <XIcon className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Variant grid — grouped by persona */}
-          <div className="flex-1 overflow-y-auto p-5">
+          {/* Variant grid */}
+          <div className="gen-results-body">
             {adVariants.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                No ad variants found for this campaign.
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: 11,
+                letterSpacing: '0.08em',
+                color: 'var(--as-ink-3)',
+                textTransform: 'uppercase',
+              }}>
+                NO AD VARIANTS FOUND FOR THIS CAMPAIGN
               </div>
             ) : (
-              <div className="space-y-6">
+              <>
                 {groups.map((group) => {
                   const approvedCount = group.variants.filter((v) => v.is_approved).length;
                   return (
-                    <VariantGroupSection
-                      key={group.key}
-                      name={group.name}
-                      isGeneral={group.isGeneral}
-                      approvedCount={approvedCount}
-                      totalCount={group.variants.length}
-                    >
-                      <div
-                        className="grid gap-4"
-                        style={{ gridTemplateColumns: `repeat(${variantCols}, minmax(0, 1fr))` }}
+                    <div key={group.key} className="gen-persona-group">
+                      <VariantGroupSection
+                        name={group.name}
+                        isGeneral={group.isGeneral}
+                        approvedCount={approvedCount}
+                        totalCount={group.variants.length}
                       >
-                        {group.variants.map((variant) => (
-                          <AdVariantCard
-                            key={variant.id}
-                            variant={variant}
-                            isSelected={selectedVariants.has(String(variant.id))}
-                            onToggle={onVariantToggle}
-                          />
-                        ))}
-                      </div>
-                    </VariantGroupSection>
+                        <div className="gen-variants-grid">
+                          {group.variants.map((variant) => (
+                            <AdVariantCard
+                              key={variant.id}
+                              variant={variant}
+                              isSelected={selectedVariants.has(String(variant.id))}
+                              onToggle={onVariantToggle}
+                            />
+                          ))}
+                        </div>
+                      </VariantGroupSection>
+                    </div>
                   );
                 })}
-              </div>
+              </>
             )}
           </div>
+
+          <FilterPanel
+            filterState={filterState}
+            filterDispatch={filterDispatch}
+            isOpen={drawerOpen}
+            onClose={() => { setDrawerOpen(false); onApplyFilters?.(); }}
+            phase={phase}
+            onEditClick={() => setDrawerOpen(true)}
+          />
         </>
       )}
     </div>

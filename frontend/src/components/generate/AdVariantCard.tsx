@@ -1,5 +1,5 @@
+// AdVariantCard — gen-vcard: ink-black media area, real video, stripes fallback, stats strip
 import { memo } from 'react';
-import { CheckIcon, LoaderIcon, AlertCircleIcon, VideoIcon, FileTextIcon } from 'lucide-react';
 import type { AdVariant, AdVariantScript } from '../../types';
 
 interface AdVariantCardProps {
@@ -7,12 +7,6 @@ interface AdVariantCardProps {
   isSelected: boolean;
   onToggle: (variantId: string) => void;
 }
-
-const statusConfig = {
-  Generating: { label: 'Generating', bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', icon: LoaderIcon, animate: true },
-  completed: { label: 'Completed', bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', icon: CheckIcon, animate: false },
-  failed: { label: 'Failed', bg: 'bg-red-500/10', text: 'text-red-500', icon: AlertCircleIcon, animate: false },
-} as const;
 
 function parseScript(meta: string | null): AdVariantScript {
   if (!meta) return {};
@@ -23,104 +17,140 @@ function parseScript(meta: string | null): AdVariantScript {
   }
 }
 
+// Spinner circle SVG (no lucide)
+function SpinnerIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={20} height={20} className="gen-spin">
+      <circle cx="10" cy="10" r="8" strokeDasharray="25 10" />
+    </svg>
+  );
+}
+
+// Alert icon for failed state
+function AlertIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={20} height={20}>
+      <circle cx="10" cy="10" r="8" />
+      <path d="M10 6v5M10 14.5v.5" />
+    </svg>
+  );
+}
+
+// Check icon for checkbox
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width={10} height={10}>
+      <path d="M2 5l2.5 2.5L8 3" />
+    </svg>
+  );
+}
+
 export const AdVariantCard = memo(function AdVariantCard({ variant, isSelected, onToggle }: AdVariantCardProps) {
   const id = String(variant.id);
-  const config = statusConfig[variant.status] ?? statusConfig.Generating;
-  const StatusIcon = config.icon;
   const parsed = parseScript(variant.meta);
+  const isCompleted = variant.status === 'completed';
+  const isGenerating = variant.status === 'Generating';
+  const isFailed = variant.status === 'failed';
+
+  const scriptText = parsed.script ?? null;
+  const hasVideo = isCompleted && !!variant.media_url;
 
   return (
-    <div
-      className={`rounded-xl border overflow-hidden transition-all cursor-pointer fade-up ${
-        isSelected
-          ? 'border-blue-500 ring-1 ring-blue-500 shadow-md'
-          : 'border-border hover:border-foreground/30 hover:shadow-sm'
-      }`}
+    <article
+      className={`gen-vcard${isSelected ? ' selected' : ''}`}
       onClick={() => onToggle(id)}
+      style={{ background: 'transparent' }}
     >
       {/* Media area */}
-      <div className="relative aspect-video bg-black">
-        {variant.status === 'completed' && variant.media_url ? (
+      <div className="gen-vcard-media">
+        {/* Diagonal stripes (show when no real video) */}
+        {!hasVideo && <div className="gen-vcard-stripes" />}
+
+        {hasVideo ? (
           <video
-            src={variant.media_url}
-            className="w-full h-full object-contain object-center"
+            src={variant.media_url!}
+            className="gen-vcard-media video"
             controls
             preload="metadata"
             onClick={(e) => e.stopPropagation()}
           />
-        ) : variant.status === 'Generating' ? (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-            <LoaderIcon className="w-8 h-8 text-amber-400 animate-spin" />
-            <span className="text-xs text-muted-foreground">Generating video...</span>
+        ) : isGenerating ? (
+          <div className="gen-vcard-generating">
+            <SpinnerIcon />
+            <span>RENDERING…</span>
           </div>
-        ) : variant.status === 'failed' ? (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-            <AlertCircleIcon className="w-8 h-8 text-red-400" />
-            <span className="text-xs text-red-400">Generation failed</span>
+        ) : isFailed ? (
+          <div className="gen-vcard-generating" style={{ color: 'rgba(255,100,100,0.7)' }}>
+            <AlertIcon />
+            <span>FAILED</span>
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <VideoIcon className="w-8 h-8 text-muted-foreground/40" />
+          <div className="gen-vcard-play">
+            <span className="gen-vcard-play-btn">▶</span>
           </div>
         )}
 
-        {/* Status / approval badge */}
-        {variant.status === 'completed' ? (
-          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
-            variant.is_approved
-              ? 'bg-emerald-500/15 text-emerald-500'
-              : 'bg-amber-500/15 text-amber-500'
-          }`}>
-            <CheckIcon className="w-2.5 h-2.5" />
-            {variant.is_approved ? 'Approved' : 'Pending Approval'}
-          </div>
-        ) : (
-          <div className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${config.bg} ${config.text}`}>
-            <StatusIcon className={`w-2.5 h-2.5 ${config.animate ? 'animate-spin' : ''}`} />
-            {config.label}
-          </div>
-        )}
+        {/* Bottom-left tag: format / version */}
+        <span className="gen-vcard-tag">
+          v{variant.version_number} · #{variant.id}
+        </span>
 
-        {/* Selection checkbox */}
-        <div className="absolute top-2 left-2">
-          <div
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-              isSelected
-                ? 'bg-blue-600 border-blue-600'
-                : 'border-white/80 bg-black/20 backdrop-blur-sm'
-            }`}
-          >
-            {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
-          </div>
-        </div>
+        {/* Top-right status badge */}
+        <span className="gen-vcard-tag-r">
+          {isCompleted && variant.is_approved && <><span className="d" />APPROVED</>}
+          {isCompleted && !variant.is_approved && <>PENDING</>}
+          {isGenerating && <>COOKING</>}
+          {isFailed && <>FAILED</>}
+        </span>
+
+        {/* Bottom-left checkbox */}
+        <span className="gen-vcard-checkbox">
+          <CheckIcon />
+        </span>
       </div>
 
-      {/* Info area */}
-      <div className="p-3 bg-card">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-muted text-muted-foreground">
-            v{variant.version_number}
+      {/* Footer */}
+      <div className="gen-vcard-foot">
+        <div className="gen-vcard-foot-top">
+          <span className="gen-vcard-name">
+            {isGenerating ? 'Generating…' : isFailed ? 'Generation failed' : `Variant #${variant.id}`}
           </span>
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-600/10 text-blue-600 dark:text-blue-400">
-            ID #{variant.id}
-          </span>
+          <span className="gen-vcard-id">V_{String(variant.id).padStart(2, '0')}</span>
         </div>
 
-        {parsed.script ? (
-          <div className="flex items-start gap-1.5">
-            <FileTextIcon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-foreground line-clamp-4 leading-relaxed">
-              {parsed.script}
-            </p>
-          </div>
-        ) : parsed.error ? (
-          <p className="text-xs text-red-500 line-clamp-3">
-            Error: {parsed.error.slice(0, 150)}...
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground italic">No script yet</p>
+        {scriptText && (
+          <div className="gen-vcard-script">"{scriptText}"</div>
         )}
+        {parsed.error && (
+          <div className="gen-vcard-script" style={{ color: 'var(--as-accent)' }}>
+            {parsed.error.slice(0, 120)}
+          </div>
+        )}
+
+        {/* Stats strip */}
+        <div className="gen-vcard-stats">
+          <div className="gen-vstat">
+            <span className="l">STATUS</span>
+            <span className="v">{isCompleted ? 'DONE' : isGenerating ? 'GEN…' : 'ERR'}</span>
+          </div>
+          <div className="gen-vstat">
+            <span className="l">VERSION</span>
+            <span className="v">v{variant.version_number}</span>
+          </div>
+          <div className="gen-vstat">
+            <span className="l">ID</span>
+            <span className="v muted">#{variant.id}</span>
+          </div>
+        </div>
+
+        {/* Fit bar (100% when approved, 50% generating, 0% failed) */}
+        <span className="gen-vcard-bar">
+          <span
+            className="gen-vcard-bar-fill"
+            style={{ width: isCompleted ? (variant.is_approved ? '100%' : '70%') : isGenerating ? '30%' : '0%' }}
+          />
+        </span>
       </div>
-    </div>
+    </article>
   );
 });

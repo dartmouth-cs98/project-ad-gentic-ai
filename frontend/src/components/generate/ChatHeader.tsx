@@ -1,9 +1,8 @@
+// ChatHeader — campaign chip + new-chat icon button
 import { CampaignSelector } from './CampaignSelector';
-import { VersionPopover } from './VersionPopover';
 import type { Campaign } from '../../types';
 import type { Phase, Version } from './types';
-import { PRESETS } from '../../hooks/useFilterState';
-import type { FilterState, FilterAction, PresetKey } from '../../hooks/useFilterState';
+import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 
 interface ChatHeaderProps {
   phase: Phase;
@@ -20,6 +19,13 @@ interface ChatHeaderProps {
   variantCount: number;
 }
 
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={14} height={14}>
+      <path d="M7 2v10M2 7h10" />
+    </svg>
+  );
+}
 
 export function ChatHeader({
   phase,
@@ -29,93 +35,70 @@ export function ChatHeader({
   onCreateCampaign,
   isCampaignsLoading,
   activeVersion,
-  versions,
-  onVersionSelect,
-  filterState,
-  filterDispatch,
   variantCount,
 }: ChatHeaderProps) {
+  const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
+
   return (
-    <header className="border-b border-border px-4 pt-3 pb-2.5 flex-shrink-0">
-      {/* Row 1: wordmark + version info */}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span
-          className="font-serif italic font-bold tracking-tight text-base whitespace-nowrap select-none"
-          style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #818CF8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', padding: '0 3px', margin: '0 -3px' }}
-        >
-          Ad Studio
-        </span>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {phase === 'idle' ? (
-            <span
-              className="px-2 py-1 rounded-md bg-muted text-xs font-medium text-muted-foreground cursor-default"
-              title="No versions yet — generate ads to create your first version"
-            >
-              v0
-            </span>
-          ) : phase === 'generating' ? (
-            <>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
-                {variantCount} variants
+    <header className="gen-chat-head">
+      {/* Campaign chip / no-campaign label */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {activeCampaign ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <span className="gen-chip-mark" aria-hidden="true" />
+            <div className="gen-chip-stack" style={{ flex: 1, minWidth: 0 }}>
+              <span className="gen-chip-idx">
+                CAMP · {String(campaigns.indexOf(activeCampaign) + 1).padStart(2, '0')}
               </span>
-              <span className="px-2 py-1 rounded-md bg-muted text-xs font-semibold text-muted-foreground">
-                {activeVersion.label} (generating...)
+              <span className="gen-chip-name">{activeCampaign.name}</span>
+            </div>
+            {phase !== 'idle' && (
+              <span style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: 10,
+                letterSpacing: '0.04em',
+                color: 'var(--as-ink-3)',
+                flexShrink: 0,
+              }}>
+                {activeVersion.label}{variantCount > 0 ? ` · ${variantCount}V` : ''}
               </span>
-            </>
-          ) : (
-            <>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
-                {variantCount} variants
-              </span>
-              <VersionPopover
-                activeVersion={activeVersion}
-                versions={versions}
-                onSelect={onVersionSelect}
-              />
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: campaign selector */}
-      <div className="mb-2">
-        <CampaignSelector
-          campaigns={campaigns}
-          activeCampaignId={activeCampaignId}
-          onSelect={onCampaignSelect}
-          onCreateCampaign={onCreateCampaign}
-          isLoading={isCampaignsLoading}
-        />
-      </div>
-
-      {/* Row 3: preset pills + active description (idle phase only) */}
-      {phase === 'idle' && (
-        <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            {(Object.keys(PRESETS) as PresetKey[]).map((key) => {
-              const isActive = filterState.activePreset === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => filterDispatch({ type: 'SET_PRESET', payload: key })}
-                  className={`px-2.5 py-1 rounded border text-[11px] font-medium transition-all ${
-                    isActive
-                      ? 'bg-foreground text-background border-foreground'
-                      : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
-                  }`}
-                >
-                  {PRESETS[key].label}
-                </button>
-              );
-            })}
+            )}
           </div>
-          <p className="text-[10px] text-muted-foreground leading-none">
-            {filterState.activePreset
-              ? PRESETS[filterState.activePreset].description
-              : 'Custom settings active'}
-          </p>
-        </div>
-      )}
+        ) : (
+          <span style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 11,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--as-ink-3)',
+          }}>
+            — NO CAMPAIGN · PICK ONE TO BEGIN
+          </span>
+        )}
+      </div>
+
+      {/* Right actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        {activeCampaign && (
+          <CampaignSelector
+            campaigns={campaigns}
+            activeCampaignId={activeCampaignId}
+            onSelect={onCampaignSelect}
+            onCreateCampaign={onCreateCampaign}
+            isLoading={isCampaignsLoading}
+          />
+        )}
+        <button
+          className="as-icon-btn"
+          title="New campaign"
+          aria-label="New campaign"
+          disabled={phase === 'generating'}
+          onClick={onCreateCampaign}
+          style={{ width: 32, height: 32 }}
+        >
+          <PlusIcon />
+        </button>
+      </div>
     </header>
   );
 }

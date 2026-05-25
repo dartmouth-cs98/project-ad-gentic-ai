@@ -1,5 +1,5 @@
+// DeleteCampaignModal — as-modal-* styled, type-to-confirm
 import { useState } from 'react';
-import { AlertTriangleIcon, Loader2Icon, XIcon } from 'lucide-react';
 
 interface DeleteCampaignModalProps {
   campaignName: string;
@@ -8,59 +8,85 @@ interface DeleteCampaignModalProps {
   isLoading?: boolean;
 }
 
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={13} height={13} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+    </svg>
+  );
+}
+
 export function DeleteCampaignModal({ campaignName, onClose, onConfirm, isLoading = false }: DeleteCampaignModalProps) {
   const [confirmation, setConfirmation] = useState('');
+  const canDelete = confirmation === campaignName;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => !isLoading && onClose()} />
-
-      <div className="relative w-full max-w-md bg-card border border-border rounded-xl p-6">
-        <button
-          onClick={onClose}
-          disabled={isLoading}
-          className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-        >
-          <XIcon className="w-4 h-4" />
-        </button>
-
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-11 h-11 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-            <AlertTriangleIcon className="w-5 h-5 text-red-500" />
+    <div className="as-modal-overlay" onClick={() => !isLoading && onClose()}>
+      <div className="as-modal sm" onClick={(e) => e.stopPropagation()}>
+        <div className="as-modal-head">
+          <div>
+            <div className="as-modal-eyebrow">— DESTRUCTIVE ACTION</div>
+            <div className="as-modal-title">Delete Campaign</div>
           </div>
-          <h2 className="text-lg font-semibold mb-1">Delete Campaign?</h2>
-          <p className="text-sm text-muted-foreground">
-            This action cannot be undone. This will permanently delete the campaign and all generated ads.
+          <button className="as-modal-close" onClick={onClose} disabled={isLoading}>
+            <XIcon />
+          </button>
+        </div>
+
+        <div className="as-modal-body">
+          <p style={{ fontSize: 14, color: 'var(--as-ink-2)', lineHeight: 1.55 }}>
+            This permanently deletes <strong style={{ color: 'var(--as-ink)', fontWeight: 500 }}>{campaignName}</strong> and all generated ads. This cannot be undone.
           </p>
+
+          <div className="as-field">
+            <label className="as-field-label">
+              Type <span style={{ color: 'var(--as-ink)', fontFamily: "'Geist Mono', monospace" }}>{campaignName}</span> to confirm
+            </label>
+            <input
+              className="as-input"
+              placeholder={campaignName}
+              value={confirmation}
+              onChange={(e) => setConfirmation(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5 mb-6">
-          <label className="block text-sm font-medium">
-            Type <span className="font-semibold">{campaignName}</span> to confirm
-          </label>
-          <input
-            placeholder={campaignName}
-            value={confirmation}
-            onChange={(e) => setConfirmation(e.target.value)}
-            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
-          />
-        </div>
-
-        <div className="flex justify-end gap-3">
+        <div className="as-modal-foot">
           <button
+            className="as-btn-ghost"
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            style={{ padding: '8px 16px' }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            disabled={confirmation !== campaignName || isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-40"
+            disabled={!canDelete || isLoading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '8px 18px',
+              background: canDelete && !isLoading ? '#c44' : 'var(--as-rule)',
+              color: canDelete && !isLoading ? '#fff' : 'var(--as-ink-3)',
+              border: 'none',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              cursor: canDelete && !isLoading ? 'pointer' : 'not-allowed',
+              transition: 'background 0.15s, color 0.15s',
+            }}
           >
-            {isLoading && <Loader2Icon className="w-4 h-4 animate-spin" />}
-            {isLoading ? 'Deleting...' : 'Delete Campaign'}
+            {isLoading ? <><SpinnerIcon /> Deleting…</> : 'Delete Campaign'}
           </button>
         </div>
       </div>

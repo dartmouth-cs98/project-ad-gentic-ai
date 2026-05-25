@@ -1,28 +1,33 @@
+// VariantGroupSection — gen-pg-* styled persona group header, collapsible
 import { useState } from 'react';
-import { ChevronDownIcon, ChevronRightIcon, UsersIcon } from 'lucide-react';
 
 interface VariantGroupSectionProps {
-  /** Persona name (real groups) or "General" (catch-all bucket). */
   name: string;
-  /** Renders the catch-all bucket with muted styling. */
   isGeneral?: boolean;
-  /** Approved count for the badge — pass to display "X of N approved". */
   approvedCount: number;
-  /** Total variants in this group. */
   totalCount: number;
-  /** Variant cards / grid for this group. */
   children: React.ReactNode;
-  /** Whether the section starts expanded. Default: true. */
   defaultExpanded?: boolean;
 }
 
-/**
- * Collapsible section header used to group ad variants by persona. Stays
- * expanded by default so users see content without clicking; the chevron
- * lets them collapse a group to focus on others.
- *
- * Visual-only — selection model stays global at the parent level.
- */
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      width="11"
+      height="11"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ transition: 'transform 0.2s', transform: open ? 'rotate(90deg)' : 'none' }}
+    >
+      <path d="M4 3l4 3-4 3" />
+    </svg>
+  );
+}
+
 export function VariantGroupSection({
   name,
   isGeneral = false,
@@ -35,44 +40,44 @@ export function VariantGroupSection({
   const allApproved = totalCount > 0 && approvedCount === totalCount;
 
   return (
-    <section className="space-y-3">
+    <section className="gen-persona-group">
       <button
         type="button"
+        className="gen-pg-head"
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors"
         aria-expanded={expanded}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          {expanded ? (
-            <ChevronDownIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          ) : (
-            <ChevronRightIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          )}
-          <UsersIcon
-            className={`w-4 h-4 flex-shrink-0 ${
-              isGeneral ? 'text-muted-foreground' : 'text-blue-600'
-            }`}
-          />
-          <h3
-            className={`text-sm font-semibold truncate ${
-              isGeneral ? 'text-muted-foreground' : 'text-foreground'
-            }`}
-          >
-            {name}
-          </h3>
-          <span className="text-xs text-muted-foreground flex-shrink-0">
-            · {totalCount} variant{totalCount === 1 ? '' : 's'}
-          </span>
+        {/* Avatar */}
+        <div className="gen-pg-avatar" style={{ opacity: isGeneral ? 0.4 : 1 }}>
+          {name[0]?.toUpperCase() ?? '?'}
         </div>
 
-        <span
-          className={`text-xs font-medium flex-shrink-0 px-2 py-0.5 rounded ${
-            allApproved
-              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-              : 'bg-muted text-muted-foreground'
-          }`}
-        >
-          {approvedCount} of {totalCount} approved
+        {/* Name + sub */}
+        <div className="gen-pg-meta">
+          <div className="gen-pg-name">
+            <span className="idx">{isGeneral ? 'GENERAL' : `P.0${name.slice(0, 1)}`}</span>
+            <span className="name" style={{ color: isGeneral ? 'var(--as-ink-2)' : 'var(--as-ink)' }}>{name}</span>
+          </div>
+        </div>
+
+        {/* Variant count */}
+        <span className="gen-pg-count">{totalCount} VARIANT{totalCount !== 1 ? 'S' : ''}</span>
+
+        {/* Approved badge */}
+        <span style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 10,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: allApproved ? 'var(--as-accent)' : 'var(--as-ink-3)',
+        }}>
+          {approvedCount}/{totalCount} APPROVED
+        </span>
+
+        {/* Chevron */}
+        <span style={{ color: 'var(--as-ink-3)', display: 'flex', alignItems: 'center', marginLeft: 8 }}>
+          <ChevronIcon open={expanded} />
         </span>
       </button>
 

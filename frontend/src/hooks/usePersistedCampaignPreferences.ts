@@ -52,7 +52,6 @@ function syncCampaignDraftToCache(
     },
   );
   queryClient.setQueryData([...CAMPAIGNS_KEY, campaignId], updatedCampaign);
-  void queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
 }
 
 /** Hydrate filter state from server; debounced autosave when preferences change. */

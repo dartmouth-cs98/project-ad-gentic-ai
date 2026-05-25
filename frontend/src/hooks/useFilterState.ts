@@ -48,6 +48,7 @@ export type FilterAction =
   | { type: 'SET_COLOR_MODE'; payload: ColorMode }
   | { type: 'SET_CUSTOM_COLOR'; payload: string }
   | { type: 'TOGGLE_PLATFORM'; payload: string }
+  | { type: 'LOAD'; payload: FilterState }
   | { type: 'RESET' };
 
 // ─── Reducer ─────────────────────────────────────────────────────
@@ -97,6 +98,13 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
       }
       return { ...state, selectedPlatforms: next };
     }
+
+    case 'LOAD':
+      return {
+        ...action.payload,
+        adFormats: new Set(action.payload.adFormats),
+        selectedPlatforms: new Set(action.payload.selectedPlatforms),
+      };
 
     case 'RESET':
       return {

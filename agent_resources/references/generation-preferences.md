@@ -4,7 +4,15 @@ Structured snapshot of the **Ad Studio** filter panel at **plan approval**, pers
 
 ## Storage
 
-- Key: version number as string (`"1"`, `"2"`, …).
+### Draft (in-progress panel)
+
+- Column: `campaigns.draft_generation_preferences` (nullable JSON text).
+- Written via **debounced autosave** (500 ms) when the user edits the preferences panel (`PATCH /campaigns/{id}/draft-generation-preferences`) and on plan approve via **`PUT /campaigns/{id}`** (same snapshot as the approved version).
+- Hydration order on Generate Ads: server draft → else latest approved version’s `generation_preferences` in `brief` → else UI defaults.
+
+### Approved version (frozen at plan approve)
+
+- Key: version number as string (`"1"`, `"2"`, …) inside `campaign.brief` JSON.
 - Value (new): object with:
   - `plan_message` (string) — full assistant plan message (Markdown + JSON block).
   - `generation_preferences` (object, optional) — fields below.

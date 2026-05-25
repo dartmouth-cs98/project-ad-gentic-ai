@@ -8,6 +8,7 @@ import type { Phase, Version } from '../components/generate';
 import type { Campaign, ChatMessage, AdVariant } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
 import { buildGenerationPreferencesSnapshot } from '../types/generationPreferences';
+import { usePersistedCampaignPreferences } from '../hooks/usePersistedCampaignPreferences';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
@@ -149,6 +150,13 @@ export function GenerateAdsPage() {
 
   // Show welcome message when no persisted messages exist
   const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
+  const { saveStatus: preferencesSaveStatus } = usePersistedCampaignPreferences(
+    activeCampaignId,
+    activeCampaign,
+    filterState,
+    filterDispatch,
+  );
+
   const messages: ChatMessage[] = useMemo(
     () => (serverMessages.length === 0
       ? [buildWelcomeBack(activeCampaign, versions)]
@@ -301,10 +309,11 @@ export function GenerateAdsPage() {
 
     const newVersion = versionCounter;
     const briefContent = planMessage.content;
+    const prefsSnapshot = buildGenerationPreferencesSnapshot(filterState);
     const existingBrief = activeCampaign.brief ? JSON.parse(activeCampaign.brief) : {};
     existingBrief[String(newVersion)] = {
       plan_message: briefContent,
-      generation_preferences: buildGenerationPreferencesSnapshot(filterState),
+      generation_preferences: prefsSnapshot,
     };
 
     sendAssistantMessage(
@@ -318,7 +327,10 @@ export function GenerateAdsPage() {
     updateCampaign.mutate(
       {
         campaignId: activeCampaignId,
-        data: { brief: JSON.stringify(existingBrief) },
+        data: {
+          brief: JSON.stringify(existingBrief),
+          draft_generation_preferences: prefsSnapshot,
+        },
       },
       {
         onSuccess: () => {
@@ -522,6 +534,7 @@ export function GenerateAdsPage() {
           onVersionSelect={handleVersionSelect}
           filterState={filterState}
           filterDispatch={filterDispatch}
+          preferencesSaveStatus={preferencesSaveStatus}
           messages={messages}
           userName={profile.userName}
           input={input}
@@ -564,6 +577,7 @@ export function GenerateAdsPage() {
             phase={resultsPanelPhase}
             filterState={filterState}
             filterDispatch={filterDispatch}
+            preferencesSaveStatus={preferencesSaveStatus}
             adVariants={activeVersionVariants}
             progressIdx={progressIdx}
             selectedVariants={selectedVariants}
@@ -572,10 +586,6 @@ export function GenerateAdsPage() {
             onApproveSelected={handleApproveSelected}
             onReviseSelected={handleReviseSelected}
             onDeleteSelected={handleDeleteSelected}
-            onApplyFilters={() => {
-              sendAssistantMessage('Preferences updated! Regenerating variants with your new settings...');
-              setPhase('generating');
-            }}
           />
         )}
       </div>}

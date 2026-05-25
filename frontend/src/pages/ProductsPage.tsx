@@ -125,7 +125,14 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
   };
 
   return (
-    <div className="prd-card">
+    <div className="prd-card" style={{ position: 'relative' }}>
+      <button
+        className="prd-card-del"
+        onClick={() => onDelete(product)}
+        aria-label="Delete product"
+      >
+        <TrashIcon />
+      </button>
       {/* Media */}
       <div className="prd-card-media">
         <div className="prd-card-stripes" />
@@ -239,10 +246,8 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
             <ZapIcon />
             Express
           </button>
-          <button className="prd-card-action-btn danger" onClick={() => onDelete(product)}>
-            <TrashIcon />
-          </button>
         </div>
+
       </div>
     </div>
   );

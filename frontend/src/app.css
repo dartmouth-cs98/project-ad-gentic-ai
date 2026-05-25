@@ -2869,8 +2869,26 @@
   transition: color 0.12s, background 0.12s;
 }
 .prd-card-action-btn:hover { color: var(--as-ink); background: var(--as-paper); }
-.prd-card-action-btn.danger:hover { color: #c44; background: rgba(200,50,50,0.08); }
 .prd-card-spacer { flex: 1; }
+.prd-card-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--as-bg);
+  border: 1px solid var(--as-rule);
+  color: var(--as-ink-3);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+  z-index: 2;
+}
+.prd-card:hover .prd-card-del { opacity: 1; }
+.prd-card-del:hover { color: #c44; background: rgba(200,50,50,0.08); border-color: rgba(200,50,50,0.3); }
 
 /* Product upload banner */
 .prd-upload-banner {

@@ -3,10 +3,15 @@
 import json
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from schemas.campaign_publication import CampaignPublicationResponse
+from schemas.generation_preferences import GenerationPreferences, parse_generation_preferences
+from utils.draft_generation_preferences import (
+    coerce_draft_generation_preferences_input,
+    parse_draft_generation_preferences_column,
+)
 
 # Valid campaign statuses
 CampaignStatus = Literal["draft", "active", "paused", "completed"]
@@ -80,11 +85,19 @@ class CampaignUpdate(_DateRangeValidator):
     product_ids: Optional[str] = None
     brief: Optional[str] = None
     platforms: Optional[str] = None
+    draft_generation_preferences: Optional[str] = None
 
     @field_validator("product_context", "product_ids", "brief", "platforms", mode="before")
     @classmethod
     def coerce_to_json(cls, v: Optional[str]) -> Optional[str]:
         return _ensure_json(v)
+
+    @field_validator("draft_generation_preferences", mode="before")
+    @classmethod
+    def coerce_draft_prefs(cls, v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        return coerce_draft_generation_preferences_input(v)
 
 
 class CampaignBulkDeleteRequest(BaseModel):
@@ -119,7 +132,21 @@ class CampaignResponse(BaseModel):
     product_ids: Optional[str] = None
     brief: Optional[str] = None
     platforms: Optional[str] = None
+    draft_generation_preferences: Optional[GenerationPreferences] = None
     meta_campaign_id: Optional[str] = None
     publications: list[CampaignPublicationResponse] = []
+
+    @field_validator("draft_generation_preferences", mode="before")
+    @classmethod
+    def parse_draft_prefs_response(cls, v: Any) -> Optional[GenerationPreferences]:
+        if v is None or v == "":
+            return None
+        if isinstance(v, GenerationPreferences):
+            return v
+        if isinstance(v, str):
+            return parse_draft_generation_preferences_column(v)
+        if isinstance(v, dict):
+            return parse_generation_preferences(v)
+        return None
 
     model_config = {"from_attributes": True}

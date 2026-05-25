@@ -1,3 +1,5 @@
+import type { GenerationPreferences } from './generationPreferences';
+
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
 
 /** Icons supported by the campaign detail hero KPI strip (mapped to visuals in the UI). */
@@ -57,6 +59,7 @@ export interface Campaign {
     product_ids: string | null;
     brief: string | null;
     platforms: string | null;
+    draft_generation_preferences?: GenerationPreferences | null;
     /** When set with a valid shape, the hero strip and analytics tab use live data. */
     analytics_summary?: CampaignAnalyticsSummary | null;
     /** Set after the campaign is published to Meta via the Marketing API. */
@@ -91,4 +94,5 @@ export interface UpdateCampaignPayload {
     product_ids?: string | null;
     brief?: string | null;
     platforms?: string | null;
+    draft_generation_preferences?: GenerationPreferences | null;
 }

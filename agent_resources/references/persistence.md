@@ -7,7 +7,7 @@ ORM models live in **`backend/models/`**. Tables use schema **`dbo`** (SQL Serve
 | Module | Table (`dbo`) | Primary identifiers | Notes |
 |--------|---------------|---------------------|--------|
 | `business_client.py` | `business_clients` | `id` int | Email unique; `stripe_customer_id` placeholder default; `credits_balance` + `credits_daily_reset_on` (daily allowance) |
-| `campaign.py` | `campaigns` | `id` int | `business_client_id`; `brief` may store versioned JSON text; optional `meta_campaign_id` (legacy; kept in sync with Meta publish) |
+| `campaign.py` | `campaigns` | `id` int | `business_client_id`; `brief` versioned JSON; `draft_generation_preferences` JSON (Ad Studio panel draft); optional `meta_campaign_id` (legacy; kept in sync with Meta publish) |
 | `campaign_publication.py` | `campaign_publications` | `id` int | One row per `(campaign_id, external_platform)`; stores platform campaign id, status, partial-failure `error_message` |
 | `product.py` | `products` | `id` int | `business_client_id`; `image_name` / blob for generation |
 | `consumer.py` | `consumers` | `id` int | `business_client_id`; FK to `personas`; unique `(business_client_id, email)`; `traits` JSON text; **`consumer_traits_description`** narrative for script LLM (refreshed on consumer create/CSV and `seed_consumer_traits.py` — not automatic for other traits writes) |

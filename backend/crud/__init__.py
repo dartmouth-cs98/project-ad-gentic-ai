@@ -12,6 +12,7 @@ from .campaign import (
     create_campaign,
     update_campaign,
     delete_campaign,
+    delete_campaigns_bulk,
 )
 from .chat_message import (
     get_chat_messages,
@@ -31,6 +32,7 @@ __all__ = [
     "create_campaign",
     "update_campaign",
     "delete_campaign",
+    "delete_campaigns_bulk",
     "get_chat_messages",
     "create_chat_message",
     "delete_chat_messages_by_campaign",

@@ -144,8 +144,14 @@ def _build_script_prompt(
     Tailor the ad specifically for the following consumer based on their demographics, interests, personality, values and other characteristics: {consumer_profile_text}
     Don't explicitly mention the consumer profile in the script, but use it to tailor the ad to them.
 
-    You will be provided with an image that includes a reference to the product, but the entire ad should be a creative ad video that gets created and scripted for. The first frame is going to be just the product, but you need to change away and then go into the rest of the video
-  
+    AI-generated video production (hard rules — the finished clip is rendered by an image-to-video model such as OpenAI Sora or Google Veo from a product reference frame, not a film crew):
+    - You will receive a reference image of the product; Beat 1 may open on that pack shot, but transition into the story within Beat 1 — do not script a static product slide for the whole spot.
+    - One beat = one continuous shot in one place: no hard cuts, montages, split screens, or "cut to" between unrelated locations inside a single beat.
+    - Keep motion simple and legible: one primary action per beat (reach, open, pour, react, walk, turn, reveal). Avoid crowds, fight scenes, sports plays, dexterous hand tricks, mirror reflections, or whip pans that reverse direction.
+    - Favor stable framing: single focal subject, medium or close shots, consistent lighting and wardrobe for the whole clip; avoid morphing identities, costume changes, or heavy VFX.
+    - If someone speaks on camera, keep their face visible and fairly frontal with minimal occlusion — lip-sync models struggle with profile faces, hats, and hands over the mouth.
+    - Do not script split dialogue between multiple speakers at once, phone screens with readable UI, microscopic detail, or brand mascots / copyrighted characters.
+
     Product Name: {product_name}
     Product Description: {product_description or 'Not provided'}
 
@@ -168,6 +174,7 @@ def _build_script_prompt(
     3. Make it feel creator-made, not brand-made.
     4. No obvious call-to-action or sales language.
     5. Honor the audio-safe timeline: no spoken words in the first ~{AUDIO_START_GUARD}s or last ~{AUDIO_END_GUARD}s of the spot; last line fully finished before ~{t_end}s.
+    6. Every beat must be achievable by the AI image-to-video workflow above (one shot, simple motion, no on-screen text).
 
     Be bold with the creative direction. Surprise me with the format you choose in the Overview.
     All spoken lines must be complete (with a breath of space) before ~{t_end}s; only non-dialogue audio may continue to {total}s."""

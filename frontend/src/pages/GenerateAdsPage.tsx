@@ -9,6 +9,8 @@ import { CampaignSetupStepper } from '../components/generate/CampaignSetupSteppe
 import type { Phase, Version } from '../components/generate';
 import type { Campaign, ChatMessage, AdVariant } from '../types';
 import { useFilterState } from '../hooks/useFilterState';
+import { buildGenerationPreferencesSnapshot } from '../types/generationPreferences';
+import { usePersistedCampaignPreferences } from '../hooks/usePersistedCampaignPreferences';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useCampaigns } from '../hooks/useCampaigns';
 import { useChatMessages, useSendChatMessage, useChatCompletion } from '../hooks/useChatMessages';
@@ -150,6 +152,13 @@ export function GenerateAdsPage() {
 
   // Show welcome message when no persisted messages exist
   const activeCampaign = campaigns.find((c) => c.id === activeCampaignId);
+  const { saveStatus: preferencesSaveStatus } = usePersistedCampaignPreferences(
+    activeCampaignId,
+    activeCampaign,
+    filterState,
+    filterDispatch,
+  );
+
   const messages: ChatMessage[] = useMemo(
     () => (serverMessages.length === 0
       ? [buildWelcomeBack(activeCampaign, versions)]
@@ -349,13 +358,12 @@ export function GenerateAdsPage() {
 
     const newVersion = versionCounter;
     const briefContent = planMessage.content;
+    const prefsSnapshot = buildGenerationPreferencesSnapshot(filterState);
     const existingBrief = activeCampaign.brief ? JSON.parse(activeCampaign.brief) : {};
-    existingBrief[String(newVersion)] = briefContent;
-
-    updateCampaign.mutate({
-      campaignId: activeCampaignId,
-      data: { brief: JSON.stringify(existingBrief) },
-    });
+    existingBrief[String(newVersion)] = {
+      plan_message: briefContent,
+      generation_preferences: prefsSnapshot,
+    };
 
     sendAssistantMessage(
       'Plan approved! Starting ad generation — this may take a few minutes...',
@@ -363,9 +371,36 @@ export function GenerateAdsPage() {
     setPhase('generating');
     setGeneratingVersionNumber(newVersion);
 
-    generatePreview.mutate(
-      { campaignId: activeCampaignId, productId, versionNumber: newVersion },
+    updateCampaign.mutate(
       {
+        campaignId: activeCampaignId,
+        data: {
+          brief: JSON.stringify(existingBrief),
+          draft_generation_preferences: prefsSnapshot,
+        },
+      },
+      {
+        onSuccess: () => {
+          generatePreview.mutate(
+            { campaignId: activeCampaignId, productId, versionNumber: newVersion },
+            {
+              onSuccess: (data) => {
+                if (!data.ad_variant_ids?.length) {
+                  setPhase('idle');
+                  setGeneratingVersionNumber(null);
+                  sendAssistantMessage(
+                    'Preview returned no variants. Check that persona names in the plan match your Personas catalog and that this business has consumers for those personas.',
+                  );
+                }
+              },
+              onError: (err) => {
+                setPhase('idle');
+                setGeneratingVersionNumber(null);
+                sendAssistantMessage(`Generation failed: ${(err as Error).message}. Please try again.`);
+              },
+            },
+          );
+        },
         onError: (err) => {
           setPhase('idle');
           setGeneratingVersionNumber(null);
@@ -504,6 +539,7 @@ export function GenerateAdsPage() {
             phase={resultsPanelPhase}
             filterState={filterState}
             filterDispatch={filterDispatch}
+            preferencesSaveStatus={preferencesSaveStatus}
             adVariants={activeVersionVariants}
             progressIdx={progressIdx}
             selectedVariants={selectedVariants}

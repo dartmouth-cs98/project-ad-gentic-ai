@@ -10,6 +10,8 @@ class CampaignMetricResponse(BaseModel):
     id: int
     campaign_id: int
     meta_campaign_id: Optional[str]
+    external_campaign_id: Optional[str] = None
+    external_platform: Optional[str] = None
     date: date
     impressions: Optional[int]
     reach: Optional[int]

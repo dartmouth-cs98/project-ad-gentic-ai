@@ -17,6 +17,8 @@ class CampaignMetric(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     campaign_id: Mapped[int] = mapped_column(Integer, nullable=False)
     meta_campaign_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    external_campaign_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    external_platform: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     date: Mapped[date_type] = mapped_column(Date, nullable=False)
     impressions: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     reach: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

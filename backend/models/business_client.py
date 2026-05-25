@@ -1,10 +1,10 @@
 """SQLAlchemy model for the dbo.business_clients table."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Integer, String, DateTime, Boolean
+from sqlalchemy import Integer, String, DateTime, Boolean, Date
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -25,6 +25,11 @@ class BusinessClient(Base):
         String(255), nullable=True, default=lambda: f"pending_{uuid.uuid4().hex}"
     )
     credits_balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    credits_daily_reset_on: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc).date(),
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     traits: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

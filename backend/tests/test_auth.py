@@ -1,7 +1,7 @@
 """Tests for auth verification workflow."""
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -115,7 +115,8 @@ def test_me_and_onboarding_forbid_unverified_accounts(client: TestClient):
             password_hash="hashed",
             business_name="Pending Inc",
             subscription_tier="basic",
-            credits_balance=0,
+            credits_balance=10,
+            credits_daily_reset_on=date.today(),
             email_verified=False,
             email_verification_token_hash="tokenhash",
             email_verification_expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),

@@ -13,12 +13,14 @@ import type { AdVariant } from '../../types';
 import type { Campaign } from '../../types';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters } from '../../hooks/useFilterState';
+import type { PreferencesSaveStatus } from '../../hooks/usePersistedCampaignPreferences';
 import { useGroupedVariants } from '../../hooks/useGroupedVariants';
 
 interface ResultsPanelProps {
   phase: Phase;
   filterState: FilterState;
   filterDispatch: React.Dispatch<FilterAction>;
+  preferencesSaveStatus?: PreferencesSaveStatus;
   adVariants: AdVariant[];
   progressIdx: number;
   // Version (optional)
@@ -207,6 +209,7 @@ export function ResultsPanel({
   phase,
   filterState,
   filterDispatch,
+  preferencesSaveStatus = 'idle',
   adVariants,
   progressIdx,
   versions,
@@ -375,6 +378,7 @@ export function ResultsPanel({
             onClose={() => { setDrawerOpen(false); onApplyFilters?.(); }}
             phase={phase}
             onEditClick={() => setDrawerOpen(true)}
+            preferencesSaveStatus={preferencesSaveStatus}
           />
         </>
       )}

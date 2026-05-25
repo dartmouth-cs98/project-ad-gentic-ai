@@ -1,12 +1,21 @@
-// DeleteCampaignModal — as-modal-* styled, type-to-confirm
-import { useState } from 'react';
+// DeleteCampaignModal — as-modal-* styled, multi-campaign support
+import { createPortal } from 'react-dom';
 
 interface DeleteCampaignModalProps {
-  campaignName: string;
+  campaignNames: string[];
   onClose: () => void;
   onConfirm: () => void;
   isLoading?: boolean;
+  error?: string | null;
 }
+
+const PER_CAMPAIGN_DELETED_ITEMS = [
+  'Campaign record and settings',
+  'Chat messages',
+  'Ad variants and generated ads',
+  'Campaign metrics',
+  'Consumer analytics events',
+] as const;
 
 function XIcon() {
   return (
@@ -24,17 +33,30 @@ function SpinnerIcon() {
   );
 }
 
-export function DeleteCampaignModal({ campaignName, onClose, onConfirm, isLoading = false }: DeleteCampaignModalProps) {
-  const [confirmation, setConfirmation] = useState('');
-  const canDelete = confirmation === campaignName;
+export function DeleteCampaignModal({
+  campaignNames,
+  onClose,
+  onConfirm,
+  isLoading = false,
+  error = null,
+}: DeleteCampaignModalProps) {
+  const count = campaignNames.length;
+  const isPlural = count !== 1;
 
-  return (
+  const modal = (
     <div className="as-modal-overlay" onClick={() => !isLoading && onClose()}>
-      <div className="as-modal sm" onClick={(e) => e.stopPropagation()}>
+      <div
+        role="alertdialog"
+        aria-labelledby="delete-campaign-title"
+        className="as-modal sm"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="as-modal-head">
           <div>
             <div className="as-modal-eyebrow">— DESTRUCTIVE ACTION</div>
-            <div className="as-modal-title">Delete Campaign</div>
+            <div className="as-modal-title" id="delete-campaign-title">
+              {isPlural ? `Delete ${count} Campaigns` : 'Delete Campaign'}
+            </div>
           </div>
           <button className="as-modal-close" onClick={onClose} disabled={isLoading}>
             <XIcon />
@@ -42,22 +64,51 @@ export function DeleteCampaignModal({ campaignName, onClose, onConfirm, isLoadin
         </div>
 
         <div className="as-modal-body">
-          <p style={{ fontSize: 14, color: 'var(--as-ink-2)', lineHeight: 1.55 }}>
-            This permanently deletes <strong style={{ color: 'var(--as-ink)', fontWeight: 500 }}>{campaignName}</strong> and all generated ads. This cannot be undone.
+          <p style={{ fontSize: 14, color: 'var(--as-ink-2)', lineHeight: 1.55, marginBottom: 14 }}>
+            This action cannot be undone.{' '}
+            {isPlural
+              ? 'The following campaigns will be permanently deleted:'
+              : 'The following will be permanently deleted for this campaign:'}
           </p>
 
-          <div className="as-field">
-            <label className="as-field-label">
-              Type <span style={{ color: 'var(--as-ink)', fontFamily: "'Geist Mono', monospace" }}>{campaignName}</span> to confirm
-            </label>
-            <input
-              className="as-input"
-              placeholder={campaignName}
-              value={confirmation}
-              onChange={(e) => setConfirmation(e.target.value)}
-              disabled={isLoading}
-            />
+          <div style={{
+            border: '1px solid rgba(200,60,60,0.35)',
+            background: 'rgba(200,60,60,0.06)',
+            padding: '10px 14px',
+            maxHeight: 'min(50vh, 18rem)',
+            overflowY: 'auto',
+          }}>
+            {isPlural ? (
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--as-ink)', lineHeight: 1.7 }}>
+                {campaignNames.map((name, i) => (
+                  <li key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</li>
+                ))}
+              </ul>
+            ) : (
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--as-ink)', lineHeight: 1.7 }}>
+                <li>The campaign — <strong>{campaignNames[0]}</strong></li>
+                {PER_CAMPAIGN_DELETED_ITEMS.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
+            {isPlural && (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--as-ink)', marginTop: 10, marginBottom: 6 }}>
+                  For each campaign, this also removes:
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--as-ink)', lineHeight: 1.7 }}>
+                  {PER_CAMPAIGN_DELETED_ITEMS.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
+
+          {error && (
+            <p style={{ fontSize: 13, color: '#c44', marginTop: 10 }} role="alert">{error}</p>
+          )}
         </div>
 
         <div className="as-modal-foot">
@@ -70,26 +121,31 @@ export function DeleteCampaignModal({ campaignName, onClose, onConfirm, isLoadin
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
-            disabled={!canDelete || isLoading}
+            disabled={isLoading}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 7,
               padding: '8px 18px',
-              background: canDelete && !isLoading ? '#c44' : 'var(--as-rule)',
-              color: canDelete && !isLoading ? '#fff' : 'var(--as-ink-3)',
+              background: isLoading ? 'var(--as-rule)' : '#c44',
+              color: isLoading ? 'var(--as-ink-3)' : '#fff',
               border: 'none',
               fontFamily: 'inherit',
               fontSize: 13,
-              cursor: canDelete && !isLoading ? 'pointer' : 'not-allowed',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s, color 0.15s',
             }}
           >
-            {isLoading ? <><SpinnerIcon /> Deleting…</> : 'Delete Campaign'}
+            {isLoading
+              ? <><SpinnerIcon /> Deleting…</>
+              : isPlural ? `Delete ${count} Campaigns` : 'Delete Campaign'}
           </button>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

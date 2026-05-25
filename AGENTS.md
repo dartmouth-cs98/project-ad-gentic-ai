@@ -106,6 +106,7 @@ This section is the repo-specific **design-doc gate**; [CLAUDE.md](CLAUDE.md) co
 | [agent_resources/BACKEND.md](agent_resources/BACKEND.md) | FastAPI layers, auth, jobs, API conventions. |
 | [agent_resources/FRONTEND.md](agent_resources/FRONTEND.md) | Vite/React structure, state, styling, pitfalls. |
 | [agent_resources/TESTING.md](agent_resources/TESTING.md) | Test pyramid, pytest, CI, fixtures. |
+| [agent_resources/SCHEMA.md](agent_resources/SCHEMA.md) | SQL Server tables, columns, FK relationships. |
 | [agent_resources/references/](agent_resources/references/) | Lookup tables (API, env, routes, DB, CI). |
 | [agent_resources/design-docs/](agent_resources/design-docs/) | Design docs for major changes (before implementation). |
 | [exec-plans/](exec-plans/) | Task execution plans (read before implementing assigned work). |

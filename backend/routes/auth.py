@@ -45,6 +45,7 @@ from crud.business_client import (
     is_password_reset_token_expired,
 )
 from dependencies import get_current_client_id, create_access_token
+from services.credits import credit_fields_for_client
 from services.email_verification.service import send_verification_email, send_password_reset_email
 
 router = APIRouter()
@@ -346,12 +347,16 @@ def get_me(
     if not client.email_verified:
         raise HTTPException(status_code=403, detail="Email verification is required.")
     traits = json.loads(client.traits) if client.traits else None
+    credit_fields = credit_fields_for_client(db, client)
     return ProfileResponse(
         client_id=client.id,
         email=client.email,
         business_name=client.business_name,
         subscription_tier=client.subscription_tier,
-        credits_balance=client.credits_balance,
+        credits_balance=credit_fields["credits_balance"],
+        credits_daily_cap=credit_fields["credits_daily_cap"],
+        credits_daily_reset_on=credit_fields["credits_daily_reset_on"],
+        credits_next_reset_at=credit_fields["credits_next_reset_at"],
         traits=traits,
         auth_provider=client.auth_provider,
     )

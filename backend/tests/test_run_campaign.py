@@ -21,15 +21,17 @@ from database import Base, get_db
 from dependencies import get_current_client_id
 from main import app
 from models.campaign import Campaign
-from services.meta.campaign_publisher import MetaPublishError
-from services.meta.connection_loader import (
+from models.campaign_publication import CampaignPublication
+from services.ad_platforms.meta.campaign_publisher import MetaPublishError
+from services.ad_platforms.meta.connection_loader import (
     ConnectionValidationError,
     ValidatedMetaConnection,
 )
 
 _CLIENT_ID = 1
 _OTHER_CLIENT_ID = 999
-_original_schema = Campaign.__table__.schema
+_MODELS = (Campaign, CampaignPublication)
+_ORIGINAL_SCHEMAS = {m: m.__table__.schema for m in _MODELS}
 
 _VALID_CONNECTION = ValidatedMetaConnection(
     encrypted_token="enc-token",
@@ -41,21 +43,23 @@ _VALID_CONNECTION = ValidatedMetaConnection(
 
 @pytest.fixture()
 def db_session():
-    Campaign.__table__.schema = None
+    for model in _MODELS:
+        model.__table__.schema = None
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(bind=engine, tables=[Campaign.__table__])
+    Base.metadata.create_all(bind=engine, tables=[m.__table__ for m in _MODELS])
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = SessionLocal()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine, tables=[Campaign.__table__])
-        Campaign.__table__.schema = _original_schema
+        Base.metadata.drop_all(bind=engine, tables=[m.__table__ for m in _MODELS])
+        for model in _MODELS:
+            model.__table__.schema = _ORIGINAL_SCHEMAS[model]
 
 
 @pytest.fixture()
@@ -280,3 +284,94 @@ def test_run_resumes_from_existing_meta_campaign_id(client, db_session, monkeypa
     resp = client.patch(f"/campaigns/{campaign.id}/run")
     assert resp.status_code == 200
     assert captured["existing_meta_campaign_id"] == "meta_resume_me"
+
+
+# ---------------------------------------------------------------------------
+# Publications table — multi-platform schema
+# ---------------------------------------------------------------------------
+# /run writes to dbo.campaign_publications instead of inline columns on
+# dbo.campaigns. meta_campaign_id is still kept in sync as a legacy column.
+
+
+def test_run_creates_publication_row_on_success(client, db_session, monkeypatch):
+    campaign = _seed_campaign(db_session)
+    _patch_helpers(monkeypatch, publish_result="meta_new_888")
+
+    resp = client.patch(f"/campaigns/{campaign.id}/run")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta_campaign_id"] == "meta_new_888"
+    assert len(body["publications"]) == 1
+    pub = body["publications"][0]
+    assert pub["external_platform"] == "meta"
+    assert pub["external_campaign_id"] == "meta_new_888"
+    assert pub["status"] == "active"
+    assert pub["published_at"] is not None
+
+    pubs = db_session.query(CampaignPublication).filter_by(campaign_id=campaign.id).all()
+    assert len(pubs) == 1
+    assert pubs[0].external_platform == "meta"
+    assert pubs[0].external_campaign_id == "meta_new_888"
+    assert pubs[0].status == "active"
+
+
+def test_run_records_failed_publication_on_partial_failure(client, db_session, monkeypatch):
+    campaign = _seed_campaign(db_session)
+    _patch_helpers(
+        monkeypatch,
+        publish_error=MetaPublishError(
+            "Ad set creation failed mid-publish", meta_campaign_id="meta_partial_777"
+        ),
+    )
+
+    resp = client.patch(f"/campaigns/{campaign.id}/run")
+    assert resp.status_code == 502
+
+    pubs = db_session.query(CampaignPublication).filter_by(campaign_id=campaign.id).all()
+    assert len(pubs) == 1
+    assert pubs[0].external_platform == "meta"
+    assert pubs[0].external_campaign_id == "meta_partial_777"
+    assert pubs[0].status == "failed"
+    assert pubs[0].error_message is not None
+    assert "Ad set creation failed" in pubs[0].error_message
+
+    db_session.refresh(campaign)
+    assert campaign.meta_campaign_id == "meta_partial_777"
+    assert campaign.status == "draft"
+
+
+def test_run_resumes_from_existing_publication(client, db_session, monkeypatch):
+    """When a prior publication row exists, its external_campaign_id is used to resume."""
+    campaign = _seed_campaign(db_session)
+    db_session.add(
+        CampaignPublication(
+            campaign_id=campaign.id,
+            external_platform="meta",
+            external_campaign_id="meta_resume_from_pub",
+            status="failed",
+            error_message="prior partial failure",
+        )
+    )
+    db_session.commit()
+
+    captured = {}
+
+    def _publish(**kwargs):
+        captured.update(kwargs)
+        return "meta_resume_from_pub"
+
+    monkeypatch.setattr("routes.campaigns.load_publish_connection", lambda _d, _c: _VALID_CONNECTION)
+    monkeypatch.setattr(
+        "routes.campaigns.group_approved_variants_by_persona",
+        lambda _d, _cid: [{"persona_name": "X", "persona_traits": {}, "variants": [{"id": 1, "media_url": "x", "script": ""}]}],
+    )
+    monkeypatch.setattr("routes.campaigns.publish_campaign", _publish)
+
+    resp = client.patch(f"/campaigns/{campaign.id}/run")
+    assert resp.status_code == 200
+    assert captured["existing_meta_campaign_id"] == "meta_resume_from_pub"
+
+    # The same publication row is upserted to 'active' (no duplicate).
+    pubs = db_session.query(CampaignPublication).filter_by(campaign_id=campaign.id).all()
+    assert len(pubs) == 1
+    assert pubs[0].status == "active"

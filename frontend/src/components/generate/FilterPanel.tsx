@@ -2,6 +2,7 @@
 import { FilterControls } from './FilterControls';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters } from '../../hooks/useFilterState';
+import type { PreferencesSaveStatus } from '../../hooks/usePersistedCampaignPreferences';
 import type { Phase } from './types';
 
 interface FilterPanelProps {
@@ -11,6 +12,7 @@ interface FilterPanelProps {
   onClose: () => void;
   phase: Phase;
   onEditClick: () => void;
+  preferencesSaveStatus?: PreferencesSaveStatus;
 }
 
 function XIcon() {
@@ -26,6 +28,9 @@ export function FilterPanel({
   filterDispatch,
   isOpen,
   onClose,
+  phase: _phase,
+  onEditClick: _onEditClick,
+  preferencesSaveStatus: _preferencesSaveStatus = 'idle',
 }: FilterPanelProps) {
   const activeCount = countActiveFilters(filterState);
 

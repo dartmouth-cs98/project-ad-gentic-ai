@@ -20,7 +20,7 @@ This document answers: **“How do I make frontend changes in the house style?�
 | `pages/` | Route-level screens (compose layout + data hooks). |
 | `components/layout/` | App chrome (e.g. `Sidebar`). |
 | `components/ui/` | Reusable primitives (`Button`, `Input`, `Card`, `Select`, …). |
-| `components/campaigns/` | Campaign-specific UI (tables, modals, analytics). |
+| `components/campaigns/` | Campaign list/detail UI: **`CampaignGridCard`** (checkbox-only selection; card body links to detail), **`DeleteCampaignModal`** (lists cascade targets; bulk/single delete), table + analytics. List bulk delete → **`POST /campaigns/bulk-delete`** when 2+ selected ([references/frontend.md](./references/frontend.md)). |
 | `components/generate/` | Generate / chat / variants experience; `index.ts` re-exports. |
 | `api/` | Plain `fetch` wrappers — **no data caching here**. |
 | `hooks/` | TanStack Query hooks (`use*`) + small UI hooks (`useFilterState`, `useResizablePanel`). |
@@ -60,7 +60,7 @@ This document answers: **“How do I make frontend changes in the house style?�
 
 ## Data-fetching patterns
 
-1. **`src/api/config.ts`** — `API_BASE_URL` is **`/api`** when **`isLocal`** is true (`VITE_ENV` unset or **`local`** per `ENV || 'local'`), otherwise **`VITE_API_URL`** (or `/api` fallback). **`apiUrl(path)`** prefixes paths. **`authHeaders()`** adds `Authorization: Bearer …` from `localStorage` and optional `Content-Type: application/json`.
+1. **`src/api/config.ts`** — `API_BASE_URL` is **`/api`** when **`isLocal`** is true (`VITE_ENV` unset or **`local`** per `ENV || 'local'`), otherwise **`VITE_API_URL`** (or `/api` fallback). **`GOOGLE_CLIENT_ID`** comes from **`VITE_GOOGLE_CLIENT_ID`**. **`apiUrl(path)`** prefixes paths. **`authHeaders()`** adds `Authorization: Bearer …` from `localStorage` and optional `Content-Type: application/json`.
 2. **Vite proxy** — `vite.config.ts` proxies **`/api` → backend** (`VITE_API_URL` or `http://localhost:8000`), rewriting `/api` off the path so FastAPI sees `/campaigns`, `/auth`, etc.
 3. **`src/api/*.ts`** — One module per domain (`auth`, `campaigns`, `products`, …). Functions **`throw Error`** with message from `body.detail` when `!res.ok`.
 4. **`src/hooks/use*.ts`** — Wrap API calls with **`useQuery` / `useMutation`**. Prefer **`isLoading` / `isPending` / `isError` / `error`** from React Query in UI instead of re-implementing loading flags.
@@ -127,15 +127,15 @@ When adding a large form, consider introducing **React Hook Form** + **Zod** in 
 
 ## Frontend testing strategy
 
-**Today:** `package.json` has **no** `test` script — CI runs **`npm run lint`** and **`npm run build`** only ([`.github/workflows/lint.yaml`](../.github/workflows/lint.yaml), [`frontend-build.yaml`](../.github/workflows/frontend-build.yaml)).
+**Today:** **`npm run test`** runs **Vitest** (`vitest run`) — exercised in CI via **`frontend-build.yaml`** alongside lint and build. Current specs live under **`frontend/src/lib/*.test.ts`** (pure helpers). There is **no** component or E2E suite yet.
 
-**Recommended direction (not yet wired):**
+**Recommended direction:**
 
-1. **Vitest** + **React Testing Library** for components and hooks (with **MSW** or mocked `fetch` for `api/*`).
+1. Extend **Vitest** + **React Testing Library** for components and hooks (with **MSW** or mocked `fetch` for `api/*`).
 2. **One golden test** per critical flow (sign-in, create campaign, generate page happy path) before large refactors.
 3. Keep **`typecheck`** in habit: `npx tsc --noEmit` locally (see [AGENTS.md](../AGENTS.md)).
 
-Until tests exist, rely on **manual smoke** on `/#/…` routes and **lint + build** in CI.
+Until broader UI tests exist, rely on **manual smoke** on `/#/…` routes and **lint + test + build** in CI.
 
 ---
 

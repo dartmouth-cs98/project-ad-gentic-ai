@@ -50,8 +50,8 @@ flowchart LR
 - **`frontend/`** — SPA (Vite + React). Calls the FastAPI backend for auth, resources, and chat-style features.
 - **`backend/`** — One **FastAPI** application (`main.py`) that exposes:
   - **Resource APIs** under paths like `/auth`, `/campaigns`, `/ad-jobs`, `/consumers`, `/personas`, `/products`, `/social-auth`, `/chat/...`, etc.
-  - **Worker HTTP routes** under `/ad-job-worker` and `/ad-post-worker`: includes **hello-style** endpoints and **generation triggers** (e.g. **`POST /ad-job-worker/run-ad-job`** runs the full pipeline **in-process**, not a separate worker service). Heavy work is still **not** isolated in another deployable here.
-  - **Startup:** SQL Server gets best-effort **auth column** DDL in **`_ensure_auth_columns_exist()`** (see `main.py` lifespan).
+  - **Worker HTTP routes** under `/ad-job-worker` and `/ad-post-worker` (hello + **`run-ad-job`** debug). **Ad generation** for the dashboard is under **`/ad-generation`** (JWT + daily credits); legacy **`/ad-job-worker/generate-*`** return **410**.
+  - **Startup:** SQL Server gets best-effort **`business_clients`** DDL in **`_ensure_business_client_columns_exist()`** (auth + credits columns; see `main.py` lifespan).
 - **In-process orchestration** — On startup, the app starts an **asyncio background poller** (`services/ad_job_poller`) that watches the database for **pending ad jobs**, claims them, and runs **`execute_ad_job`** in `workers/ad_job_worker` (script → moderation → video → blob upload).
 
 There is **no separate message broker** (e.g. Redis/RabbitMQ) in the current dependency set: **the SQL `ad_jobs` table is the queue**, with **row-level locking** (`locked_at` / `locked_by`) so multiple API instances can poll safely.
@@ -63,6 +63,10 @@ There is **no separate message broker** (e.g. Redis/RabbitMQ) in the current dep
 ### 1. Interactive dashboard and CRUD
 
 Browser → **FastAPI routes** (`routes/*`) → **SQLAlchemy** sessions (`get_db`) → **CRUD** + **Pydantic schemas** → JSON responses. Routes that use **`get_current_client_id`** validate **`JWT_SECRET`**-signed bearer tokens (`dependencies.py`). **Not every resource route is JWT-scoped today** (e.g. parts of **`/campaigns`**); see [BACKEND.md](./BACKEND.md).
+
+**Campaign delete:** `DELETE /campaigns/{id}` and `POST /campaigns/bulk-delete` run application-level cascade in **`crud/campaign.py`** (children then campaign; one transaction for bulk). See [references/persistence.md](./references/persistence.md) and [references/backend-api.md](./references/backend-api.md).
+
+**Campaign publish:** `PATCH /campaigns/{id}/run` (JWT) groups **approved** variants by consumer persona, publishes to Meta via **`services/ad_platforms/meta/campaign_publisher.py`**, and records platform IDs in **`campaign_publications`** (legacy **`campaigns.meta_campaign_id`** kept in sync).
 
 ### 2. Product images
 
@@ -102,7 +106,7 @@ Failures are recorded on the variant **`meta`** (e.g. error trace) and statuses 
 | **Caches** | None required for core flow; clients may be cached in-process (e.g. OpenAI client LRU) |
 | **Queues** | **Database** (`ad_jobs` + locks), not a separate queue service |
 | **LLM / media APIs** | **OpenAI-compatible** clients (chat, video, moderation, primary script path), **xAI SDK** (batch scripts), env-driven keys/URLs (`backend/.env.example`) |
-| **Meta** | OAuth token storage, insights fetch, campaign publish — `services/meta/`, `routes/social_auth.py`, `routes/metrics.py` |
+| **Meta** | OAuth token storage, insights fetch, campaign publish — `services/ad_platforms/meta/`, `routes/social_auth.py`, `routes/metrics.py` |
 
 ---
 
@@ -146,6 +150,8 @@ with **DB-backed job processing** instead of a visible Celery deployment in code
 | [FRONTEND.md](./FRONTEND.md) | Frontend structure and house style |
 | [TESTING.md](./TESTING.md) | How to validate changes |
 | [references/](./references/) | Lookup: API paths, env vars, routes, tables, CI |
+| [SCHEMA.md](./SCHEMA.md) | SQL Server schema and FK graph |
+| [exec-plans/](../exec-plans/) | Task-level implementation plans |
 | [design-docs/](./design-docs/) | Design write-ups for major changes (before implementation) |
 | [README.md](../README.md) | Product narrative, diagram, setup, Docker/Make |
 | [backend/README.md](../backend/README.md) | Backend ports, worker route prefixes, local run |

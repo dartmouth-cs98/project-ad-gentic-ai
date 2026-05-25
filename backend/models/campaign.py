@@ -2,12 +2,15 @@
 
 from datetime import datetime, date, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import Integer, String, DateTime, Date, Numeric
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+
+if TYPE_CHECKING:
+    from models.campaign_publication import CampaignPublication
 
 
 class Campaign(Base):
@@ -25,11 +28,19 @@ class Campaign(Base):
     target_audience: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     product_context: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     brief: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    draft_generation_preferences: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     platforms: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     product_ids: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     meta_campaign_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    publications: Mapped[list["CampaignPublication"]] = relationship(
+        "CampaignPublication",
+        back_populates="campaign",
+        cascade="all, delete-orphan",
+        order_by="CampaignPublication.created_at",
+    )
 
     def __repr__(self) -> str:
         return f"<Campaign(id={self.id}, name='{self.name}', status='{self.status}')>"

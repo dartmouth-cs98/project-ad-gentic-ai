@@ -25,7 +25,8 @@ from urllib.parse import urlparse
 import httpx
 from PIL import Image
 
-from services.meta.auth import decrypt_token
+from services.ad_platforms._base.encryption import decrypt_token
+from services.ad_platforms._base.errors import PublishError
 from services.storage.ad_video_media_url import (
     PUBLISH_SAS_EXPIRY_HOURS,
     VIDEO_CONTAINER_NAME,
@@ -126,15 +127,19 @@ def _meta_campaign_exists(token: str, meta_campaign_id: str) -> bool:
         return True
 
 
-class MetaPublishError(Exception):
+class MetaPublishError(PublishError):
     """Raised when publishing to Meta fails.
 
     Carries the Meta campaign ID if it was created before the failure so the
     caller can persist it and resume on retry (skipping campaign creation).
+
+    ``meta_campaign_id`` is preserved as a Meta-specific alias for the
+    inherited ``external_campaign_id`` to keep existing call sites and tests
+    working while we transition to the generic naming.
     """
 
     def __init__(self, message: str, meta_campaign_id: Optional[str] = None):
-        super().__init__(message)
+        super().__init__(message, external_campaign_id=meta_campaign_id)
         self.meta_campaign_id = meta_campaign_id
 
 

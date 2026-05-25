@@ -9,7 +9,13 @@ import { CreateCampaignModal } from '../components/campaigns/CreateCampaignModal
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
 
 import { useUser } from '../contexts/UserContext';
-import { useCampaigns, useDeleteCampaign, useUpdateCampaign } from '../hooks/useCampaigns';
+import { BULK_DELETE_MAX_CAMPAIGNS } from '../api/campaigns';
+import {
+  useCampaigns,
+  useDeleteCampaign,
+  useDeleteCampaignsBulk,
+  useUpdateCampaign,
+} from '../hooks/useCampaigns';
 import { useProducts } from '../hooks/useProducts';
 import {
   campaignToItem,
@@ -101,6 +107,7 @@ export function CampaignsPage() {
   const products = productsData ?? [];
 
   const deleteMutation = useDeleteCampaign();
+  const bulkDeleteMutation = useDeleteCampaignsBulk();
   const updateMutation = useUpdateCampaign();
 
   const [dateRange, setDateRange] = useState<DateRangePreset>('all');
@@ -130,6 +137,15 @@ export function CampaignsPage() {
     [campaignsByDate, products],
   );
 
+  /** Names for any loaded campaign id (not limited to the current date filter). */
+  const campaignNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of rawCampaigns) {
+      map.set(String(c.id), c.name);
+    }
+    return map;
+  }, [rawCampaigns]);
+
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
@@ -137,7 +153,18 @@ export function CampaignsPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [campaignToDelete, setCampaignToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [campaignsToDelete, setCampaignsToDelete] = useState<{ id: number; name: string }[]>([]);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const isDeletingCampaigns =
+    deleteMutation.isPending || bulkDeleteMutation.isPending;
+
+  const closeDeleteModal = () => {
+    if (isDeletingCampaigns) return;
+    setShowDeleteModal(false);
+    setCampaignsToDelete([]);
+    setDeleteError(null);
+  };
 
   const filteredCampaigns = campaigns.filter((c) => {
     const matchesSearch =
@@ -165,21 +192,62 @@ export function CampaignsPage() {
     setSelectedCampaigns([]);
   };
 
-  const handleBulkDelete = async () => {
-    await Promise.all(selectedCampaigns.map((id) => deleteMutation.mutateAsync(Number(id))));
-    setSelectedCampaigns([]);
-  };
-
-  const handleDeleteClick = (campaignId: string, campaignName: string) => {
-    setCampaignToDelete({ id: Number(campaignId), name: campaignName });
+  const openDeleteModal = (targets: { id: number; name: string }[]) => {
+    if (targets.length === 0) return;
+    setDeleteError(null);
+    setCampaignsToDelete(targets);
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (!campaignToDelete) return;
-    deleteMutation.mutate(campaignToDelete.id, {
-      onSuccess: () => { setShowDeleteModal(false); setCampaignToDelete(null); },
-    });
+  const handleBulkDeleteClick = () => {
+    const targets = selectedCampaigns.map((id) => ({
+      id: Number(id),
+      name: campaignNameById.get(id) ?? `Campaign #${id}`,
+    }));
+    openDeleteModal(targets);
+  };
+
+  const handleDeleteClick = (campaignId: string, campaignName: string) => {
+    openDeleteModal([{ id: Number(campaignId), name: campaignName }]);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (campaignsToDelete.length === 0) return;
+    setDeleteError(null);
+    const ids = campaignsToDelete.map((c) => c.id);
+    if (ids.length > BULK_DELETE_MAX_CAMPAIGNS) {
+      setDeleteError(
+        `You can delete at most ${BULK_DELETE_MAX_CAMPAIGNS} campaigns at a time. Deselect some and try again.`,
+      );
+      return;
+    }
+    try {
+      if (ids.length === 1) {
+        await deleteMutation.mutateAsync(ids[0]);
+        setSelectedCampaigns([]);
+        setShowDeleteModal(false);
+        setCampaignsToDelete([]);
+      } else {
+        const result = await bulkDeleteMutation.mutateAsync(ids);
+        const { deleted_ids, not_found_ids } = result;
+        if (deleted_ids.length === 0 && not_found_ids.length > 0) {
+          setDeleteError(
+            'None of the selected campaigns could be deleted — they may have already been removed.',
+          );
+          return;
+        }
+        setSelectedCampaigns([]);
+        setShowDeleteModal(false);
+        setCampaignsToDelete([]);
+        if (not_found_ids.length > 0) {
+          setDeleteError(
+            `${not_found_ids.length} campaign(s) were already removed and could not be deleted.`,
+          );
+        }
+      }
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete campaigns.');
+    }
   };
 
   const DATE_PRESETS: { id: DateRangePreset; label: string }[] = [
@@ -241,13 +309,27 @@ export function CampaignsPage() {
             </div>
           )}
 
+          {/* Delete error banner (shown after modal closes on partial failure) */}
+          {deleteError && !showDeleteModal && (
+            <div className="cmp-warn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{deleteError}</span>
+              <button
+                onClick={() => setDeleteError(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 2px' }}
+                aria-label="Dismiss"
+              >
+                <XIcon />
+              </button>
+            </div>
+          )}
+
           {/* Bulk selection bar */}
           {selectedCampaigns.length > 0 && (
             <div className="cmp-selection-bar">
               <span className="cmp-selection-count">{selectedCampaigns.length} selected</span>
               <div style={{ flex: 1 }} />
               <button className="cmp-sb-btn" onClick={handleBulkPause}>Pause</button>
-              <button className="cmp-sb-btn danger" onClick={handleBulkDelete}>Delete</button>
+              <button className="cmp-sb-btn danger" onClick={handleBulkDeleteClick}>Delete</button>
               <button className="cmp-sb-clear" onClick={() => setSelectedCampaigns([])} aria-label="Clear selection">
                 <XIcon />
               </button>
@@ -405,11 +487,12 @@ export function CampaignsPage() {
           onClose={() => setShowCreateModal(false)}
         />
       )}
-      {showDeleteModal && campaignToDelete && (
+      {showDeleteModal && campaignsToDelete.length > 0 && (
         <DeleteCampaignModal
-          campaignName={campaignToDelete.name}
-          isLoading={deleteMutation.isPending}
-          onClose={() => { setShowDeleteModal(false); setCampaignToDelete(null); }}
+          campaignNames={campaignsToDelete.map((c) => c.name)}
+          isLoading={isDeletingCampaigns}
+          error={deleteError}
+          onClose={closeDeleteModal}
           onConfirm={handleConfirmDelete}
         />
       )}

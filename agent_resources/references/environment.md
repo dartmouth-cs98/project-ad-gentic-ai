@@ -33,6 +33,16 @@ Loaded via **`python-dotenv`** from **`backend/.env`** (`database.py`, several w
 | `VIDEO_API_KEY` | OpenAI-compatible video generation (`ad_video_generation_worker`) |
 | `VIDEO_SECONDS` | Clip length for video API: **`4`**, **`8`**, or **`12`** (default **`12`**). Drives script beat template and audio guards (`utils/video_timing.py`). |
 
+### Video provider (Sora vs Google Veo)
+
+| Variable | Role |
+|----------|------|
+| `VEO_GENERATION_ENABLED` | When `false`, Grok routing always uses Sora (`VIDEO_API_KEY`); default **`true`** if unset (`utils/video_provider_config.py`) |
+| `GOOGLE_VEO_API_KEY` / `GOOGLE_API_KEY` / `GEMINI_API_KEY` | First non-empty wins for Veo (Gemini Developer API path) |
+| `GOOGLE_VEO_MODEL` | Optional Veo model id (see `backend/.env.example`) |
+
+Do **not** set `GOOGLE_GENAI_USE_VERTEXAI` for the built-in Veo path (Vertex/GCS not supported in-repo).
+
 ### Email (verification / password reset)
 
 | Variable | Role |
@@ -76,6 +86,12 @@ Loaded via **`python-dotenv`** from **`backend/.env`** (`database.py`, several w
 | `AD_JOB_POLL_INTERVAL_SECONDS` | Default `5` |
 | `AD_JOB_MAX_ATTEMPTS` | Default `3` |
 
+### Credits (ad generation)
+
+| Variable | Role |
+|----------|------|
+| `CREDITS_ENFORCE` | When `true` (default), **`POST /ad-generation/generate-*`** deducts daily credits; set `false` to disable enforcement (`services/credits.py`) |
+
 ## CI (GitHub Actions)
 
 Backend workflows set at least:
@@ -90,6 +106,7 @@ Backend workflows set at least:
 |----------|------|
 | `VITE_ENV` | Unset defaults to **`local`** in `api/config.ts`; when `ENV === 'local'`, **`API_BASE_URL`** is `/api` |
 | `VITE_API_URL` | Backend origin for non-local builds and Vite proxy default (`vite.config.ts` uses it as proxy target, default `http://localhost:8000`) |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client id for **`@react-oauth/google`** sign-in (`App.tsx`, `api/config.ts`) |
 
 ## Local storage (browser)
 

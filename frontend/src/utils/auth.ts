@@ -15,6 +15,9 @@ export interface UserProfile {
   business_name: string;
   subscription_tier: string;
   credits_balance: number;
+  credits_daily_cap?: number;
+  credits_daily_reset_on?: string;
+  credits_next_reset_at?: string;
   traits: Record<string, unknown> | null;
 }
 

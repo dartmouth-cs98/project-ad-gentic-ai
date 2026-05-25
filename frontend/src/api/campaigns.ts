@@ -5,8 +5,9 @@ export const BULK_DELETE_MAX_CAMPAIGNS = 50;
 import type {
   Campaign,
   CreateCampaignPayload,
-  UpdateCampaignPayload
+  UpdateCampaignPayload,
 } from '../types';
+import type { GenerationPreferences } from '../types/generationPreferences';
 
 // ---------- API calls ----------
 
@@ -74,6 +75,24 @@ export async function updateCampaign(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail || 'Failed to update campaign.');
+  }
+
+  return (await res.json()) as Campaign;
+}
+
+export async function patchCampaignDraftPreferences(
+  campaignId: number,
+  prefs: GenerationPreferences,
+): Promise<Campaign> {
+  const res = await fetch(apiUrl(`/campaigns/${campaignId}/draft-generation-preferences`), {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify(prefs),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to save generation preferences.');
   }
 
   return (await res.json()) as Campaign;

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 
 class GenerationPreferences(BaseModel):
@@ -13,7 +13,7 @@ class GenerationPreferences(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     personalization_range: Optional[str] = None
-    variants_per_group: Optional[int] = None
+    variants_per_group: Optional[int] = Field(default=None, ge=1, le=10)
     ad_formats: Optional[list[str]] = None
     tone: Optional[str] = None
     budget_tier: Optional[str] = None

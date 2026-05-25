@@ -1,7 +1,9 @@
 import { SlidersHorizontalIcon, XIcon } from 'lucide-react';
 import { FilterControls } from './FilterControls';
+import { PreferencesSaveIndicator } from './PreferencesSaveIndicator';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters, DEFAULT_FILTERS } from '../../hooks/useFilterState';
+import type { PreferencesSaveStatus } from '../../hooks/usePersistedCampaignPreferences';
 import type { Phase } from './types';
 
 interface FilterPanelProps {
@@ -11,6 +13,7 @@ interface FilterPanelProps {
   onClose: () => void;
   phase: Phase;
   onEditClick: () => void;
+  preferencesSaveStatus?: PreferencesSaveStatus;
 }
 
 export function FilterPanel({
@@ -20,6 +23,7 @@ export function FilterPanel({
   onClose,
   phase,
   onEditClick,
+  preferencesSaveStatus = 'idle',
 }: FilterPanelProps) {
   const activeFilterCount = countActiveFilters(filterState);
 
@@ -44,17 +48,12 @@ export function FilterPanel({
               )}
             </div>
             <div className="flex items-center gap-2">
+              <PreferencesSaveIndicator status={preferencesSaveStatus} />
               <button
                 onClick={() => filterDispatch({ type: 'RESET' })}
                 className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
               >
                 Reset
-              </button>
-              <button
-                onClick={onClose}
-                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Apply
               </button>
               <button
                 onClick={onClose}
@@ -67,10 +66,9 @@ export function FilterPanel({
           </div>
           <div className="px-4 py-3 max-h-[50vh] overflow-y-auto">
             <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-              Tone, language, platforms, CTA, budget, and color choices are saved when you approve a plan and are applied
-              directly to script generation. &quot;Per group&quot; sets how many preview variants to generate per plan
-              persona (distinct consumers when available). Preview uses the chat plan&apos;s persona groups; format toggles
-              still guide planning.
+              Preferences save automatically for this campaign. Tone, language, platforms, CTA,
+              budget, and color are also applied to script generation when you approve a plan. &quot;Per group&quot;
+              sets how many preview variants to generate per plan persona.
             </p>
             <FilterControls filterState={filterState} filterDispatch={filterDispatch} compact={false} />
           </div>

@@ -123,6 +123,7 @@ Unique constraint: **`(campaign_id, external_platform)`** (`uq_camp_pub`).
 | updated_at | datetime2 | no |  |  |
 | product_ids | nvarchar(MAX) | yes |  |  |
 | brief | nvarchar(MAX) | yes |  |  |
+| draft_generation_preferences | nvarchar(MAX) | yes |  |  |
 | meta_campaign_id | nvarchar(200) | yes |  |  |
 | platforms | nvarchar(MAX) | yes |  |  |
 

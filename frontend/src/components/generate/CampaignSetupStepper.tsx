@@ -208,7 +208,7 @@ export function CampaignSetupStepper({
           budget_tier: DEFAULT_FILTERS.budgetTier,
           cta_style: DEFAULT_FILTERS.ctaStyle,
           language: DEFAULT_FILTERS.language,
-          platforms: state.platforms,
+          platforms: Array.from(DEFAULT_FILTERS.selectedPlatforms),
           color_mode: DEFAULT_FILTERS.colorMode,
         },
       },

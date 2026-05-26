@@ -655,7 +655,7 @@ export function SettingsPage() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ fontSize: 11, color: 'var(--as-ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{int.accountName}</span>
                           <button
-                            onClick={() => disconnectMeta.mutate({ platform: 'instagram' })}
+                            onClick={() => disconnectMeta.mutate({ platform: integrationPlatformMap[int.id] ?? int.id })}
                             style={{ fontSize: 11, color: 'var(--as-danger)', background: 'none', border: '1px solid rgba(185,28,28,0.3)', padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, marginLeft: 8 }}
                           >
                             Disconnect

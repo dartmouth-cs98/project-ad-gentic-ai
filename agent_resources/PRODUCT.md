@@ -23,7 +23,7 @@ This document answers: **“What behavior is the code trying to implement?”** 
 5. **Produce at scale (batch)** — **Enqueue** one **ad job** per eligible consumer who does **not** yet have an **ad variant** for this **campaign + version**. When the plan lists **`persona_groups`** that **match** DB personas, only consumers whose **primary persona** is in that set are eligible. If the plan lists groups but **none** match the catalog, **no jobs** are enqueued (fail-closed). When the parsed plan has **no non-empty** **`persona_groups`** list (absent or empty after parse), **all** consumers in the database remain eligible—the same broad-net path as **legacy** plain-string briefs with no groups; **structured** briefs follow it too once the fenced JSON parses. A **structured** version with a non-empty `plan_message` but **unparseable** fenced JSON skips the batch (fail closed), not broad-net. A background **poller** processes jobs **FIFO**, with **retries** capped by `AD_JOB_MAX_ATTEMPTS` (default 3).
 6. **Iterate on creative** — Use **version numbers** on variants and **per-version briefs** on campaigns so new creative generations can align to different brief slices.
 7. **Campaign assistant chat** — JWT-protected **chat completions**: user message is stored, history + optional filter context is sent to the configured chat model (`SCRIPT_MODEL`, OpenAI-compatible client), assistant reply is stored; responses may include a structured **plan** when the assistant wraps JSON in a Markdown fenced `json` code block (see `detect_plan_in_response` in `services/chat_ai/service.py`).
-8. **Connect Meta & view metrics** — OAuth via **`/social-auth/*`** stores encrypted tokens; **`GET /campaigns/{id}/metrics`** serves cached Meta insights and may refresh when stale if the campaign has **`meta_campaign_id`** and an Instagram connection exists.
+8. **Connect Meta, publish, and view metrics** — OAuth via **`/social-auth/*`** stores encrypted tokens; **`PATCH /campaigns/{id}/run`** publishes **approved** variants to Meta (persona-grouped ad sets) and records ids in **`campaign_publications`**; **`GET /campaigns/{id}/metrics`** serves cached Meta insights and may refresh when stale if the campaign has **`meta_campaign_id`** and an Instagram connection exists.
 
 ---
 
@@ -31,7 +31,7 @@ This document answers: **“What behavior is the code trying to implement?”** 
 
 | Feature | Intended behavior (from code) |
 |---------|----------------------------------|
-| **Campaigns** | CRUD by `business_client_id`; `brief` can hold **JSON** whose keys are **version numbers** (string or int) mapping to brief text for that creative version. **Delete** removes the campaign plus **`ad_variants`**, **`chat_messages`**, **`campaign_metrics`**, and related **`consumer_events`** (cascade in one transaction). List page: select via checkbox only; **Delete Selected** uses **`POST /campaigns/bulk-delete`** (one request for 2+ campaigns). Detail page: **`DELETE /campaigns/{id}`**. Confirmation modal lists what will be deleted ([`DeleteCampaignModal`](../frontend/src/components/campaigns/DeleteCampaignModal.tsx)). |
+| **Campaigns** | CRUD by `business_client_id`; `brief` can hold **JSON** whose keys are **version numbers** (string or int) mapping to brief text for that creative version. **Delete** removes the campaign plus **`ad_variants`**, **`chat_messages`**, **`campaign_metrics`**, **`campaign_publications`**, and related **`consumer_events`** (cascade in one transaction). **Run** (`PATCH /campaigns/{id}/run`, JWT) publishes **approved** variants to Meta and records platform ids in **`campaign_publications`**. List page: select via checkbox only; **Delete Selected** uses **`POST /campaigns/bulk-delete`** (one request for 2+ campaigns). Detail page: **`DELETE /campaigns/{id}`**. Confirmation modal lists what will be deleted ([`DeleteCampaignModal`](../frontend/src/components/campaigns/DeleteCampaignModal.tsx)). |
 | **Products** | CRUD; images uploaded to Azure **`product-images`**; **`image_name`** is required for automated ad generation (worker loads blob by name). |
 | **Consumers** | CRUD; **unique (business_client_id, email)** when email is used; **traits** JSON drives script personalization; **persona** links for segmentation. |
 | **Personas** | Global persona library (UUID id, unique name); JSON lists for motivators, pain points, optional tone preferences. |
@@ -53,7 +53,7 @@ This document answers: **“What behavior is the code trying to implement?”** 
 5. **Job ordering** — Pending jobs are processed **oldest first** (`created_at` ascending).
 6. **Failed jobs** — After **`MAX_ATTEMPTS`**, jobs stop being picked as **pending**; invalid **`input_json`** is marked **failed** **without** incrementing **`attempt_count`** (parse happens before claim).
 7. **Moderation** — Scripts must pass brand-safety norms suitable for **general-audience** social ads (see moderation prompt in `script_moderation_worker`).
-8. **Credits / billing** — `business_clients` has **`credits_balance`** and **`subscription_tier`**; **deduction rules are not centralized** in the snippets reviewed—treat billing as **product policy** to enforce consistently when implemented.
+8. **Credits / billing** — Daily allowance on **`business_clients`**: **`credits_balance`** (remaining today), **`credits_daily_reset_on`** (UTC date). **10/day** for `basic`/`free`, **100/day** for `premium`/`enterprise`; no rollover; tier upgrade grants full new cap immediately. Generation via **`POST /ad-generation/generate-*`** reserves 1 credit per `execute_ad_job`; batch job failures refund via poller. **`CREDITS_ENFORCE`** env toggles deduction.
 
 ---
 
@@ -70,6 +70,7 @@ This document answers: **“What behavior is the code trying to implement?”** 
 | **Version number** | Integer creative iteration key; selects **which brief slice** to use from `campaign.brief` JSON. |
 | **Ad job** | A unit of async work: inputs in JSON, status, attempts, optional lock fields, link to a **batch**. |
 | **Ad job batch** | Groups many jobs; tracks aggregate success/failure counts for progress UI or ops. |
+| **Campaign publication** | Per-platform publish record (`campaign_publications`): external campaign id, status, and retry state for Meta (and future platforms). |
 
 ---
 

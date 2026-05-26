@@ -16,12 +16,15 @@ import type { Phase } from './types';
 import type { AdVariant } from '../../types';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters } from '../../hooks/useFilterState';
+import type { PreferencesSaveStatus } from '../../hooks/usePersistedCampaignPreferences';
+import { PreferencesSaveIndicator } from './PreferencesSaveIndicator';
 import { useGroupedVariants } from '../../hooks/useGroupedVariants';
 
 interface ResultsPanelProps {
   phase: Phase;
   filterState: FilterState;
   filterDispatch: React.Dispatch<FilterAction>;
+  preferencesSaveStatus?: PreferencesSaveStatus;
   adVariants: AdVariant[];
   progressIdx: number;
   // Selection
@@ -32,14 +35,13 @@ interface ResultsPanelProps {
   onReviseSelected: () => void;
   onDeleteSelected: () => void;
   onApproveSelected: () => void;
-  // Filters
-  onApplyFilters?: () => void;
 }
 
 export function ResultsPanel({
   phase,
   filterState,
   filterDispatch,
+  preferencesSaveStatus = 'idle',
   adVariants,
   progressIdx,
   selectedVariants,
@@ -48,7 +50,6 @@ export function ResultsPanel({
   onReviseSelected,
   onDeleteSelected,
   onApproveSelected,
-  onApplyFilters,
 }: ResultsPanelProps) {
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const [variantCols, setVariantCols] = useState(2);
@@ -105,17 +106,12 @@ export function ResultsPanel({
               </button>
               {showFilters && (
                 <div className="flex items-center gap-2">
+                  <PreferencesSaveIndicator status={preferencesSaveStatus} />
                   <button
                     onClick={() => filterDispatch({ type: 'RESET' })}
                     className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
                   >
                     Reset
-                  </button>
-                  <button
-                    onClick={onApplyFilters}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Apply
                   </button>
                 </div>
               )}

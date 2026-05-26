@@ -19,12 +19,14 @@ from schemas.campaign import (
     CampaignUpdate,
     CampaignResponse,
 )
+from schemas.generation_preferences import GenerationPreferences
 from crud.campaign import (
     CampaignDeleteConflict,
     get_campaigns,
     get_campaign,
     create_campaign,
     update_campaign,
+    update_campaign_draft_preferences,
     delete_campaign,
     delete_campaigns_bulk,
 )
@@ -48,6 +50,19 @@ def _raise_if_foreign_campaigns(campaigns: list[Campaign], client_id: int) -> No
                 status_code=403,
                 detail="Not authorized to delete this campaign",
             )
+
+
+def _require_owned_campaign(db: Session, campaign_id: int, client_id: int) -> Campaign:
+    """Return campaign when owned by client; otherwise 404 or 403."""
+    campaign = get_campaign(db, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    if campaign.business_client_id != client_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to update this campaign",
+        )
+    return campaign
 
 
 @router.get("/", response_model=list[CampaignResponse])
@@ -112,6 +127,21 @@ def update_existing_campaign(
 ):
     """Update an existing campaign."""
     campaign = update_campaign(db, campaign_id, data)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return campaign
+
+
+@router.patch("/{campaign_id}/draft-generation-preferences", response_model=CampaignResponse)
+def patch_draft_generation_preferences(
+    campaign_id: int,
+    body: GenerationPreferences,
+    db: Session = Depends(get_db),
+    client_id: int = Depends(get_current_client_id),
+):
+    """Persist in-progress Ad Studio panel preferences for cross-device sync."""
+    _require_owned_campaign(db, campaign_id, client_id)
+    campaign = update_campaign_draft_preferences(db, campaign_id, body)
     if campaign is None:
         raise HTTPException(status_code=404, detail="Campaign not found")
     return campaign

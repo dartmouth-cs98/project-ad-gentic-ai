@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from models.business_client import BusinessClient
 from schemas.auth import OnboardingRequest
+from services.credits import apply_tier_change, daily_cap, utc_today
 
 
 def get_by_email(db: Session, email: str) -> BusinessClient | None:
@@ -14,6 +15,13 @@ def get_by_email(db: Session, email: str) -> BusinessClient | None:
 
 def get_by_id(db: Session, client_id: int) -> BusinessClient | None:
     return db.query(BusinessClient).filter(BusinessClient.id == client_id).first()
+
+
+def update_subscription_tier(db: Session, client: BusinessClient, tier: str) -> BusinessClient:
+    """Persist tier change and apply immediate daily credit cap."""
+    client.subscription_tier = tier
+    apply_tier_change(db, client)
+    return client
 
 
 def create_business_client(
@@ -29,12 +37,14 @@ def create_business_client(
     if not normalized_business_name:
         normalized_business_name = email
 
+    today = utc_today()
     client = BusinessClient(
         email=email.lower(),
         password_hash=password_hash,
         business_name=normalized_business_name,
         subscription_tier=plan,
-        credits_balance=0,
+        credits_balance=daily_cap(plan),
+        credits_daily_reset_on=today,
         email_verified=False,
         email_verification_token_hash=email_verification_token_hash,
         email_verification_expires_at=email_verification_expires_at,

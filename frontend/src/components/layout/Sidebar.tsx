@@ -146,7 +146,14 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
       </div>
 
       {/* User */}
-      <div className="p-2 border-t border-border">
+      <div
+        className="p-2 border-t border-border"
+        title={
+          collapsed
+            ? `${profile.creditsBalance} credits`
+            : undefined
+        }
+      >
         <div className={`flex items-center gap-3 px-3 py-2 ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-7 h-7 rounded-full bg-muted border border-border flex items-center justify-center text-sm font-medium text-foreground flex-shrink-0">
             {profile.userName.charAt(0)}
@@ -158,8 +165,14 @@ export function Sidebar({ collapsed: controlledCollapsed, onCollapsedChange }: S
                 <p className="text-xs text-muted-foreground truncate capitalize">
                   {signingOut ? 'Signing out...' : `${profile.plan} Plan`}
                 </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="font-medium text-foreground">
+                    {profile.creditsBalance}
+                  </span>{' '}
+                  credits
+                </p>
               </div>
-                      <button
+              <button
                 onClick={() => setConfirmOpen(true)}
                 disabled={signingOut}
                 title="Sign out"

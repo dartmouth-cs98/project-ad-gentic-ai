@@ -39,14 +39,23 @@ JWT required except **`GET /social-auth/callback`** (browser redirect from Meta)
 | GET | `/social-auth/status` |
 | DELETE | `/social-auth/disconnect` |
 
+### `/ad-generation` (JWT — daily credits)
+
+| Method | Path |
+|--------|------|
+| POST | `/ad-generation/generate-campaign-preview` |
+| POST | `/ad-generation/generate-campaign-ad-variants` |
+
+Requires auth; enforces campaign/product ownership and daily credit balance. Returns **402** when insufficient credits.
+
 ### `/ad-job-worker`
 
 | Method | Path |
 |--------|------|
 | GET | `/ad-job-worker/hello` |
 | POST | `/ad-job-worker/run-ad-job` |
-| POST | `/ad-job-worker/generate-campaign-preview` |
-| POST | `/ad-job-worker/generate-campaign-ad-variants` |
+| POST | `/ad-job-worker/generate-campaign-preview` (deprecated — **410**; use `/ad-generation`) |
+| POST | `/ad-job-worker/generate-campaign-ad-variants` (deprecated — **410**; use `/ad-generation`) |
 
 ### `/ad-post-worker`
 
@@ -97,8 +106,15 @@ JWT required except **`GET /social-auth/callback`** (browser redirect from Meta)
 | DELETE | `/campaigns/{campaign_id}` |
 | POST | `/campaigns/bulk-delete` |
 | PATCH | `/campaigns/{campaign_id}/run` |
+| PATCH | `/campaigns/{campaign_id}/draft-generation-preferences` |
 
-**`DELETE /campaigns/{id}`:** Requires JWT (`Authorization: Bearer`). Caller must own `campaign.business_client_id` (**403** otherwise). Cascade-deletes `consumer_events` (via variants), `ad_variants`, `campaign_metrics`, and `chat_messages`, then the campaign (**204**). **401** without valid token; **404** if missing; **409** if a FK still blocks delete after cascade (`CampaignDeleteConflict`).
+**`PATCH /campaigns/{id}/draft-generation-preferences`:** Requires JWT; caller must own the campaign. Body = `GenerationPreferences` JSON (same shape as version snapshots in `brief`). Persists in-progress Ad Studio panel state to `campaigns.draft_generation_preferences` for cross-device sync. **200** returns `CampaignResponse` with parsed `draft_generation_preferences`. **401** / **403** / **404** / **422** as usual.
+
+**`PUT /campaigns/{id}`** may also include `draft_generation_preferences` (object or JSON string) alongside other fields — used on plan approve together with `brief`.
+
+**`DELETE /campaigns/{id}`:** Requires JWT (`Authorization: Bearer`). Caller must own `campaign.business_client_id` (**403** otherwise). Cascade-deletes `consumer_events` (via variants), `ad_variants`, `campaign_metrics`, `campaign_publications`, and `chat_messages`, then the campaign (**204**). **401** without valid token; **404** if missing; **409** if a FK still blocks delete after cascade (`CampaignDeleteConflict`).
+
+**`PATCH /campaigns/{id}/run`:** Requires JWT; caller must own the campaign. Publishes **approved** ad variants to Meta (Instagram connection required), groups ads by consumer primary persona, upserts **`campaign_publications`** for platform `meta`, sets campaign **`status`** to **`active`**, and syncs legacy **`meta_campaign_id`**. Idempotent when already **`active`**. **400** if no approved variants or connection invalid; **502** on Meta API failure (partial state may be saved for retry).
 
 **`POST /campaigns/bulk-delete`:** Requires JWT. If any **existing** id in the request belongs to another client, the whole request fails with **403** (no partial delete). Request body:
 

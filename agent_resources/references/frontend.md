@@ -42,6 +42,8 @@ Source: `frontend/src/App.tsx`.
 
 Same rules as [FRONTEND.md](../FRONTEND.md) (data-fetching section).
 
+**Google Sign-In:** `VITE_GOOGLE_CLIENT_ID` → `GOOGLE_CLIENT_ID` in `api/config.ts` (required for `@react-oauth/google` in `App.tsx`).
+
 ## Vite dev proxy
 
 - Requests to **`/api/*`** → **`VITE_API_URL`** (or `http://localhost:8000`), path rewritten to drop `/api`.
@@ -96,4 +98,4 @@ Invalidation often uses **prefix** queries—see `frontend/src/hooks/*.ts`.
 | 1 campaign (detail or list) | `DELETE /campaigns/{id}` — `deleteCampaign` / `useDeleteCampaign` |
 | 2+ campaigns (list, **Delete Selected**) | `POST /campaigns/bulk-delete` — `deleteCampaignsBulk` / `useDeleteCampaignsBulk` |
 
-Modal lists campaign name(s) and data removed (campaign, chat, variants, metrics, consumer events). Confirm via **Cancel** / **Delete** (no type-to-confirm). Bulk delete capped at **50** (`BULK_DELETE_MAX_CAMPAIGNS`). Partial bulk: amber banner when some `not_found_ids`; modal stays open if none were deleted.
+Modal lists campaign name(s) and data removed (campaign, chat, variants, metrics, publications, consumer events). Confirm via **Cancel** / **Delete** (no type-to-confirm). Bulk delete capped at **50** (`BULK_DELETE_MAX_CAMPAIGNS`). Partial bulk: amber banner when some `not_found_ids`; modal stays open if none were deleted.

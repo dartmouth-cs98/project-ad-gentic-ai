@@ -27,7 +27,6 @@ import type { Campaign } from '../types';
 
 const EMPTY_CAMPAIGNS: Campaign[] = [];
 
-// ── Icons ────────────────────────────────────────────────────────
 
 function PlusIcon() {
   return (
@@ -81,7 +80,6 @@ function MegaphoneIcon() {
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────
 
 function parseProductIds(raw: string | null): number[] {
   if (!raw) return [];
@@ -94,7 +92,6 @@ function parseProductIds(raw: string | null): number[] {
   }
 }
 
-// ── Component ────────────────────────────────────────────────────
 
 export function CampaignsPage() {
   const { user, loading: userLoading } = useUser();

@@ -14,7 +14,6 @@ import type { Product } from '../types';
 
 const MAX_IMAGES = 5;
 
-// ── Icons ────────────────────────────────────────────────────────
 
 function PlusIcon() {
   return (
@@ -99,7 +98,6 @@ function SpinnerIcon() {
   );
 }
 
-// ── Product Card ────────────────────────────────────────────────
 
 function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
   product: Product;
@@ -253,7 +251,6 @@ function ProductCard({ product, onUploadImages, onDeleteImage, onDelete }: {
   );
 }
 
-// ── Create Product Modal ────────────────────────────────────────
 
 function CreateProductModal({ onClose }: { onClose: () => void }) {
   const createMutation = useCreateProduct();
@@ -376,7 +373,6 @@ function CreateProductModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Delete Product Modal ────────────────────────────────────────
 
 function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
   product: Product;
@@ -437,7 +433,6 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
   );
 }
 
-// ── Main Page ───────────────────────────────────────────────────
 
 export function ProductsPage() {
   const { user } = useUser();

@@ -1,7 +1,6 @@
 // PlanCard — flat hairline design; keeps parsePlanContent JSON logic intact
 import { useMemo } from 'react';
 
-// ── Types ──────────────────────────────────────────────────────────
 
 interface PersonaGroup {
   name: string;
@@ -33,7 +32,6 @@ interface PlanCardProps {
   expressMode?: boolean;
 }
 
-// ── Helper ─────────────────────────────────────────────────────────
 
 function parsePlanContent(content: string): { intro: string; plan: AdPlan | null } {
   const jsonMatch = content.match(/```json\s*(\{[\s\S]*?\})\s*```/);
@@ -46,7 +44,6 @@ function parsePlanContent(content: string): { intro: string; plan: AdPlan | null
   }
 }
 
-// ── Component ──────────────────────────────────────────────────────
 
 export function PlanCard({ content, onApprove, onDecline, resolved, expressMode }: PlanCardProps) {
   const { intro, plan } = useMemo(() => parsePlanContent(content), [content]);

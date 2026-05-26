@@ -2,7 +2,6 @@
 import { useRef } from 'react';
 import { useInView } from '../../hooks/useInView';
 
-// ── Artifact preview mini-components ──────────────────────────────────────
 function ArtifactPersona() {
   return (
     <div className="lp-art-persona">
@@ -72,7 +71,6 @@ function ArtifactPreview({ kind }: { kind: ArtifactKind }) {
   return <ArtifactNumbers />;
 }
 
-// ── Feature rows data ──────────────────────────────────────────────────────
 const ITEMS: { idx: string; title: string; body: string; artifact: ArtifactKind }[] = [
   {
     idx: 'F.01',
@@ -100,7 +98,6 @@ const ITEMS: { idx: string; title: string; body: string; artifact: ArtifactKind 
   },
 ];
 
-// ── Single work row with its own InView ref ────────────────────────────────
 function WorkRow({ item, delay }: { item: typeof ITEMS[number]; delay: number }) {
   const ref = useRef<HTMLElement>(null);
   const seen = useInView(ref, 0.15);
@@ -122,7 +119,6 @@ function WorkRow({ item, delay }: { item: typeof ITEMS[number]; delay: number })
   );
 }
 
-// ── Section root ───────────────────────────────────────────────────────────
 export function LandingWork() {
   return (
     <section className="lp-work-section" id="work">

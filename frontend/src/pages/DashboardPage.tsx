@@ -4,7 +4,6 @@ import { AppShell } from '../components/layout/AppShell';
 import { AppIcon } from '../components/ui/AppIcon';
 import { useCountUp } from '../hooks/useCountUp';
 
-// ── Sparkline ────────────────────────────────────────────────────────────────
 
 interface SparklineProps {
   points: number[];
@@ -52,7 +51,6 @@ function Sparkline({ points, area = false, down = false, className = '' }: Spark
   );
 }
 
-// ── Table sparkline (smaller, fixed height) ──────────────────────────────────
 
 function TableSpark({ points, down = false }: { points: number[]; down?: boolean }) {
   const W = 80;
@@ -76,7 +74,6 @@ function TableSpark({ points, down = false }: { points: number[]; down?: boolean
   );
 }
 
-// ── Performance chart ─────────────────────────────────────────────────────────
 
 function genSeries(days: number, base: number, noise: number, trend: number): number[] {
   return Array.from({ length: days }, (_, i) => {
@@ -253,7 +250,6 @@ function PerformanceChart({ active }: { active: boolean }) {
   );
 }
 
-// ── Static mock data ─────────────────────────────────────────────────────────
 
 interface ActivityItem {
   id: number;
@@ -328,7 +324,6 @@ const regions = [
 ];
 const GOALS = ['Brand awareness', 'Lead gen', 'Direct sales', 'Engagement', 'Other'] as const;
 
-// ── Formatters ────────────────────────────────────────────────────────────────
 
 function formatKpi(n: number, kind: KpiDef['kind']): string {
   if (kind === 'pct')       return `${n.toFixed(1)}%`;
@@ -341,7 +336,6 @@ function formatKpi(n: number, kind: KpiDef['kind']): string {
   return Math.round(n).toLocaleString();
 }
 
-// ── KPI card ─────────────────────────────────────────────────────────────────
 
 function KpiCard({ kpi, hero, active }: { kpi: KpiDef; hero: boolean; active: boolean }) {
   const v = useCountUp(kpi.target, { active });
@@ -364,7 +358,6 @@ function KpiCard({ kpi, hero, active }: { kpi: KpiDef; hero: boolean; active: bo
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -616,7 +609,6 @@ export function DashboardPage() {
   );
 }
 
-// ── Persona signal panel ──────────────────────────────────────────────────────
 
 function PersonaSignalPanel({ active }: { active: boolean }) {
   return (
@@ -662,7 +654,6 @@ function PersonaSignalPanel({ active }: { active: boolean }) {
   );
 }
 
-// ── Activity feed panel ───────────────────────────────────────────────────────
 
 function ActivityFeedPanel() {
   return (
@@ -690,7 +681,6 @@ function ActivityFeedPanel() {
   );
 }
 
-// ── Campaigns table panel ─────────────────────────────────────────────────────
 
 function CampaignsTablePanel({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   return (

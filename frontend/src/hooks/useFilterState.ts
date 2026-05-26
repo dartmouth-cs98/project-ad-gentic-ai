@@ -1,6 +1,5 @@
 import { useReducer } from 'react';
 
-// ─── Value types ─────────────────────────────────────────────────
 export type PersonalizationRange = 'individual' | 'group' | 'broad';
 export type AdFormatOption = 'images' | 'videos';
 export type Tone = 'formal' | 'playful' | 'bold' | 'minimal';
@@ -9,7 +8,6 @@ export type CtaStyle = 'soft' | 'direct' | 'urgency';
 export type ColorMode = 'brand' | 'custom';
 export type PresetKey = 'performance' | 'awareness' | 'engagement';
 
-// ─── Presets ─────────────────────────────────────────────────────
 export interface PresetDefinition {
   label: string;
   description: string;
@@ -58,7 +56,6 @@ export const PRESETS: Record<PresetKey, PresetDefinition> = {
   },
 };
 
-// ─── State shape ─────────────────────────────────────────────────
 export interface FilterState {
   activePreset: PresetKey | null;
   personalizationRange: PersonalizationRange;
@@ -73,7 +70,6 @@ export interface FilterState {
   language: string;
 }
 
-// ─── Defaults ────────────────────────────────────────────────────
 export const DEFAULT_FILTERS: FilterState = {
   activePreset: 'performance',
   personalizationRange: 'group',
@@ -88,7 +84,6 @@ export const DEFAULT_FILTERS: FilterState = {
   language: 'English (US)',
 };
 
-// ─── Actions ─────────────────────────────────────────────────────
 export type FilterAction =
   | { type: 'SET_PRESET'; payload: PresetKey }
   | { type: 'SET_RANGE'; payload: PersonalizationRange }
@@ -104,7 +99,6 @@ export type FilterAction =
   | { type: 'LOAD'; payload: FilterState }
   | { type: 'RESET' };
 
-// ─── Reducer ─────────────────────────────────────────────────────
 function filterReducer(state: FilterState, action: FilterAction): FilterState {
   switch (action.type) {
     case 'SET_PRESET': {
@@ -187,7 +181,6 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
   }
 }
 
-// ─── Hook ────────────────────────────────────────────────────────
 
 /** Count how many filters differ from defaults. Returns 0 when a preset is active. */
 export function countActiveFilters(state: FilterState): number {

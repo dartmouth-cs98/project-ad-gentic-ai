@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { LandingHeader } from '../components/landing/LandingHeader';
 import { LandingFooter } from '../components/landing/LandingFooter';
 
-// ── Diagram: Audience Segmentation ──────────────────────────────────────────
 function DiagSegmentation() {
   const rows = [
     { label: 'Deal Seekers',     pct: 34, accent: true },
@@ -28,7 +27,6 @@ function DiagSegmentation() {
   );
 }
 
-// ── Diagram: AI Strategist ───────────────────────────────────────────────────
 function DiagStrategist() {
   return (
     <div className="lp-feature-visual">
@@ -59,7 +57,6 @@ function DiagStrategist() {
   );
 }
 
-// ── Diagram: Multi-platform Publishing ──────────────────────────────────────
 function DiagPublishing() {
   const platforms = [
     { name: 'Meta',     status: 'LIVE',   live: true },
@@ -82,7 +79,6 @@ function DiagPublishing() {
   );
 }
 
-// ── Diagram: Review & Approve ────────────────────────────────────────────────
 function DiagReview() {
   const approved = [true, true, false, true, true, false, true, false];
   return (
@@ -101,7 +97,6 @@ function DiagReview() {
   );
 }
 
-// ── Feature section data ─────────────────────────────────────────────────────
 const FEATURES = [
   {
     num: '01',
@@ -157,7 +152,6 @@ const FEATURES = [
   },
 ];
 
-// ── Page ─────────────────────────────────────────────────────────────────────
 export function FeaturesPage() {
   return (
     <div className="landing-page">

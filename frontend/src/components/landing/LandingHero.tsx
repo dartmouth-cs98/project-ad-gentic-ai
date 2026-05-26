@@ -6,7 +6,6 @@ import { useAmbient } from '../../hooks/useAmbient';
 
 interface DriftVec { x: number; y: number; }
 
-// ── Satellite panels ─────────────────────────────────────────────────────────
 // Each Comp receives only ambient drift — position/entry handled by wrapper
 
 function SatMetric({ drift }: { drift: DriftVec }) {

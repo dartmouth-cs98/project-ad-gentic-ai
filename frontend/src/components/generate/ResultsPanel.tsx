@@ -46,7 +46,6 @@ interface ResultsPanelProps {
   onSendExample?: (text: string) => void;
 }
 
-// ── Icons ─────────────────────────────────────────────────────────
 
 function SlidersIcon() {
   return (
@@ -83,7 +82,6 @@ function PlusIcon() {
   );
 }
 
-// ── Pick Campaign State ────────────────────────────────────────────
 
 function PickCampaignState({
   campaigns,
@@ -163,7 +161,6 @@ function PickCampaignState({
   );
 }
 
-// ── Empty Brief State (campaign set, no variants yet) ───────────────
 
 const EXAMPLES = [
   { idx: 'EX.01', text: 'Generate 6 ads for our product — use the late-night persona, urban commute angle.' },
@@ -203,7 +200,6 @@ function EmptyBriefState({ onTry }: { onTry: (text: string) => void }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────
 
 export function ResultsPanel({
   phase,

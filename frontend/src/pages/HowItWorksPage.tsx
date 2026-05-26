@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { LandingHeader } from '../components/landing/LandingHeader';
 import { LandingFooter } from '../components/landing/LandingFooter';
 
-// ── Step diagrams ─────────────────────────────────────────────────────────────
 
 function DiagImport() {
   const files = [
@@ -164,7 +163,6 @@ function DiagPublish() {
   );
 }
 
-// ── Steps data ────────────────────────────────────────────────────────────────
 
 const STEPS = [
   {
@@ -214,7 +212,6 @@ const STEPS = [
   },
 ];
 
-// ── Page ─────────────────────────────────────────────────────────────────────
 
 export function HowItWorksPage() {
   return (

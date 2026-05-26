@@ -6,7 +6,6 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// ── Phase bar ──────────────────────────────────────────────────────────────
 function PhaseBar({ phase }: { phase: number }) {
   const labels = ['01 GENERATE', '02 SCORE', '03 LAUNCH'];
   return (
@@ -23,7 +22,6 @@ function PhaseBar({ phase }: { phase: number }) {
   );
 }
 
-// ── Typewriter helper ──────────────────────────────────────────────────────
 function TypewriterLine({ text, progress }: { text: string; progress: number }) {
   const n = Math.floor(clamp(progress, 0, 1) * text.length);
   return (
@@ -34,7 +32,6 @@ function TypewriterLine({ text, progress }: { text: string; progress: number }) 
   );
 }
 
-// ── Phase 0: Generate ──────────────────────────────────────────────────────
 function GeneratePhase({ progress }: { progress: number }) {
   const lineProgress = clamp(progress * 1.6, 0, 1);
   const variantStart = 0.45;
@@ -87,7 +84,6 @@ function GeneratePhase({ progress }: { progress: number }) {
   );
 }
 
-// ── Phase 1: Score ─────────────────────────────────────────────────────────
 function ScorePhase({ progress }: { progress: number }) {
   const personas = ['COMMUTER', 'RUNNER', 'RETARGET'];
   const scores = [
@@ -162,7 +158,6 @@ function ScorePhase({ progress }: { progress: number }) {
   );
 }
 
-// ── Phase 2: Launch ────────────────────────────────────────────────────────
 function LaunchPhase({ progress }: { progress: number }) {
   const f = clamp(progress * 1.4, 0, 1);
   const tick = (target: number) => (target * f).toFixed(2);
@@ -246,7 +241,6 @@ function LaunchPhase({ progress }: { progress: number }) {
   );
 }
 
-// ── Section root ───────────────────────────────────────────────────────────
 export function LandingApproach() {
   const ref = useRef<HTMLElement>(null);
   const rawP = useScrollProgress(ref);

@@ -168,6 +168,7 @@ export function GenerateAdsPage() {
     language: filterState.language,
     platforms: Array.from(filterState.selectedPlatforms),
     colorMode: filterState.colorMode,
+    ...(filterState.colorMode === 'custom' ? { customColor: filterState.customColor } : {}),
   });
 
   const splitContainerRef = useRef<HTMLDivElement>(null);

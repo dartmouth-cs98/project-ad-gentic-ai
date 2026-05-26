@@ -14,7 +14,6 @@ import { useCreateCampaign } from '../../hooks/useCampaigns';
 import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
 import type { Product, Campaign } from '../../types';
 
-// ─── Constants ───────────────────────────────────────────────────
 
 type StepId = 1 | 2 | 3;
 
@@ -32,7 +31,6 @@ const TONE_OPTIONS = [
   { id: 'minimal', label: 'Minimal' },
 ] as const;
 
-// ─── Internal state ──────────────────────────────────────────────
 
 interface StepperState {
   selectedProduct: Product | null;
@@ -44,7 +42,6 @@ interface StepperState {
   expressMode: boolean;
 }
 
-// ─── Props ───────────────────────────────────────────────────────
 
 export interface CampaignSetupStepperProps {
   businessClientId: number;
@@ -55,7 +52,6 @@ export interface CampaignSetupStepperProps {
   onCancel: () => void;
 }
 
-// ─── Inline SVGs ─────────────────────────────────────────────────
 
 function ArrowLeftIcon() {
   return (
@@ -116,7 +112,6 @@ function SpinnerIcon() {
   );
 }
 
-// ─── Component ───────────────────────────────────────────────────
 
 export function CampaignSetupStepper({
   businessClientId,

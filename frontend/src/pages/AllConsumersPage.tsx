@@ -5,7 +5,6 @@ import { useAssignPersonas, useConsumers } from '../hooks/useConsumers';
 import { usePersonas } from '../hooks/usePersonas';
 import type { Consumer } from '../types';
 
-// ─── Helpers ─────────────────────────────────────────────────────
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -16,7 +15,6 @@ function formatKey(key: string) {
     .split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
-// ─── Icons ───────────────────────────────────────────────────────
 
 function SearchIcon() {
   return (
@@ -63,7 +61,6 @@ function UsersEmptyIcon() {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────
 
 function TraitTagsPreview({ traits }: { traits: Record<string, unknown> }) {
   const keys = Object.keys(traits);
@@ -99,7 +96,6 @@ function PersonaCell({ consumer }: { consumer: Consumer }) {
   );
 }
 
-// ─── Component ───────────────────────────────────────────────────
 
 export function AllConsumersPage() {
   const { data: consumers = [], isLoading: loading, error: consumersError, refetch } = useConsumers(0, 1000, true);

@@ -9,13 +9,11 @@ import { CLIENT_ID_KEY } from '../api/config';
 import { UploadProgressView } from '../components/customer/UploadProgressView';
 import type { UploadPhase } from '../components/customer/UploadProgressView';
 
-// ─── Persona color palette (stroke only — dots use inline style) ──
 const PERSONA_STROKES = [
   '#2B3FE0', '#f97316', '#8b5cf6', '#94a3b8', '#10b981', '#ec4899',
 ];
 function getStroke(i: number) { return PERSONA_STROKES[i % PERSONA_STROKES.length]; }
 
-// ─── Helpers ─────────────────────────────────────────────────────
 
 function formatRelativeDate(dateString: string) {
   const date = new Date(dateString);
@@ -53,7 +51,6 @@ function TraitTags({ traits }: { traits: Record<string, unknown> | null }) {
   );
 }
 
-// ─── Icons ───────────────────────────────────────────────────────
 
 function UploadIcon() {
   return (
@@ -83,7 +80,6 @@ function UsersIcon() {
   );
 }
 
-// ─── Component ───────────────────────────────────────────────────
 
 export function CustomerDataPage() {
   const { data: consumers = [], isLoading: consumersLoading, error: consumersQueryError, refetch } = useConsumers(0, 1000, true);

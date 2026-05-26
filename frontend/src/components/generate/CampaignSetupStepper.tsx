@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateCampaign } from '../../hooks/useCampaigns';
 import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
+import { DEFAULT_FILTERS } from '../../hooks/useFilterState';
 import type { Product, Campaign } from '../../types';
 
 
@@ -186,9 +187,10 @@ export function CampaignSetupStepper({
 
   // ─── Submit ───────────────────────────────────────────────────
 
+  const effectiveProduct = state.selectedProduct ?? products.find((p) => p.id === initialProductId) ?? null;
+
   const handleLaunch = () => {
     if (!validateStep2()) return;
-    const effectiveProduct = state.selectedProduct ?? products.find((p) => p.id === initialProductId) ?? null;
     createCampaign.mutate(
       {
         business_client_id: businessClientId,
@@ -197,6 +199,18 @@ export function CampaignSetupStepper({
         product_ids: effectiveProduct ? JSON.stringify([effectiveProduct.id]) : null,
         target_audience: state.targetAudience,
         goal: state.goal || null,
+        platforms: JSON.stringify(state.platforms),
+        draft_generation_preferences: {
+          personalization_range: DEFAULT_FILTERS.personalizationRange,
+          variants_per_group: DEFAULT_FILTERS.variantsPerGroup,
+          ad_formats: Array.from(DEFAULT_FILTERS.adFormats),
+          tone: state.tone,
+          budget_tier: DEFAULT_FILTERS.budgetTier,
+          cta_style: DEFAULT_FILTERS.ctaStyle,
+          language: DEFAULT_FILTERS.language,
+          platforms: state.platforms,
+          color_mode: DEFAULT_FILTERS.colorMode,
+        },
       },
       { onSuccess: (campaign) => onComplete(campaign, state.expressMode) },
     );
@@ -397,9 +411,9 @@ export function CampaignSetupStepper({
               <button
                 className="gen-stepper-nav-next accent"
                 onClick={handleStep2Next}
-                disabled={createCampaign.isPending}
+                disabled={createCampaign.isPending || (!!initialProductId && !effectiveProduct)}
               >
-                {createCampaign.isPending ? <><SpinnerIcon /> Creating…</> : <><ZapIcon /> Generate Ads</>}
+                {createCampaign.isPending ? <><SpinnerIcon /> Creating…</> : (!!initialProductId && !effectiveProduct) ? <><SpinnerIcon /> Resolving…</> : <><ZapIcon /> Generate Ads</>}
               </button>
             ) : (
               <button className="gen-stepper-nav-next" onClick={goNext}>
@@ -487,7 +501,7 @@ export function CampaignSetupStepper({
             <button
               className="gen-stepper-nav-next accent"
               onClick={handleLaunch}
-              disabled={createCampaign.isPending}
+              disabled={createCampaign.isPending || (!!initialProductId && !effectiveProduct)}
             >
               {createCampaign.isPending ? <><SpinnerIcon /> Creating…</> : <><ZapIcon /> Generate Ads</>}
             </button>

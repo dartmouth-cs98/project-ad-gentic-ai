@@ -1,8 +1,7 @@
-import { SlidersHorizontalIcon, XIcon } from 'lucide-react';
+// FilterPanel — right-side slide-in drawer using gen-filter-drawer CSS
 import { FilterControls } from './FilterControls';
-import { PreferencesSaveIndicator } from './PreferencesSaveIndicator';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
-import { countActiveFilters, DEFAULT_FILTERS } from '../../hooks/useFilterState';
+import { countActiveFilters } from '../../hooks/useFilterState';
 import type { PreferencesSaveStatus } from '../../hooks/usePersistedCampaignPreferences';
 import type { Phase } from './types';
 
@@ -16,109 +15,78 @@ interface FilterPanelProps {
   preferencesSaveStatus?: PreferencesSaveStatus;
 }
 
+function XIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={14} height={14}>
+      <path d="M2 2l10 10M12 2L2 12" />
+    </svg>
+  );
+}
+
 export function FilterPanel({
   filterState,
   filterDispatch,
   isOpen,
   onClose,
-  phase,
-  onEditClick,
-  preferencesSaveStatus = 'idle',
+  phase: _phase,
+  onEditClick: _onEditClick,
+  preferencesSaveStatus: _preferencesSaveStatus = 'idle',
 }: FilterPanelProps) {
-  const activeFilterCount = countActiveFilters(filterState);
+  const activeCount = countActiveFilters(filterState);
 
   return (
     <>
-      {/* Expanded filter panel */}
-      {isOpen && (
-        <div
-          data-filter-panel
-          className="bg-card border-b border-border shadow-lg relative z-20"
-        >
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontalIcon className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold text-foreground">
-                Generation Preferences
-              </h3>
-              {activeFilterCount > 0 && (
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                  {activeFilterCount} customized
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <PreferencesSaveIndicator status={preferencesSaveStatus} />
-              <button
-                onClick={() => filterDispatch({ type: 'RESET' })}
-                className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
-              >
-                Reset
-              </button>
-              <button
-                onClick={onClose}
-                className="ml-1 p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                aria-label="Close filters"
-              >
-                <XIcon className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="px-4 py-3 max-h-[50vh] overflow-y-auto">
-            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-              Preferences save automatically for this campaign. Tone, language, platforms, CTA,
-              budget, and color are also applied to script generation when you approve a plan. &quot;Per group&quot;
-              sets how many preview variants to generate per plan persona.
-            </p>
-            <FilterControls filterState={filterState} filterDispatch={filterDispatch} compact={false} />
-          </div>
-        </div>
-      )}
+      {/* Dimming overlay */}
+      <div
+        className={`gen-drawer-overlay${isOpen ? ' in' : ''}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-      {/* Active filter chips (idle state, when filters are set but panel is closed) */}
-      {phase === 'idle' && activeFilterCount > 0 && !isOpen && (
-        <div className="px-4 py-2 border-b border-border flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Active:
-          </span>
-          {filterState.personalizationRange !== DEFAULT_FILTERS.personalizationRange && (
-            <span className="px-2 py-0.5 rounded-full bg-blue-600/10 text-blue-600 dark:text-blue-400 text-[10px] font-medium border border-blue-600/20 capitalize">
-              {filterState.personalizationRange}
-            </span>
-          )}
-          {filterState.tone !== DEFAULT_FILTERS.tone && (
-            <span className="px-2 py-0.5 rounded-full bg-blue-600/10 text-blue-600 dark:text-blue-400 text-[10px] font-medium border border-blue-600/20 capitalize">
-              {filterState.tone}
-            </span>
-          )}
-          {filterState.budgetTier !== DEFAULT_FILTERS.budgetTier && (
-            <span className="px-2 py-0.5 rounded-full bg-blue-600/10 text-blue-600 dark:text-blue-400 text-[10px] font-medium border border-blue-600/20 capitalize">
-              {filterState.budgetTier} budget
-            </span>
-          )}
-          {filterState.ctaStyle !== DEFAULT_FILTERS.ctaStyle && (
-            <span className="px-2 py-0.5 rounded-full bg-blue-600/10 text-blue-600 dark:text-blue-400 text-[10px] font-medium border border-blue-600/20 capitalize">
-              {filterState.ctaStyle} CTA
-            </span>
-          )}
-          {filterState.language !== DEFAULT_FILTERS.language && (
-            <span className="px-2 py-0.5 rounded-full bg-blue-600/10 text-blue-600 dark:text-blue-400 text-[10px] font-medium border border-blue-600/20">
-              {filterState.language}
-            </span>
-          )}
-          {filterState.variantsPerGroup !== DEFAULT_FILTERS.variantsPerGroup && (
-            <span className="px-2 py-0.5 rounded-full bg-blue-600/10 text-blue-600 dark:text-blue-400 text-[10px] font-medium border border-blue-600/20">
-              {filterState.variantsPerGroup}/group
-            </span>
-          )}
+      {/* Slide-in drawer */}
+      <div
+        className={`gen-filter-drawer${isOpen ? ' in' : ''}`}
+        role="dialog"
+        aria-label="Generation preferences"
+        aria-modal="true"
+      >
+        <div className="gen-drawer-head">
+          <div>
+            <div className="gen-drawer-eyebrow">
+              PREFERENCES{activeCount > 0 ? ` · ${activeCount} ACTIVE` : ''}
+            </div>
+            <div className="gen-drawer-title">Generation Settings</div>
+          </div>
           <button
-            onClick={onEditClick}
-            className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            className="as-icon-btn"
+            onClick={onClose}
+            aria-label="Close preferences"
+            style={{ width: 32, height: 32 }}
           >
-            Edit
+            <XIcon />
           </button>
         </div>
-      )}
+
+        <div className="gen-drawer-body">
+          <FilterControls
+            filterState={filterState}
+            filterDispatch={filterDispatch}
+            compact={false}
+          />
+        </div>
+
+        <div className="gen-drawer-foot">
+          <button
+            className="gen-reset-btn"
+            onClick={() => filterDispatch({ type: 'RESET' })}
+          >
+            Reset all
+          </button>
+          <button className="as-btn-solid" onClick={onClose}>
+            Apply
+          </button>
+        </div>
+      </div>
     </>
   );
 }

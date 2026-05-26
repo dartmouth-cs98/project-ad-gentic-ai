@@ -80,8 +80,8 @@ export function App() {
         <HashRouter>
           <ScrollToTop />
           <Routes>
-            <Route path="/" element={<SimpleLanding />} />
-            <Route path="/old-landing" element={<LandingPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/old-landing" element={<SimpleLanding />} />
             <Route path="/sign-up" element={<SignUpPage />} />
             <Route path="/sign-in" element={<SignInPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />

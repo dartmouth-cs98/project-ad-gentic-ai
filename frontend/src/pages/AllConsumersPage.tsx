@@ -1,546 +1,441 @@
+// AllConsumersPage — Swiss/Linear editorial theme
 import { useState, useRef, useEffect } from 'react';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import {
-    UsersIcon,
-    SearchIcon,
-    FilterIcon,
-    DownloadIcon,
-    Loader2Icon,
-    MailIcon,
-    PhoneIcon,
-    UserIcon,
-    CalendarIcon,
-    TagIcon,
-    XIcon,
-} from 'lucide-react';
+import { AppShell } from '../components/layout/AppShell';
 import { useAssignPersonas, useConsumers } from '../hooks/useConsumers';
 import { usePersonas } from '../hooks/usePersonas';
 import type { Consumer } from '../types';
 
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatKey(key: string) {
+  return key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()
+    .split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={12} height={12}>
+      <circle cx="5.5" cy="5.5" r="4" />
+      <path d="M9 9l3.5 3.5" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width={12} height={12}>
+      <path d="M1 3h12M3 7h8M5 11h4" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={10} height={10}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width={12} height={12}>
+      <path d="M7 2v8M4 7l3 3 3-3" />
+      <path d="M2 12h10" />
+    </svg>
+  );
+}
+
+function UsersEmptyIcon() {
+  return (
+    <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" width={34} height={34}>
+      <circle cx="13" cy="11" r="5" />
+      <path d="M4 28c0-5 4-9 9-9s9 4 9 9" />
+      <circle cx="24" cy="11" r="3.5" />
+      <path d="M24 19c4 0 6 2.5 6 6" />
+    </svg>
+  );
+}
+
+
+function TraitTagsPreview({ traits }: { traits: Record<string, unknown> }) {
+  const keys = Object.keys(traits);
+  const shown = keys.slice(0, 2);
+  const rest = keys.length - shown.length;
+  return (
+    <div>
+      {shown.map((k) => (
+        <span key={k} className="cust-trait-tag">
+          <b>{formatKey(k)}:</b>{' '}
+          {Array.isArray(traits[k]) ? (traits[k] as unknown[]).join(', ') : String(traits[k])}
+        </span>
+      ))}
+      {rest > 0 && <span className="cust-trait-tag">+{rest}</span>}
+    </div>
+  );
+}
+
+function PersonaCell({ consumer }: { consumer: Consumer }) {
+  const { primary_persona, secondary_persona } = consumer;
+  if (!primary_persona && !secondary_persona) {
+    return <span className="cust-none">—</span>;
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {primary_persona && (
+        <span className="cust-persona-primary">{primary_persona.name}</span>
+      )}
+      {secondary_persona && (
+        <span className="cust-persona-secondary">{secondary_persona.name}</span>
+      )}
+    </div>
+  );
+}
+
+
 export function AllConsumersPage() {
-    const { data: consumers = [], isLoading: loading, error: consumersError, refetch } = useConsumers(0, 1000, true);
-    const { data: personas = [] } = usePersonas(true);
-    const assignPersonas = useAssignPersonas();
-    const error = consumersError ? (consumersError as Error).message : null;
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterPersonaId, setFilterPersonaId] = useState<string | null>(null);
-    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-    const filterRef = useRef<HTMLDivElement>(null);
-    const [assignSummary, setAssignSummary] = useState<{
-        processed: number;
-        failed: number;
-        skipped: number;
-        low_confidence: number;
-        errors: string[];
-    } | null>(null);
-    const [assignError, setAssignError] = useState<string | null>(null);
-    const [selectedConsumer, setSelectedConsumer] = useState<Consumer | null>(null);
+  const { data: consumers = [], isLoading: loading, error: consumersError, refetch } = useConsumers(0, 1000, true);
+  const { data: personas = [] } = usePersonas(true);
+  const assignPersonas = useAssignPersonas();
+  const error = consumersError ? (consumersError as Error).message : null;
 
-    // Close dropdown on outside click
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-                setShowFilterDropdown(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterPersonaId, setFilterPersonaId] = useState<string | null>(null);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [assignSummary, setAssignSummary] = useState<{
+    processed: number; failed: number; skipped: number; low_confidence: number; errors: string[];
+  } | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [selectedConsumer, setSelectedConsumer] = useState<Consumer | null>(null);
 
-    const filteredConsumers = consumers.filter((consumer) => {
-        // Persona filter
-        if (filterPersonaId) {
-            const matchesPrimary = consumer.primary_persona?.id === filterPersonaId;
-            const matchesSecondary = consumer.secondary_persona?.id === filterPersonaId;
-            if (!matchesPrimary && !matchesSecondary) return false;
-        }
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-        // Search filter
-        const query = searchQuery.toLowerCase().trim();
-        if (!query) return true;
+  const filteredConsumers = consumers.filter((consumer) => {
+    if (filterPersonaId) {
+      const matchesPrimary = consumer.primary_persona?.id === filterPersonaId;
+      const matchesSecondary = consumer.secondary_persona?.id === filterPersonaId;
+      if (!matchesPrimary && !matchesSecondary) return false;
+    }
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    const basicMatch =
+      (consumer.email?.toLowerCase() || '').includes(query) ||
+      (consumer.first_name?.toLowerCase() || '').includes(query) ||
+      (consumer.last_name?.toLowerCase() || '').includes(query) ||
+      (consumer.phone?.toLowerCase() || '').includes(query);
+    if (basicMatch) return true;
+    if (consumer.traits) {
+      return Object.entries(consumer.traits).some(([key, val]) => {
+        const valStr = Array.isArray(val) ? val.join(', ') : String(val || '');
+        return key.toLowerCase().includes(query) || valStr.toLowerCase().includes(query);
+      });
+    }
+    return false;
+  });
 
-        const basicMatch =
-            (consumer.email?.toLowerCase() || '').includes(query) ||
-            (consumer.first_name?.toLowerCase() || '').includes(query) ||
-            (consumer.last_name?.toLowerCase() || '').includes(query) ||
-            (consumer.phone?.toLowerCase() || '').includes(query);
+  return (
+    <AppShell>
+      <div className="as-main">
+        <div className="as-canvas">
 
-        if (basicMatch) return true;
-
-        // Search traits keys and values
-        if (consumer.traits) {
-            return Object.entries(consumer.traits).some(([key, val]) => {
-                const valStr = Array.isArray(val) ? val.join(', ') : String(val || '');
-                return (
-                    key.toLowerCase().includes(query) ||
-                    valStr.toLowerCase().includes(query)
-                );
-            });
-        }
-
-        return false;
-    });
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    };
-
-    const formatKey = (key: string) => {
-        return key
-            .replace(/([A-Z])/g, ' $1')
-            .replace(/_/g, ' ')
-            .trim()
-            .split(' ')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-    };
-
-    const renderPersonas = (consumer: Consumer) => {
-        const { primary_persona, secondary_persona } = consumer;
-
-        if (!primary_persona && !secondary_persona) {
-            return (
-                <span className="text-muted-foreground italic text-xs">
-                    No persona assigned
-                </span>
-            );
-        }
-
-        return (
-            <div className="flex flex-col gap-1">
-                {primary_persona && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-100">
-                        <span className="truncate max-w-[140px]">{primary_persona.name}</span>
-                    </span>
-                )}
-                {secondary_persona && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-background text-foreground border border-border">
-                        <span className="truncate max-w-[140px]">
-                            {secondary_persona.name}
-                        </span>
-                    </span>
-                )}
-            </div>
-        );
-    };
-
-    const renderTraitsPreview = (traits: Record<string, unknown>) => {
-        const keys = Object.keys(traits);
-        const displayKeys = keys.slice(0, 2);
-        const remainingCount = keys.length - displayKeys.length;
-
-        return (
+          {/* Header */}
+          <div className="as-page-head">
             <div>
-                <div className="flex flex-wrap gap-1.5 items-center cursor-help">
-                    {displayKeys.map((key) => (
-                        <span
-                            key={key}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-foreground border border-border"
+              <span className="as-eyebrow">— CUSTOMER DATA</span>
+              <h1>
+                All Consumers
+                <span className="muted"> · {filteredConsumers.length}{consumers.length !== filteredConsumers.length && `/${consumers.length}`}</span>
+              </h1>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                className="as-btn-ghost"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px' }}
+              >
+                <DownloadIcon /> Export
+              </button>
+              <button
+                className="as-btn-solid"
+                onClick={() => {
+                  setAssignError(null);
+                  setAssignSummary(null);
+                  assignPersonas.mutate(undefined, {
+                    onSuccess: (summary) => setAssignSummary(summary),
+                    onError: (err) => setAssignError(err.message),
+                  });
+                }}
+                disabled={assignPersonas.isPending}
+                style={{ padding: '9px 18px' }}
+              >
+                {assignPersonas.isPending ? 'Assigning…' : 'Assign Personas'}
+              </button>
+            </div>
+          </div>
+
+          {/* Assign result banners */}
+          {assignSummary && (
+            <div className="cust-assign-bar cust-assign-ok">
+              <span>
+                Personas assigned — processed {assignSummary.processed}, skipped {assignSummary.skipped}, failed {assignSummary.failed}, low confidence {assignSummary.low_confidence}
+                {assignSummary.errors.length > 0 && `: ${assignSummary.errors.join(', ')}`}
+              </span>
+              <button onClick={() => setAssignSummary(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'flex' }}>
+                <XIcon />
+              </button>
+            </div>
+          )}
+          {assignError && (
+            <div className="cust-assign-bar cust-assign-err">
+              <span>Failed to assign personas: {assignError}</span>
+              <button onClick={() => setAssignError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'flex' }}>
+                <XIcon />
+              </button>
+            </div>
+          )}
+
+          {/* Toolbar: search + persona filter */}
+          <div className="cust-toolbar">
+            <div className="cust-search-wrap">
+              <SearchIcon />
+              <input
+                className="cust-search"
+                type="text"
+                placeholder="Search by name, email, phone…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div style={{ position: 'relative' }} ref={filterRef}>
+              <button
+                className={`cust-filter-btn${filterPersonaId ? ' active' : ''}`}
+                onClick={() => setShowFilterDropdown((v) => !v)}
+              >
+                <FilterIcon /> Persona
+                {filterPersonaId && <span className="cust-filter-dot" />}
+              </button>
+
+              {showFilterDropdown && (
+                <div className="cust-dropdown">
+                  <div className="cust-dropdown-label">Filter by Persona</div>
+                  <button
+                    className={`cust-dropdown-item${filterPersonaId === null ? ' on' : ''}`}
+                    onClick={() => { setFilterPersonaId(null); setShowFilterDropdown(false); }}
+                  >
+                    All consumers
+                    {filterPersonaId === null && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--as-accent)', display: 'inline-block' }} />}
+                  </button>
+                  {personas.length === 0 ? (
+                    <div className="cust-dropdown-item" style={{ cursor: 'default', fontStyle: 'italic' }}>No personas</div>
+                  ) : (
+                    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                      {personas.map((persona) => (
+                        <button
+                          key={persona.id}
+                          className={`cust-dropdown-item${filterPersonaId === persona.id ? ' on' : ''}`}
+                          onClick={() => { setFilterPersonaId(persona.id); setShowFilterDropdown(false); }}
                         >
-                            <span className="font-semibold mr-1">{formatKey(key)}:</span>
-                            <span className="truncate max-w-[80px]">
-                                {Array.isArray(traits[key]) ? traits[key].join(', ') : String(traits[key])}
-                            </span>
-                        </span>
-                    ))}
-                    {remainingCount > 0 && (
-                        <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                            +{remainingCount}
-                        </span>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-    const renderTraits = (consumer: Consumer) => {
-        const traits = consumer.traits;
-        if (!traits || Object.keys(traits).length === 0) {
-            return <span className="text-muted-foreground italic text-xs">No traits defined</span>;
-        }
-        return renderTraitsPreview(traits);
-    };
-
-    return (
-        <DashboardLayout>
-            <div className="max-w-7xl mx-auto">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground">All Consumers</h1>
-                            <p className="text-muted-foreground">
-                                {filteredConsumers.length} of {consumers.length} consumers
-                                {consumers.length === 0 && (
-                                    <span className="block text-xs text-muted-foreground mt-1">
-                                        Upload your customer CSV to populate consumer cards and power persona-based charts.
-                                    </span>
-                                )}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button variant="secondary" leftIcon={<DownloadIcon className="w-4 h-4" />}>
-                                Export
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    setAssignError(null);
-                                    setAssignSummary(null);
-                                    assignPersonas.mutate(undefined, {
-                                        onSuccess: (summary) => {
-                                            setAssignSummary(summary);
-                                        },
-                                        onError: (err) => {
-                                            setAssignError(err.message);
-                                        },
-                                    });
-                                }}
-                                disabled={assignPersonas.isPending}
-                            >
-                                {assignPersonas.isPending ? 'Assigning personas…' : 'Assign personas'}
-                            </Button>
-                        </div>
+                          {persona.name}
+                          {filterPersonaId === persona.id && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--as-accent)', display: 'inline-block' }} />}
+                        </button>
+                      ))}
                     </div>
+                  )}
+                  {filterPersonaId && (
+                    <>
+                      <div className="cust-dropdown-sep" />
+                      <button
+                        className="cust-dropdown-item"
+                        style={{ color: 'var(--as-danger)' }}
+                        onClick={() => { setFilterPersonaId(null); setShowFilterDropdown(false); }}
+                      >
+                        <XIcon /> Clear filter
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
-                    {assignSummary && (
-                        <Card variant="elevated" padding="sm" className="mb-4 border border-blue-100 bg-blue-50">
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="text-sm font-medium text-blue-900">
-                                        Personas assignment completed: processed {assignSummary.processed}, skipped {assignSummary.skipped}, failed {assignSummary.failed}, low confidence {assignSummary.low_confidence}.
-                                    </p>
-                                    {assignSummary.errors.length > 0 && (
-                                        <ul className="mt-1 text-xs text-blue-900 list-disc list-inside space-y-0.5">
-                                            {assignSummary.errors.map((msg, idx) => (
-                                                <li key={idx}>{msg}</li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setAssignSummary(null)}
-                                    className="text-blue-500 hover:text-blue-700 text-xs font-semibold"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        </Card>
-                    )}
+          {/* Loading */}
+          {loading && (
+            <div className="prd-state">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={20} height={20} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+                <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+              </svg>
+            </div>
+          )}
 
-                    {assignError && (
-                        <Card variant="elevated" padding="sm" className="mb-4 border border-red-100 bg-red-50">
-                            <div className="flex items-start justify-between gap-3">
-                                <p className="text-sm font-medium text-red-900">
-                                    Failed to assign personas: {assignError}
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={() => setAssignError(null)}
-                                    className="text-red-500 hover:text-red-700 text-xs font-semibold"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        </Card>
-                    )}
+          {/* Error */}
+          {error && (
+            <div className="prd-state">
+              <p style={{ fontSize: 13, color: 'var(--as-danger)', marginBottom: 12 }}>{error}</p>
+              <button className="as-btn-ghost" onClick={() => refetch()} style={{ padding: '7px 16px' }}>Retry</button>
+            </div>
+          )}
 
-                    {/* Search and Filters */}
-                    <Card variant="elevated" padding="md" className="mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1 relative">
-                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    placeholder="Search by name, email, or phone..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-
-                            {/* Filter button + dropdown */}
-                            <div className="relative" ref={filterRef}>
-                                <button
-                                    onClick={() => setShowFilterDropdown((v) => !v)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                                        filterPersonaId
-                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                            : 'border-border bg-card text-foreground hover:border-foreground/30'
-                                    }`}
-                                >
-                                    <FilterIcon className="w-4 h-4" />
-                                    Filters
-                                    {filterPersonaId && (
-                                        <span className="w-2 h-2 rounded-full bg-blue-500" />
-                                    )}
-                                </button>
-
-                                {showFilterDropdown && (
-                                    <div className="absolute right-0 top-full mt-2 w-56 bg-card rounded-xl border border-border shadow-lg z-20 py-2">
-                                        <p className="px-3 pb-1.5 pt-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                            Filter by Persona
-                                        </p>
-                                        <button
-                                            onClick={() => { setFilterPersonaId(null); setShowFilterDropdown(false); }}
-                                            className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
-                                                filterPersonaId === null
-                                                    ? 'bg-blue-50 text-blue-700 font-medium'
-                                                    : 'text-foreground hover:bg-background'
-                                            }`}
-                                        >
-                                            All consumers
-                                            {filterPersonaId === null && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                                        </button>
-                                        {personas.length === 0 ? (
-                                            <p className="px-3 py-2 text-xs text-muted-foreground italic">No personas available</p>
-                                        ) : (
-                                            <div className="max-h-64 overflow-y-auto">
-                                                {personas.map((persona) => (
-                                                    <button
-                                                        key={persona.id}
-                                                        onClick={() => { setFilterPersonaId(persona.id); setShowFilterDropdown(false); }}
-                                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
-                                                            filterPersonaId === persona.id
-                                                                ? 'bg-blue-50 text-blue-700 font-medium'
-                                                                : 'text-foreground hover:bg-background'
-                                                        }`}
-                                                    >
-                                                        {persona.name}
-                                                        {filterPersonaId === persona.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {filterPersonaId && (
-                                            <>
-                                                <div className="border-t border-border my-1" />
-                                                <button
-                                                    onClick={() => { setFilterPersonaId(null); setShowFilterDropdown(false); }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                                                >
-                                                    <XIcon className="w-3.5 h-3.5" />
-                                                    Clear filter
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+          {/* Table */}
+          {!loading && !error && (
+            <div className="cust-table-wrap">
+              <table className="cust-table">
+                <thead>
+                  <tr>
+                    <th>Consumer</th>
+                    <th>Contact</th>
+                    <th>Traits</th>
+                    <th>Personas</th>
+                    <th>Added</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredConsumers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5}>
+                        <div className="prd-state" style={{ padding: '48px 0' }}>
+                          <div className="prd-state-icon"><UsersEmptyIcon /></div>
+                          <h2>{searchQuery ? 'No consumers found' : 'No consumers yet'}</h2>
+                          <p>{searchQuery ? 'Try adjusting your search or filter.' : 'Upload a CSV on the Customer Data page to get started.'}</p>
                         </div>
-                    </Card>
-
-                    {/* Loading State */}
-                    {loading && (
-                        <div className="flex items-center justify-center py-20">
-                            <Loader2Icon className="w-8 h-8 text-blue-600 animate-spin" />
-                        </div>
-                    )}
-
-                    {/* Error State */}
-                    {error && (
-                        <Card variant="elevated" padding="lg">
-                            <div className="text-center py-8">
-                                <p className="text-red-600 font-medium">{error}</p>
-                                <Button onClick={() => refetch()} className="mt-4">
-                                    Retry
-                                </Button>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredConsumers.map((consumer) => (
+                      <tr key={consumer.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="cust-avatar">{consumer.first_name?.charAt(0) ?? '?'}</div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--as-ink)' }}>
+                                {consumer.first_name} {consumer.last_name}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace" }}>
+                                ID: {consumer.id}
+                              </div>
                             </div>
-                        </Card>
-                    )}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontSize: 12, color: 'var(--as-ink-2)' }}>{consumer.email}</div>
+                          {consumer.phone && (
+                            <div style={{ fontSize: 12, color: 'var(--as-ink-3)', marginTop: 2 }}>{consumer.phone}</div>
+                          )}
+                        </td>
+                        <td>
+                          {consumer.traits && Object.keys(consumer.traits).length > 0 ? (
+                            <>
+                              <TraitTagsPreview traits={consumer.traits} />
+                              <button
+                                onClick={() => setSelectedConsumer(consumer)}
+                                style={{ fontSize: 11, color: 'var(--as-accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4, fontFamily: 'inherit', display: 'block' }}
+                              >
+                                View details
+                              </button>
+                            </>
+                          ) : (
+                            <span className="cust-none">—</span>
+                          )}
+                        </td>
+                        <td><PersonaCell consumer={consumer} /></td>
+                        <td>
+                          <span style={{ fontSize: 12, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace" }}>
+                            {formatDate(consumer.created_at)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-                    {/* Consumers Table */}
-                    {!loading && !error && (
-                        <Card variant="elevated" padding="none">
-                            <div className="overflow-x-auto overflow-y-visible">
-                                <table className="w-full">
-                                    <thead className="bg-background border-b border-border">
-                                        <tr>
-                                            <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                                Consumer
-                                            </th>
-                                            <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                                Contact
-                                            </th>
-                                            <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                                Traits
-                                            </th>
-                                            <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                                Personas
-                                            </th>
-                                            <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                                Added
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-card divide-y divide-border">
-                                        {filteredConsumers.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={5} className="px-6 py-12 text-center">
-                                                    <UsersIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                                                    <p className="text-muted-foreground font-medium">
-                                                        {searchQuery ? 'No consumers found' : 'No consumers yet'}
-                                                    </p>
-                                                    <p className="text-muted-foreground text-sm mt-1">
-                                                        {searchQuery
-                                                            ? 'Try adjusting your search'
-                                                            : 'Upload a CSV to get started'}
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filteredConsumers.map((consumer) => (
-                                                <tr
-                                                    key={consumer.id}
-                                                    className="hover:bg-background transition-colors"
-                                                >
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                                <UserIcon className="w-5 h-5 text-blue-600" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-medium text-foreground">
-                                                                    {consumer.first_name} {consumer.last_name}
-                                                                </p>
-                                                                <p className="text-xs text-muted-foreground">ID: {consumer.id}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="space-y-1">
-                                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                                <MailIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                                                                {consumer.email}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                                <PhoneIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                                                                {consumer.phone}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="space-y-2">
-                                                            {renderTraits(consumer)}
-                                                            <button
-                                                                onClick={() => setSelectedConsumer(consumer)}
-                                                                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                                                            >
-                                                                View details
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        {renderPersonas(consumer)}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                            <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                                                            {formatDate(consumer.created_at)}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Card>
-                    )}
+        </div>
+      </div>
+
+      {/* Consumer detail modal */}
+      {selectedConsumer && (
+        <div className="as-modal-overlay" onClick={() => setSelectedConsumer(null)}>
+          <div className="as-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="as-modal-head">
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 500 }}>
+                  {selectedConsumer.first_name} {selectedConsumer.last_name}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace", marginTop: 2 }}>
+                  ID: {selectedConsumer.id}
+                </div>
+              </div>
+              <button className="as-modal-close" onClick={() => setSelectedConsumer(null)}>
+                <XIcon />
+              </button>
             </div>
 
-            {selectedConsumer && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div
-                        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-                        onClick={() => setSelectedConsumer(null)}
-                    />
-                    <div className="relative w-full max-w-2xl bg-card border border-border rounded-xl max-h-[85vh] overflow-y-auto shadow-lg">
-                        <div className="px-5 py-4 border-b border-border">
-                            <div className="flex items-start justify-between pr-8">
-                                <div>
-                                    <h2 className="text-base font-semibold text-foreground">
-                                        {selectedConsumer.first_name} {selectedConsumer.last_name}
-                                    </h2>
-                                    <p className="text-xs text-muted-foreground mt-0.5">Consumer ID: {selectedConsumer.id}</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setSelectedConsumer(null)}
-                                className="absolute top-3.5 right-3.5 p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
-                                aria-label="Close details"
-                            >
-                                <XIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <div className="p-5 space-y-4">
-                            <div className="grid grid-cols-2 gap-2.5">
-                                <div className="rounded-lg border border-border p-2.5">
-                                    <p className="text-xs text-muted-foreground mb-1">Email</p>
-                                    <p className="text-sm font-medium">{selectedConsumer.email || '—'}</p>
-                                </div>
-                                <div className="rounded-lg border border-border p-2.5">
-                                    <p className="text-xs text-muted-foreground mb-1">Phone</p>
-                                    <p className="text-sm font-medium">{selectedConsumer.phone || '—'}</p>
-                                </div>
-                                <div className="rounded-lg border border-border p-2.5 col-span-2">
-                                    <p className="text-xs text-muted-foreground mb-1">Added</p>
-                                    <p className="text-sm font-medium">{formatDate(selectedConsumer.created_at)}</p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-semibold mb-1.5">Personas</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedConsumer.primary_persona && (
-                                        <span className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-100">
-                                            Primary: {selectedConsumer.primary_persona.name}
-                                        </span>
-                                    )}
-                                    {selectedConsumer.secondary_persona && (
-                                        <span className="px-2 py-0.5 rounded text-xs bg-muted text-foreground border border-border">
-                                            Secondary: {selectedConsumer.secondary_persona.name}
-                                        </span>
-                                    )}
-                                    {!selectedConsumer.primary_persona && !selectedConsumer.secondary_persona && (
-                                        <span className="text-sm text-muted-foreground">No personas assigned</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-2">
-                                    <TagIcon className="w-4 h-4 text-blue-500" />
-                                    All Traits
-                                </h3>
-                                {selectedConsumer.traits && Object.keys(selectedConsumer.traits).length > 0 ? (
-                                    <div className="rounded-lg border border-border divide-y divide-border">
-                                        {Object.entries(selectedConsumer.traits).map(([key, val]) => (
-                                            <div key={key} className="px-3 py-2">
-                                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
-                                                    {formatKey(key)}
-                                                </p>
-                                                <p className="text-sm text-foreground">
-                                                    {Array.isArray(val) ? val.join(', ') : String(val)}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">No traits defined</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+            <div className="as-modal-body">
+              <div className="cust-detail-grid">
+                <div className="cust-detail-cell">
+                  <div className="cust-detail-cell-label">Email</div>
+                  <div className="cust-detail-cell-val">{selectedConsumer.email || '—'}</div>
                 </div>
-            )}
-        </DashboardLayout>
-    );
+                <div className="cust-detail-cell">
+                  <div className="cust-detail-cell-label">Phone</div>
+                  <div className="cust-detail-cell-val">{selectedConsumer.phone || '—'}</div>
+                </div>
+                <div className="cust-detail-cell full">
+                  <div className="cust-detail-cell-label">Added</div>
+                  <div className="cust-detail-cell-val">{formatDate(selectedConsumer.created_at)}</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <div className="cust-modal-section-label" style={{ marginBottom: 8 }}>Personas</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {selectedConsumer.primary_persona && (
+                    <span className="cust-persona-primary">Primary: {selectedConsumer.primary_persona.name}</span>
+                  )}
+                  {selectedConsumer.secondary_persona && (
+                    <span className="cust-persona-secondary">Secondary: {selectedConsumer.secondary_persona.name}</span>
+                  )}
+                  {!selectedConsumer.primary_persona && !selectedConsumer.secondary_persona && (
+                    <span className="cust-none">No personas assigned</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="cust-modal-section-label" style={{ marginBottom: 8 }}>All Traits</div>
+                {selectedConsumer.traits && Object.keys(selectedConsumer.traits).length > 0 ? (
+                  <table className="cust-traits-table">
+                    <tbody>
+                      {Object.entries(selectedConsumer.traits).map(([key, val]) => (
+                        <tr key={key}>
+                          <td>{formatKey(key)}</td>
+                          <td>{Array.isArray(val) ? val.join(', ') : String(val)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <span className="cust-none">No traits defined</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppShell>
+  );
 }

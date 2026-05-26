@@ -1,6 +1,7 @@
+// CustomerDataPage — Swiss/Linear editorial theme
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Link } from 'react-router-dom';
+import { AppShell } from '../components/layout/AppShell';
 import { useConsumers, useUploadConsumersCsv, useAssignPersonas } from '../hooks/useConsumers';
 import { usePersonas } from '../hooks/usePersonas';
 import type { Consumer, Persona } from '../types';
@@ -8,88 +9,80 @@ import { CLIENT_ID_KEY } from '../api/config';
 import { UploadProgressView } from '../components/customer/UploadProgressView';
 import type { UploadPhase } from '../components/customer/UploadProgressView';
 
-// ─── Color palette ───────────────────────────────────────────────────────────
-const PERSONA_COLORS = [
-  { stroke: '#0ea5e9', dot: 'bg-sky-500', bg: 'bg-sky-500/10', text: 'text-sky-500'},
-  { stroke: '#f97316', dot: 'bg-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-500'},
-  { stroke: '#8b5cf6', dot: 'bg-violet-500', bg: 'bg-violet-500/10', text: 'text-violet-500'},
-  { stroke: '#94a3b8', dot: 'bg-muted-foreground', bg: 'bg-muted', text: 'text-muted-foreground'},
-  { stroke: '#10b981', dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500'},
-  { stroke: '#ec4899', dot: 'bg-pink-500', bg: 'bg-pink-500/10', text: 'text-pink-500'    },
+const PERSONA_STROKES = [
+  '#2B3FE0', '#f97316', '#8b5cf6', '#94a3b8', '#10b981', '#ec4899',
 ];
-function getColor(index: number) {
-  return PERSONA_COLORS[index % PERSONA_COLORS.length];
-}
+function getStroke(i: number) { return PERSONA_STROKES[i % PERSONA_STROKES.length]; }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function formatRelativeDate(dateString: string) {
   const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatKey(key: string) {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/_/g, ' ')
-    .trim()
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+  return key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()
+    .split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
-function renderTraits(traits: Record<string, unknown> | null) {
+function TraitTags({ traits }: { traits: Record<string, unknown> | null }) {
   if (!traits || Object.keys(traits).length === 0) return null;
   const keys = Object.keys(traits);
-  const displayKeys = keys.slice(0, 2);
-  const remainingCount = keys.length - displayKeys.length;
+  const shown = keys.slice(0, 2);
+  const rest = keys.length - shown.length;
   return (
-    <div className="relative group/traits">
-      <div className="flex flex-wrap gap-1 mt-2 cursor-help">
-        {displayKeys.map((key) => (
-          <span key={key} className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted text-muted-foreground border border-border truncate max-w-[120px]">
-            <span className="font-bold mr-1">{formatKey(key)}:</span>
-            <span className="truncate">
-              {Array.isArray(traits[key]) ? (traits[key] as unknown[]).join(', ') : String(traits[key])}
-            </span>
-          </span>
-        ))}
-        {remainingCount > 0 && (
-          <span className="text-[9px] text-blue-500 font-medium self-center ml-0.5 whitespace-nowrap bg-blue-600/10 px-1 rounded border border-blue-600/20">
-            +{remainingCount}
-          </span>
-        )}
-      </div>
-      <div className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-foreground text-background rounded-lg shadow-xl z-50 opacity-0 invisible group-hover/traits:opacity-100 group-hover/traits:visible transition-all duration-200 pointer-events-none text-[10px]">
-        <div className="space-y-1.5">
-          {Object.entries(traits).map(([key, val]) => (
-            <div key={key} className="flex flex-col">
-              <span className="font-bold opacity-50 uppercase text-[8px]">{formatKey(key)}</span>
-              <span className="font-medium truncate">{Array.isArray(val) ? (val as unknown[]).join(', ') : String(val)}</span>
-            </div>
-          ))}
-        </div>
-        <div className="absolute -bottom-1 left-4 w-2 h-2 bg-foreground rotate-45" />
-      </div>
+    <div style={{ marginTop: 4 }}>
+      {shown.map((k) => (
+        <span key={k} className="cust-trait-tag">
+          <b>{formatKey(k)}:</b>{' '}
+          {Array.isArray(traits[k]) ? (traits[k] as unknown[]).join(', ') : String(traits[k])}
+        </span>
+      ))}
+      {rest > 0 && <span className="cust-trait-tag">+{rest}</span>}
     </div>
   );
 }
 
+
+function UploadIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
+      <path d="M7 9V3M5 5l2-2 2 2" />
+      <path d="M2 11h10" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" width={34} height={34}>
+      <circle cx="13" cy="11" r="5" />
+      <path d="M4 28c0-5 4-9 9-9s9 4 9 9" />
+      <circle cx="24" cy="11" r="3.5" />
+      <path d="M24 19c4 0 6 2.5 6 6" />
+    </svg>
+  );
+}
+
+
 export function CustomerDataPage() {
-  const {
-    data: consumers = [],
-    isLoading: consumersLoading,
-    error: consumersQueryError,
-    refetch,
-  } = useConsumers(0, 1000, true);
+  const { data: consumers = [], isLoading: consumersLoading, error: consumersQueryError, refetch } = useConsumers(0, 1000, true);
   const { data: personas = [], isLoading: personasLoading } = usePersonas(true);
   const uploadCsv = useUploadConsumersCsv();
   const assignPersonas = useAssignPersonas();
@@ -110,14 +103,9 @@ export function CustomerDataPage() {
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     progressIntervalRef.current = setInterval(() => setProgressIdx((n) => n + 1), 1200);
   };
-
   const stopProgress = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
+    if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
   };
-
   useEffect(() => () => stopProgress(), []);
 
   const recentConsumers = consumers.slice(-5).reverse();
@@ -140,9 +128,8 @@ export function CustomerDataPage() {
   }, [consumers]);
 
   const activeSegments = useMemo(() => {
-    const primary = consumers.filter((c) => c.primary_persona).length;
-    const secondary = consumers.filter((c) => c.secondary_persona).length;
-    return primary + secondary;
+    return consumers.filter((c) => c.primary_persona).length
+      + consumers.filter((c) => c.secondary_persona).length;
   }, [consumers]);
 
   const uniquePersonasAssigned = useMemo(() => {
@@ -153,8 +140,6 @@ export function CustomerDataPage() {
     });
     return ids.size;
   }, [consumers]);
-
-  const hasPersonaAssignments = activeSegments > 0;
 
   const topPersona = useMemo(() => {
     if (!personas.length || !consumers.length) return null;
@@ -167,20 +152,19 @@ export function CustomerDataPage() {
     const idx = personas.findIndex((p) => p.id === topId);
     if (idx === -1) return null;
     const pct = Math.round((topCount / consumers.length) * 100);
-    return { persona: personas[idx], pct, colorIdx: idx };
+    return { persona: personas[idx], pct };
   }, [personas, personaStats, consumers]);
 
   const lastUploadInfo = useMemo(() => {
     try {
       const clientId = localStorage.getItem(CLIENT_ID_KEY);
-      if (!clientId) return null;
-      const raw = localStorage.getItem(`adgentic_last_upload_${clientId}`);
-      if (raw) return JSON.parse(raw) as { filename: string; date: string };
+      if (clientId) {
+        const raw = localStorage.getItem(`adgentic_last_upload_${clientId}`);
+        if (raw) return JSON.parse(raw) as { filename: string; date: string };
+      }
     } catch { /* ignore */ }
     if (consumers.length > 0) {
-      const latest = consumers.reduce((a, b) =>
-        new Date(a.created_at) > new Date(b.created_at) ? a : b,
-      );
+      const latest = consumers.reduce((a, b) => new Date(a.created_at) > new Date(b.created_at) ? a : b);
       return { filename: null, date: latest.created_at };
     }
     return null;
@@ -188,6 +172,8 @@ export function CustomerDataPage() {
   }, [consumers, uploadTick]);
 
   const circumference = 2 * Math.PI * 40;
+  const hasPersonaAssignments = activeSegments > 0;
+
   const donutSegments = useMemo(() => {
     if (!hasPersonaAssignments) return [];
     const total = consumers.length;
@@ -197,13 +183,7 @@ export function CustomerDataPage() {
       const dashLength = (count / total) * circumference;
       const offset = -cumulative;
       cumulative += dashLength;
-      return {
-        persona: p,
-        pct: Math.round((count / total) * 100),
-        dashLength,
-        offset,
-        color: PERSONA_COLORS[i % PERSONA_COLORS.length].stroke,
-      };
+      return { persona: p, pct: Math.round((count / total) * 100), dashLength, offset, color: getStroke(i) };
     });
   }, [personas, personaStats, consumers.length, circumference, hasPersonaAssignments]);
 
@@ -217,9 +197,7 @@ export function CustomerDataPage() {
     const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'customer_template.csv';
-    a.click();
+    a.href = url; a.download = 'customer_template.csv'; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -235,6 +213,7 @@ export function CustomerDataPage() {
     if (file) doUpload(file);
     e.target.value = '';
   };
+
   const doUpload = (file: File) => {
     setUploadPhase('uploading');
     setUploadError(null);
@@ -249,17 +228,13 @@ export function CustomerDataPage() {
         setUploadResult({ created: data.created, skipped: data.skipped, errors: data.errors });
 
         const hasRowErrors = data.errors.length > 0;
-
         if (data.created === 0 && hasRowErrors) {
-          stopProgress();
-          setUploadError('Upload failed — no records were imported.');
-          setUploadPhase('error');
+          stopProgress(); setUploadError('Upload failed — no records were imported.'); setUploadPhase('error');
           return;
         }
 
         setProgressIdx(0);
         setUploadPhase('assigning');
-
         assignPersonas.mutate(undefined, {
           onSuccess: () => {
             if (hasRowErrors) {
@@ -269,12 +244,7 @@ export function CustomerDataPage() {
               refetch();
               return;
             }
-
-            setTimeout(() => {
-              stopProgress();
-              setUploadPhase('complete');
-              refetch();
-            }, 1800);
+            setTimeout(() => { stopProgress(); setUploadPhase('complete'); refetch(); }, 1800);
           },
           onError: (err) => {
             stopProgress();
@@ -283,63 +253,65 @@ export function CustomerDataPage() {
           },
         });
       },
-      onError: (err) => {
-        stopProgress();
-        setUploadError(err.message);
-        setUploadPhase('error');
-      },
+      onError: (err) => { stopProgress(); setUploadError(err.message); setUploadPhase('error'); },
     });
   };
 
-  const isLoading = consumersLoading || personasLoading;
+  const isProcessing = uploadPhase === 'uploading' || uploadPhase === 'assigning';
+
+  const STAT_CARDS = [
+    { label: 'Total Contacts', value: consumersLoading ? '—' : consumers.length.toLocaleString(), sub: 'From uploaded CSVs' },
+    { label: 'Active Segments', value: consumersLoading ? '—' : String(activeSegments), sub: `Across ${uniquePersonasAssigned} persona${uniquePersonasAssigned !== 1 ? 's' : ''}` },
+    { label: 'Top Persona', value: (consumersLoading || personasLoading) ? '—' : (topPersona?.persona.name ?? 'None'), sub: topPersona ? `${topPersona.pct}% of audience` : 'No assignments yet' },
+    { label: 'Last Upload', value: consumersLoading ? '—' : (lastUploadInfo ? formatRelativeDate(lastUploadInfo.date) : 'Never'), sub: lastUploadInfo?.filename ?? '—' },
+  ];
 
   return (
-    <DashboardLayout>
-      <div className="mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Customer Data</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Manage audience segments and insights.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleClickUpload}
-                disabled={uploadPhase === 'uploading' || uploadPhase === 'assigning'}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Upload New Data
-              </button>
-            </div>
-          </div>
+    <AppShell>
+      <div className="as-main">
+        <div className="as-canvas">
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-5 mb-8">
-            {[
-              { label: 'Total Contacts', value: consumersLoading ? '—' : consumers.length.toLocaleString(), sub: 'From uploaded CSVs' },
-              { label: 'Active Segments', value: isLoading ? '—' : String(activeSegments), sub: `Across ${uniquePersonasAssigned} persona${uniquePersonasAssigned !== 1 ? 's' : ''}` },
-              { label: 'Top Persona', value: isLoading ? '—' : (topPersona?.persona.name ?? 'None'), sub: topPersona ? `${topPersona.pct}% of audience` : 'No assignments yet' },
-              { label: 'Last Upload', value: consumersLoading ? '—' : (lastUploadInfo ? formatRelativeDate(lastUploadInfo.date) : 'Never'), sub: lastUploadInfo?.filename ?? '—' },
-            ].map(({ label, value, sub }) => (
-              <div key={label} className="bg-card border border-border rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-2">{label}</p>
-                <p className="text-2xl font-semibold truncate">{value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</p>
+          {/* Header */}
+          <div className="as-page-head">
+            <div>
+              <span className="as-eyebrow">— CUSTOMER DATA</span>
+              <h1>Audience</h1>
+            </div>
+            <button
+              className="as-btn-solid"
+              onClick={handleClickUpload}
+              disabled={isProcessing}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
+            >
+              <UploadIcon /> Upload Data
+            </button>
+          </div>
+          <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileChange} />
+
+          {/* Stat cards */}
+          <div className="cust-stats">
+            {STAT_CARDS.map(({ label, value, sub }) => (
+              <div key={label} className="cust-stat">
+                <div className="cust-stat-label">{label}</div>
+                <div className="cust-stat-val">{value}</div>
+                <div className="cust-stat-sub">{sub}</div>
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-8">
-            {/* Persona Distribution */}
-            <div className="col-span-1 bg-card border border-border rounded-xl p-5">
-              <h3 className="font-semibold mb-0.5">Persona Distribution</h3>
-              <p className="text-xs text-muted-foreground mb-6">Click a persona to view detailed profile</p>
+          {/* Two-column body */}
+          <div className="cust-cols">
+
+            {/* Left: Persona distribution */}
+            <div className="cust-panel">
+              <div className="cust-panel-head">Persona Distribution</div>
+              <div className="cust-panel-sub">Click a persona to view details</div>
 
               {/* Donut */}
-              <div className="relative aspect-square max-w-[200px] mx-auto mb-6">
-                <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+              <div className="cust-donut-wrap">
+                <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
                   {personasLoading || donutSegments.length === 0 ? (
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="20" className="text-muted" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--as-rule-strong)" strokeWidth="18" />
                   ) : (
                     donutSegments.map((seg) => (
                       <circle
@@ -347,50 +319,44 @@ export function CustomerDataPage() {
                         cx="50" cy="50" r="40"
                         fill="none"
                         stroke={seg.color}
-                        strokeWidth="20"
+                        strokeWidth="18"
                         strokeDasharray={`${seg.dashLength} ${circumference}`}
                         strokeDashoffset={seg.offset}
                       />
                     ))
                   )}
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-3xl font-bold">
-                    {personasLoading ? '—' : personas.length}
-                  </span>
-                  <span className="text-xs text-muted-foreground">Personas</span>
+                <div className="cust-donut-center">
+                  <span className="cust-donut-num">{personasLoading ? '—' : personas.length}</span>
+                  <span className="cust-donut-unit">Personas</span>
                 </div>
               </div>
 
               {/* Legend */}
               {personasLoading ? (
-                <div className="flex justify-center py-4">
-                  <span className="text-xs text-muted-foreground">Loading...</span>
+                <div className="prd-state" style={{ padding: '16px 0' }}>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={16} height={16} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+                    <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+                  </svg>
                 </div>
               ) : personas.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No personas available</p>
+                <p style={{ fontSize: 12, color: 'var(--as-ink-3)', textAlign: 'center', padding: '8px 0' }}>No personas available</p>
               ) : (
-                <div className="space-y-1">
+                <div className="cust-legend">
                   {personas.map((persona, i) => {
-                    const color = getColor(i);
                     const count = personaStats[persona.id]?.primary ?? 0;
                     const pct = consumers.length > 0 ? Math.round((count / consumers.length) * 100) : 0;
                     return (
                       <button
                         key={persona.id}
+                        className="cust-legend-row"
                         onClick={() => setSelectedPersonaDetail({ persona, colorIdx: i })}
-                        className="w-full flex items-center justify-between text-sm p-2 -mx-2 rounded-lg hover:bg-muted transition-colors group"
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${color.dot}`} />
-                          <span className="text-muted-foreground group-hover:text-foreground transition-colors truncate max-w-[120px]">
-                            {persona.name}
-                          </span>
+                        <div className="cust-legend-left">
+                          <div className="cust-legend-dot" style={{ background: getStroke(i) }} />
+                          <span className="cust-legend-name">{persona.name}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{pct}%</span>
-                          <span className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity text-xs">→</span>
-                        </div>
+                        <span className="cust-legend-pct">{pct}%</span>
                       </button>
                     );
                   })}
@@ -398,191 +364,158 @@ export function CustomerDataPage() {
               )}
             </div>
 
-            {/* Upload + Recent Consumers */}
-            <div className="col-span-2 space-y-6">
-              <div className="bg-card border border-border rounded-xl p-5">
-                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
+            {/* Right: Upload + Recent */}
+            <div className="cust-panel-right">
 
-                {/* Drop Zone */}
-                {(() => {
-                  const isProcessing = uploadPhase === 'uploading' || uploadPhase === 'assigning';
-                  return (
-                    <div
-                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all mb-6 ${
-                        isProcessing
-                          ? 'border-blue-600/30 bg-blue-600/5 cursor-default'
-                          : uploadPhase === 'complete'
-                            ? 'border-emerald-500/30 bg-emerald-500/5 cursor-pointer'
-                            : isDragging
-                              ? 'border-blue-600 bg-blue-600/5 cursor-pointer'
-                              : 'border-border hover:border-blue-600/50 hover:bg-muted/50 cursor-pointer'
-                      }`}
-                      onDragOver={isProcessing ? undefined : handleDragOver}
-                      onDragLeave={isProcessing ? undefined : () => setIsDragging(false)}
-                      onDrop={isProcessing ? undefined : handleDrop}
-                      onClick={isProcessing ? undefined : handleClickUpload}
-                    >
-                      {uploadPhase === 'uploading' || uploadPhase === 'assigning' || uploadPhase === 'complete' ? (
-                        <UploadProgressView
-                          phase={uploadPhase}
-                          progressIdx={progressIdx}
-                          uploadedCount={uploadResult?.created}
-                          personaCount={personas.length}
-                        />
-                      ) : uploadPhase === 'error' ? (
-                        <>
-                          <h3 className="font-semibold text-red-500">Upload failed</h3>
-                          <p className="text-red-500/80 text-sm mt-1">
-                            {uploadError || 'There were errors processing the file.'}
-                          </p>
-                          {uploadResult && uploadResult.errors.length > 0 && (
-                            <div className="mt-3 text-left bg-red-500/10 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-y-auto">
-                              {uploadResult.errors.map((err, i) => (
-                                <p key={i} className="text-xs text-red-500 mb-1">{err}</p>
-                              ))}
-                            </div>
-                          )}
-                          {uploadResult && uploadResult.created > 0 && (
-                            <p className="text-muted-foreground text-xs mt-2">
-                              ({uploadResult.created} rows were still imported successfully)
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-3">Click to try again</p>
-                        </>
-                      ) : (
-                        <>
-                          <h3 className="font-semibold">Upload Customer File</h3>
-                          <p className="text-muted-foreground text-sm mt-1">Drag & drop a CSV file, or click to browse</p>
-                          <div className="mt-4 text-left inline-block">
-                            <p className="text-xs text-muted-foreground mb-1.5 font-medium">Expected columns</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {[
-                                { name: 'email', required: true },
-                                { name: 'first_name', required: false },
-                                { name: 'last_name', required: false },
-                                { name: 'phone', required: false },
-                                { name: 'traits', required: false },
-                              ].map(({ name, required }) => (
-                                <span
-                                  key={name}
-                                  className={`px-2 py-0.5 rounded text-[11px] font-mono border ${
-                                    required
-                                      ? 'bg-blue-600/10 text-blue-600 border-blue-600/20'
-                                      : 'bg-muted text-muted-foreground border-border'
-                                  }`}
-                                >
-                                  {name}{required ? ' *' : ''}
-                                </span>
-                              ))}
-                            </div>
-                            <p className="text-[11px] text-muted-foreground mt-2">
-                              Only <span className="font-medium text-foreground">email</span> is required. Column names are flexible.
-                            </p>
-                          </div>
-                          <div className="mt-4">
-                            <button
-                              onClick={downloadTemplate}
-                              className="text-xs text-blue-500 hover:text-blue-600 hover:underline font-medium"
-                            >
-                              Download template →
-                            </button>
-                          </div>
-                        </>
+              {/* Upload zone */}
+              <div className="cust-panel">
+                <div
+                  className={`cust-drop${isProcessing ? ' processing' : uploadPhase === 'complete' ? ' done' : uploadPhase === 'error' ? ' error' : isDragging ? ' dragging' : ''}`}
+                  onDragOver={isProcessing ? undefined : handleDragOver}
+                  onDragLeave={isProcessing ? undefined : () => setIsDragging(false)}
+                  onDrop={isProcessing ? undefined : handleDrop}
+                  onClick={isProcessing ? undefined : (uploadPhase === 'error' ? handleClickUpload : handleClickUpload)}
+                >
+                  {uploadPhase === 'uploading' || uploadPhase === 'assigning' || uploadPhase === 'complete' ? (
+                    <UploadProgressView
+                      phase={uploadPhase}
+                      progressIdx={progressIdx}
+                      uploadedCount={uploadResult?.created}
+                      personaCount={personas.length}
+                    />
+                  ) : uploadPhase === 'error' ? (
+                    <>
+                      <div className="cust-drop-err-title">Upload failed</div>
+                      <div className="cust-drop-err-msg">{uploadError || 'There were errors processing the file.'}</div>
+                      {uploadResult && uploadResult.errors.length > 0 && (
+                        <div className="cust-drop-err-list">
+                          {uploadResult.errors.map((err, i) => <p key={i}>{err}</p>)}
+                        </div>
                       )}
-                    </div>
-                  );
-                })()}
-
-                {/* Recent Consumers */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold">Recent Consumers</h3>
-                  <Link to="/customer-data/all-consumers" className="text-sm text-blue-500 hover:underline font-medium">
-                    View All →
-                  </Link>
-                </div>
-                <div className="space-y-2">
-                  {consumersLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <span className="text-sm text-muted-foreground">Loading...</span>
-                    </div>
-                  ) : consumersError ? (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-red-500">{consumersError}</p>
-                      <button onClick={() => refetch()} className="mt-2 px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors">Retry</button>
-                    </div>
-                  ) : recentConsumers.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">No consumers yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Upload a CSV to get started</p>
-                    </div>
+                      {uploadResult && uploadResult.created > 0 && (
+                        <div className="cust-drop-retry" style={{ color: 'var(--as-ink-2)' }}>
+                          ({uploadResult.created} rows were still imported successfully)
+                        </div>
+                      )}
+                      <div className="cust-drop-retry">Click to try again</div>
+                    </>
                   ) : (
-                    recentConsumers.map((consumer: Consumer) => (
-                      <div key={consumer.id} className="flex items-center justify-between p-3 bg-card rounded-xl border border-border">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-muted rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium text-foreground border border-border">
-                            {consumer.first_name?.charAt(0) ?? '?'}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-foreground truncate">
-                              {consumer.first_name} {consumer.last_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">{consumer.email}</p>
-                            {renderTraits(consumer.traits)}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <span className="text-xs text-muted-foreground">{formatRelativeDate(consumer.created_at)}</span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">Active</span>
-                        </div>
+                    <>
+                      <div className="cust-drop-title">Upload Customer File</div>
+                      <div className="cust-drop-sub">Drag & drop a CSV file, or click to browse</div>
+                      <div className="cust-drop-cols">
+                        {[
+                          { name: 'email', required: true },
+                          { name: 'first_name', required: false },
+                          { name: 'last_name', required: false },
+                          { name: 'phone', required: false },
+                          { name: 'traits', required: false },
+                        ].map(({ name, required }) => (
+                          <span key={name} className={`cust-col-tag${required ? ' required' : ''}`}>
+                            {name}{required ? ' *' : ''}
+                          </span>
+                        ))}
                       </div>
-                    ))
+                      <div className="cust-drop-hint">
+                        Only <strong>email</strong> is required. Column names are flexible.
+                      </div>
+                      <button className="cust-drop-tmpl" onClick={downloadTemplate}>
+                        Download template →
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
+
+              {/* Recent consumers */}
+              <div className="cust-panel">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div className="cust-panel-head" style={{ marginBottom: 0 }}>Recent Contacts</div>
+                  <Link to="/customer-data/all-consumers" className="cust-view-all">
+                    View all →
+                  </Link>
+                </div>
+
+                {consumersLoading ? (
+                  <div className="prd-state" style={{ padding: '24px 0' }}>
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={16} height={16} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+                      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+                    </svg>
+                  </div>
+                ) : consumersError ? (
+                  <div className="prd-state" style={{ padding: '16px 0' }}>
+                    <p style={{ fontSize: 13, color: 'var(--as-danger)', marginBottom: 10 }}>{consumersError}</p>
+                    <button className="as-btn-ghost" onClick={() => refetch()} style={{ padding: '6px 14px' }}>Retry</button>
+                  </div>
+                ) : recentConsumers.length === 0 ? (
+                  <div className="prd-state" style={{ padding: '24px 0' }}>
+                    <div className="prd-state-icon"><UsersIcon /></div>
+                    <p style={{ fontSize: 13, color: 'var(--as-ink-2)' }}>No contacts yet. Upload a CSV to get started.</p>
+                  </div>
+                ) : (
+                  recentConsumers.map((consumer: Consumer) => (
+                    <div key={consumer.id} className="cust-consumer-row">
+                      <div className="cust-avatar">
+                        {consumer.first_name?.charAt(0) ?? '?'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="cust-consumer-name">
+                          {consumer.first_name} {consumer.last_name}
+                        </div>
+                        <div className="cust-consumer-email">{consumer.email}</div>
+                        <TraitTags traits={consumer.traits} />
+                      </div>
+                      <div className="cust-consumer-meta">
+                        <span className="cust-consumer-date">{formatRelativeDate(consumer.created_at)}</span>
+                        <span className="cust-tag-active">Active</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
+
+        </div>
       </div>
 
-      {/* Persona Detail Modal */}
+      {/* Persona detail modal */}
       {selectedPersonaDetail && (() => {
         const { persona, colorIdx } = selectedPersonaDetail;
-        const color = getColor(colorIdx);
+        const color = getStroke(colorIdx);
         const count = personaStats[persona.id]?.primary ?? 0;
         const pct = consumers.length > 0 ? Math.round((count / consumers.length) * 100) : 0;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setSelectedPersonaDetail(null)} />
-            <div className="relative bg-card border border-border rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+          <div className="as-modal-overlay" onClick={() => setSelectedPersonaDetail(null)}>
+            <div className="as-modal" style={{ maxWidth: 600 }} onClick={(e) => e.stopPropagation()}>
 
-              {/* Modal Header */}
-              <div className={`${color.bg} px-6 pt-6 pb-5 rounded-t-xl relative border-b border-border`}>
-                <button onClick={() => setSelectedPersonaDetail(null)} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-lg leading-none">
-                  ×
-                </button>
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${color.bg} border border-border flex items-center justify-center text-lg font-semibold ${color.text}`}>
-                    {persona.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-3 mb-0.5">
-                      <h2 className="text-lg font-semibold">{persona.name}</h2>
-                      <span className={`text-sm font-semibold ${color.text}`}>{pct}% of audience</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{count.toLocaleString()} contacts</p>
-                  </div>
+              <div className="cust-modal-persona-head">
+                <div className="cust-modal-persona-avatar" style={{ color, borderColor: color + '40' }}>
+                  {persona.name.charAt(0)}
                 </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 2 }}>
+                    <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--as-ink)' }}>{persona.name}</span>
+                    <span style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color }}>{pct}%</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--as-ink-3)' }}>{count.toLocaleString()} contacts</div>
+                </div>
+                <button className="as-modal-close" onClick={() => setSelectedPersonaDetail(null)}>
+                  <XIcon />
+                </button>
               </div>
 
-              <div className="px-6 py-5 space-y-5">
-                <p className="text-sm text-muted-foreground leading-relaxed">{persona.description}</p>
+              <div className="as-modal-body" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {persona.description && (
+                  <p style={{ fontSize: 13, color: 'var(--as-ink-2)', lineHeight: 1.6 }}>{persona.description}</p>
+                )}
 
-                {/* Key Motivators */}
                 {persona.key_motivators.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-3">Key Motivators</h3>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="cust-modal-section">
+                    <div className="cust-modal-section-label">Key Motivators</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {persona.key_motivators.map((m) => (
-                        <span key={m} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${color.bg} ${color.text} border border-current/10`}>
+                        <span key={m} className="cust-modal-tag" style={{ border: `1px solid ${color}40`, color, background: color + '0d' }}>
                           {m}
                         </span>
                       ))}
@@ -590,13 +523,12 @@ export function CustomerDataPage() {
                   </div>
                 )}
 
-                {/* Pain Points */}
                 {persona.pain_points.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-3">Pain Points</h3>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="cust-modal-section">
+                    <div className="cust-modal-section-label">Pain Points</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {persona.pain_points.map((p) => (
-                        <span key={p} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border">
+                        <span key={p} className="cust-modal-tag" style={{ border: '1px solid var(--as-rule-strong)', color: 'var(--as-ink-2)' }}>
                           {p}
                         </span>
                       ))}
@@ -604,31 +536,32 @@ export function CustomerDataPage() {
                   </div>
                 )}
 
-                {/* Ad Tone Preferences */}
                 {persona.ad_tone_preferences && persona.ad_tone_preferences.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-3">Ad Tone Preferences</h3>
-                    <div className="bg-muted rounded-xl p-4 border border-border flex flex-wrap gap-2">
+                  <div className="cust-modal-section">
+                    <div className="cust-modal-section-label">Ad Tone Preferences</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {persona.ad_tone_preferences.map((tone) => (
-                        <span key={tone} className={`px-3 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}>
+                        <span key={tone} className="cust-modal-tag" style={{ border: `1px solid ${color}40`, color, background: color + '0d' }}>
                           {tone}
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
+              </div>
 
-                <div className="pt-4 border-t border-border flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">Based on {count.toLocaleString()} contacts in this segment</p>
-                  <button className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                    Generate Ads for {persona.name}
-                  </button>
-                </div>
+              <div className="as-modal-foot">
+                <span style={{ fontSize: 11, color: 'var(--as-ink-3)' }}>
+                  {count.toLocaleString()} contacts in this segment
+                </span>
+                <button className="as-btn-solid" style={{ padding: '8px 16px', fontSize: 12 }}>
+                  Generate Ads for {persona.name}
+                </button>
               </div>
             </div>
           </div>
         );
       })()}
-    </DashboardLayout>
+    </AppShell>
   );
 }

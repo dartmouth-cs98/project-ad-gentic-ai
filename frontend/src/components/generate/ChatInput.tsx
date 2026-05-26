@@ -1,5 +1,5 @@
+// ChatInput — gen-composer: autosizing textarea, square send button, toolbar row
 import { useRef, useEffect, useCallback } from 'react';
-import { SendIcon, MessageSquareIcon, XIcon } from 'lucide-react';
 import type { Phase } from './types';
 
 interface ChatInputProps {
@@ -12,6 +12,24 @@ interface ChatInputProps {
   onClearSelection?: () => void;
 }
 
+// Arrow-right SVG (no lucide dependency in hot path)
+function ArrowIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 7h10M8 3l4 4-4 4" />
+    </svg>
+  );
+}
+
+// Wand SVG for AUTO-DRAFT button
+function WandIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+      <path d="M2 10L8 4M6 2l2 2M9 1l1 1M7 3l1 1" />
+    </svg>
+  );
+}
+
 export function ChatInput({
   value,
   onChange,
@@ -21,19 +39,17 @@ export function ChatInput({
   selectedVariantCount = 0,
   onClearSelection,
 }: ChatInputProps) {
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const autoResize = useCallback(() => {
-    const el = inputRef.current;
+    const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, []);
 
   useEffect(() => {
-    if (phase === 'idle') {
-      inputRef.current?.focus();
-    }
+    if (phase === 'idle') textareaRef.current?.focus();
   }, [phase]);
 
   useEffect(() => {
@@ -43,57 +59,76 @@ export function ChatInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      if (value.trim() && !disabled && phase !== 'generating') onSend();
     }
   };
 
+  // Revision context strip (shown when variants are selected in results phase)
+  const showRevisionStrip = selectedVariantCount > 0 && phase === 'results';
+
   return (
-    <>
-      {/* Revision context bar */}
-      {selectedVariantCount > 0 && phase === 'results' && (
-        <div className="px-3 pt-2 flex-shrink-0">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 bg-blue-600/10 border border-blue-600/20 rounded-lg text-xs text-blue-600 dark:text-blue-400">
-            <MessageSquareIcon className="w-3 h-3 flex-shrink-0" />
-            <span className="font-medium truncate">
-              Revising {selectedVariantCount} variant{selectedVariantCount > 1 ? 's' : ''}
-            </span>
-            <button
-              onClick={onClearSelection}
-              className="ml-auto p-0.5 rounded hover:bg-blue-600/10"
-            >
-              <XIcon className="w-3 h-3" />
-            </button>
-          </div>
+    <div className="gen-composer">
+      {showRevisionStrip && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '7px 14px',
+          borderBottom: '1px solid var(--as-rule)',
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 10,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--as-ink-2)',
+          background: 'var(--as-paper)',
+        }}>
+          <span style={{ flex: 1 }}>
+            Revising {selectedVariantCount} variant{selectedVariantCount > 1 ? 's' : ''}
+          </span>
+          <button
+            onClick={onClearSelection}
+            style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--as-ink-3)', lineHeight: 1, padding: 2 }}
+            aria-label="Clear selection"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Input area */}
-      <div className="p-3 border-t border-border flex-shrink-0">
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            value={value}
-            onChange={(e) => { onChange(e.target.value); autoResize(); }}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              phase === 'idle'
-                ? 'Describe what you want to advertise...'
-                : 'Tell me what to change...'
-            }
-            className="flex-1 px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 focus:bg-background transition-all resize-none"
-            rows={1}
-            disabled={disabled || phase === 'generating'}
-          />
-          <button
-            onClick={onSend}
-            disabled={!value.trim() || disabled || phase === 'generating'}
-            className="flex-shrink-0 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            aria-label="Send message"
-          >
-            <SendIcon className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="gen-composer-bar">
+        <textarea
+          ref={textareaRef}
+          className="gen-composer-textarea"
+          placeholder={phase === 'idle' ? 'Brief the strategist…' : 'Tell me what to change…'}
+          value={value}
+          onChange={(e) => { onChange(e.target.value); autoResize(); }}
+          onKeyDown={handleKeyDown}
+          rows={1}
+          disabled={disabled || phase === 'generating'}
+        />
+        <button
+          className="gen-send-btn"
+          onClick={onSend}
+          disabled={!value.trim() || disabled || phase === 'generating'}
+          aria-label="Send message"
+        >
+          <ArrowIcon />
+        </button>
       </div>
-    </>
+
+      <div className="gen-composer-toolbar">
+        <div className="gen-composer-toolbar-left">
+          <button className="gen-tool-btn">
+            <WandIcon />
+            AUTO-DRAFT
+          </button>
+          <button className="gen-tool-btn">/PERSONA</button>
+          <button className="gen-tool-btn">/EXAMPLE</button>
+        </div>
+        <span>
+          {value.trim() ? `${value.length} CHARS · ⏎ TO SEND` : '⌘ K FOR COMMANDS'}
+        </span>
+      </div>
+    </div>
   );
 }

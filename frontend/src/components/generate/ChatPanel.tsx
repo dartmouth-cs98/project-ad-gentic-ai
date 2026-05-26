@@ -1,6 +1,5 @@
-import { useState } from 'react';
+// ChatPanel — gen-chat-panel wrapper
 import { ChatHeader } from './ChatHeader';
-import { FilterPanel } from './FilterPanel';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import type { Campaign, ChatMessage } from '../../types';
@@ -33,6 +32,7 @@ interface ChatPanelProps {
   // Plan actions
   onApprovePlan?: (message: ChatMessage) => void;
   onDeclinePlan?: (message: ChatMessage) => void;
+  expressMode?: boolean;
   // Selection
   selectedVariantCount: number;
   onClearSelection: () => void;
@@ -42,6 +42,8 @@ interface ChatPanelProps {
   variantCount: number;
   style?: React.CSSProperties;
   className?: string;
+  // Disabled (no campaign selected yet)
+  disabled?: boolean;
 }
 
 export function ChatPanel({
@@ -56,7 +58,7 @@ export function ChatPanel({
   onVersionSelect,
   filterState,
   filterDispatch,
-  preferencesSaveStatus = 'idle',
+  preferencesSaveStatus: _preferencesSaveStatus = 'idle',
   messages,
   userName,
   input,
@@ -64,18 +66,18 @@ export function ChatPanel({
   onSend,
   onApprovePlan,
   onDeclinePlan,
+  expressMode,
   selectedVariantCount,
   onClearSelection,
   isAiLoading,
   variantCount,
   style,
   className,
+  disabled,
 }: ChatPanelProps) {
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-
   return (
     <div
-      className={`flex flex-col h-full bg-card border-r border-border relative ${className ?? ''}`}
+      className={`gen-chat-panel${disabled ? ' gen-chat-disabled' : ''}${className ? ` ${className}` : ''}`}
       style={style}
     >
       <ChatHeader
@@ -89,23 +91,9 @@ export function ChatPanel({
         versions={versions}
         onVersionSelect={onVersionSelect}
         filterState={filterState}
-        showFilterPanel={showFilterPanel}
-        onToggleFilterPanel={() => setShowFilterPanel((v) => !v)}
+        filterDispatch={filterDispatch}
         variantCount={variantCount}
       />
-
-      {/* Filter panel only in idle phase — results panel owns filters after generation */}
-      {phase === 'idle' && (
-        <FilterPanel
-          filterState={filterState}
-          filterDispatch={filterDispatch}
-          isOpen={showFilterPanel}
-          onClose={() => setShowFilterPanel(false)}
-          phase={phase}
-          onEditClick={() => setShowFilterPanel(true)}
-          preferencesSaveStatus={preferencesSaveStatus}
-        />
-      )}
 
       <ChatMessageList
         messages={messages}
@@ -113,6 +101,8 @@ export function ChatPanel({
         userName={userName}
         onApprovePlan={onApprovePlan}
         onDeclinePlan={onDeclinePlan}
+        expressMode={expressMode}
+        disabled={disabled}
       />
 
       <ChatInput
@@ -120,7 +110,7 @@ export function ChatPanel({
         onChange={onInputChange}
         onSend={onSend}
         phase={phase}
-        disabled={isAiLoading}
+        disabled={disabled || isAiLoading}
         selectedVariantCount={selectedVariantCount}
         onClearSelection={onClearSelection}
       />

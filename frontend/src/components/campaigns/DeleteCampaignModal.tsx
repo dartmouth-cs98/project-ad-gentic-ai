@@ -1,8 +1,7 @@
+// DeleteCampaignModal — as-modal-* styled, multi-campaign support
 import { createPortal } from 'react-dom';
-import { AlertTriangleIcon, Loader2Icon, XIcon } from 'lucide-react';
 
 interface DeleteCampaignModalProps {
-  /** Names of campaigns that will be deleted (one or many). */
   campaignNames: string[];
   onClose: () => void;
   onConfirm: () => void;
@@ -18,6 +17,22 @@ const PER_CAMPAIGN_DELETED_ITEMS = [
   'Consumer analytics events',
 ] as const;
 
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={13} height={13} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+    </svg>
+  );
+}
+
 export function DeleteCampaignModal({
   campaignNames,
   onClose,
@@ -29,88 +44,79 @@ export function DeleteCampaignModal({
   const isPlural = count !== 1;
 
   const modal = (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-        onClick={() => !isLoading && onClose()}
-        aria-hidden
-      />
-
+    <div className="as-modal-overlay" onClick={() => !isLoading && onClose()}>
       <div
         role="alertdialog"
         aria-labelledby="delete-campaign-title"
-        aria-describedby="delete-campaign-description"
-        className="relative w-full max-w-md bg-card border border-border rounded-xl p-6 shadow-xl"
+        className="as-modal sm"
+        onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isLoading}
-          className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-          aria-label="Close"
-        >
-          <XIcon className="w-4 h-4" />
-        </button>
-
-        <div className="flex flex-col items-center text-center mb-4">
-          <div className="w-11 h-11 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-            <AlertTriangleIcon className="w-5 h-5 text-red-500" />
+        <div className="as-modal-head">
+          <div>
+            <div className="as-modal-eyebrow">— DESTRUCTIVE ACTION</div>
+            <div className="as-modal-title" id="delete-campaign-title">
+              {isPlural ? `Delete ${count} Campaigns` : 'Delete Campaign'}
+            </div>
           </div>
-          <h2 id="delete-campaign-title" className="text-lg font-semibold text-foreground">
-            {isPlural ? `Delete ${count} campaigns?` : `Delete "${campaignNames[0]}"?`}
-          </h2>
+          <button className="as-modal-close" onClick={onClose} disabled={isLoading}>
+            <XIcon />
+          </button>
         </div>
 
-        <div
-          id="delete-campaign-description"
-          className="mb-6 w-full rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-left max-h-[min(50vh,20rem)] overflow-y-auto"
-        >
-          <p className="text-sm font-medium text-foreground">
-            This action cannot be undone.
+        <div className="as-modal-body">
+          <p style={{ fontSize: 14, color: 'var(--as-ink-2)', lineHeight: 1.55, marginBottom: 14 }}>
+            This action cannot be undone.{' '}
             {isPlural
-              ? ' The following campaigns will be permanently deleted:'
-              : ' The following will be permanently deleted for this campaign:'}
+              ? 'The following campaigns will be permanently deleted:'
+              : 'The following will be permanently deleted for this campaign:'}
           </p>
-          {isPlural ? (
-            <ul className="mt-3 text-sm font-medium text-foreground space-y-1 list-disc list-inside">
-              {campaignNames.map((name, index) => (
-                <li key={`${index}-${name}`} className="truncate" title={name}>
-                  {name}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <ul className="mt-3 text-sm text-foreground space-y-1 list-disc list-inside">
-              <li>The campaign</li>
-              {PER_CAMPAIGN_DELETED_ITEMS.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          )}
-          {isPlural && (
-            <>
-              <p className="mt-4 text-sm text-foreground">For each campaign, this also removes:</p>
-              <ul className="mt-2 text-sm text-foreground space-y-1 list-disc list-inside">
+
+          <div style={{
+            border: '1px solid rgba(200,60,60,0.35)',
+            background: 'rgba(200,60,60,0.06)',
+            padding: '10px 14px',
+            maxHeight: 'min(50vh, 18rem)',
+            overflowY: 'auto',
+          }}>
+            {isPlural ? (
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--as-ink)', lineHeight: 1.7 }}>
+                {campaignNames.map((name, i) => (
+                  <li key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</li>
+                ))}
+              </ul>
+            ) : (
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--as-ink)', lineHeight: 1.7 }}>
+                <li>The campaign — <strong>{campaignNames[0]}</strong></li>
                 {PER_CAMPAIGN_DELETED_ITEMS.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-            </>
+            )}
+            {isPlural && (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--as-ink)', marginTop: 10, marginBottom: 6 }}>
+                  For each campaign, this also removes:
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--as-ink)', lineHeight: 1.7 }}>
+                  {PER_CAMPAIGN_DELETED_ITEMS.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+
+          {error && (
+            <p style={{ fontSize: 13, color: '#c44', marginTop: 10 }} role="alert">{error}</p>
           )}
         </div>
 
-        {error && (
-          <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
-            {error}
-          </p>
-        )}
-
-        <div className="flex justify-end gap-3">
+        <div className="as-modal-foot">
           <button
-            type="button"
+            className="as-btn-ghost"
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            style={{ padding: '8px 16px' }}
           >
             Cancel
           </button>
@@ -118,14 +124,23 @@ export function DeleteCampaignModal({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-40"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '8px 18px',
+              background: isLoading ? 'var(--as-rule)' : '#c44',
+              color: isLoading ? 'var(--as-ink-3)' : '#fff',
+              border: 'none',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              transition: 'background 0.15s, color 0.15s',
+            }}
           >
-            {isLoading && <Loader2Icon className="w-4 h-4 animate-spin" />}
             {isLoading
-              ? 'Deleting...'
-              : isPlural
-                ? `Delete ${count} campaigns`
-                : 'Delete Campaign'}
+              ? <><SpinnerIcon /> Deleting…</>
+              : isPlural ? `Delete ${count} Campaigns` : 'Delete Campaign'}
           </button>
         </div>
       </div>

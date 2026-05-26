@@ -8,10 +8,10 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'dark';
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'light';
     setTheme(savedTheme);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
   }, []);

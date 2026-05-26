@@ -33,7 +33,7 @@ export function PersonaGroupCard({
 
   return (
     <div
-      className="fade-up bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+      className="fade-up bg-card rounded-lg border border-border overflow-hidden"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div

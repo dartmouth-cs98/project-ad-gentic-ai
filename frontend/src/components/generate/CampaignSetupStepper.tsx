@@ -169,7 +169,12 @@ export function CampaignSetupStepper({
   };
 
   const goNext = () => {
+    if (step === 1 && !state.selectedProduct) {
+      setErrors((p) => ({ ...p, product: 'Please select a product to continue' }));
+      return;
+    }
     if (step === 2 && !validateStep2()) return;
+    setErrors({});
     setStep((s) => Math.min(3, s + 1) as StepId);
   };
 
@@ -183,12 +188,13 @@ export function CampaignSetupStepper({
 
   const handleLaunch = () => {
     if (!validateStep2()) return;
+    const effectiveProduct = state.selectedProduct ?? products.find((p) => p.id === initialProductId) ?? null;
     createCampaign.mutate(
       {
         business_client_id: businessClientId,
         name: state.campaignName,
-        product_context: state.selectedProduct?.name ?? '',
-        product_ids: state.selectedProduct ? JSON.stringify([state.selectedProduct.id]) : null,
+        product_context: effectiveProduct?.name ?? '',
+        product_ids: effectiveProduct ? JSON.stringify([effectiveProduct.id]) : null,
         target_audience: state.targetAudience,
         goal: state.goal || null,
       },
@@ -244,7 +250,7 @@ export function CampaignSetupStepper({
       {step === 1 && (
         <div>
           <h2 className="gen-stepper-h">Pick a product</h2>
-          <p className="gen-stepper-sub">Choose what you're advertising. Skip if you'd rather describe it in chat.</p>
+          <p className="gen-stepper-sub">Choose what you're advertising. A product is required to generate ads.</p>
 
           <div className="gen-stepper-search-wrap">
             <SearchIcon />
@@ -294,15 +300,11 @@ export function CampaignSetupStepper({
             })}
           </div>
 
+          {errors.product && <div className="gen-stepper-field-err">{errors.product}</div>}
+
           <div className="gen-stepper-nav">
             <button className="gen-stepper-nav-back" onClick={onCancel}>Cancel</button>
             <div style={{ flex: 1 }} />
-            <button
-              className="gen-stepper-nav-skip"
-              onClick={() => { setState((s) => ({ ...s, selectedProduct: null })); setStep(2); }}
-            >
-              Skip for now
-            </button>
             <button className="gen-stepper-nav-next" onClick={goNext}>
               Next <ArrowRightIcon />
             </button>

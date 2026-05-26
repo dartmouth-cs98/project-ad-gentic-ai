@@ -15,6 +15,14 @@ import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
 import { DEFAULT_FILTERS } from '../../hooks/useFilterState';
 import type { Product, Campaign } from '../../types';
 
+const CAMPAIGN_TO_FILTER_PLATFORM: Record<string, string> = {
+  instagram: 'Instagram Story',
+  facebook: 'Facebook Feed',
+  tiktok: 'TikTok Feed',
+  youtube: 'YouTube Pre-roll',
+  linkedin: 'LinkedIn Banner',
+};
+
 
 type StepId = 1 | 2 | 3;
 
@@ -208,7 +216,9 @@ export function CampaignSetupStepper({
           budget_tier: DEFAULT_FILTERS.budgetTier,
           cta_style: DEFAULT_FILTERS.ctaStyle,
           language: DEFAULT_FILTERS.language,
-          platforms: Array.from(DEFAULT_FILTERS.selectedPlatforms),
+          platforms: state.platforms
+            .map((id) => CAMPAIGN_TO_FILTER_PLATFORM[id])
+            .filter(Boolean) as string[],
           color_mode: DEFAULT_FILTERS.colorMode,
         },
       },

@@ -703,7 +703,7 @@ function CampaignsTablePanel({ navigate }: { navigate: ReturnType<typeof useNavi
         </thead>
         <tbody>
           {topCampaigns.map((c, i) => (
-            <tr key={c.id} onClick={() => navigate(`/campaigns`)}>
+            <tr key={c.id} onClick={() => navigate(`/campaign/${c.id}`)}>
               <td className="as-t-idx">{String(i + 1).padStart(2, '0')}</td>
               <td className="as-t-name">{c.name}</td>
               <td className="as-t-platform">{c.platform}</td>

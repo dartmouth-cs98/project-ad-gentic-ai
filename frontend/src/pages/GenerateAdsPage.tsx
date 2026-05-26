@@ -204,6 +204,7 @@ export function GenerateAdsPage() {
   const handleStartChat = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
     setChatStarted(true);
+    setExpressMode(false);
     localStorage.setItem(campaignStorageKey, String(campaign.id));
   };
 
@@ -389,6 +390,7 @@ export function GenerateAdsPage() {
   const handleCampaignSelect = (campaign: Campaign) => {
     setActiveCampaignId(campaign.id);
     setChatStarted(true);
+    setExpressMode(false);
     localStorage.setItem(campaignStorageKey, String(campaign.id));
     setSelectedVariants(new Set());
     if (phase === 'generating') {
@@ -501,10 +503,6 @@ export function GenerateAdsPage() {
             onApproveSelected={handleApproveSelected}
             onReviseSelected={handleReviseSelected}
             onDeleteSelected={handleDeleteSelected}
-            onApplyFilters={() => {
-              sendAssistantMessage('Preferences updated! Regenerating variants with your new settings...');
-              setPhase('generating');
-            }}
             chatStarted={chatStarted}
             campaigns={campaigns}
             isCampaignsLoading={isCampaignsLoading}

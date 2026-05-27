@@ -308,17 +308,11 @@ def _classifier_failure_decision(reason: str) -> ProviderDecision:
 
 
 def choose_video_provider_with_reason(script: str) -> ProviderDecision:
-    """Classify the full script with Grok; Sora preferred when classification fails."""
-    if not veo_generation_enabled():
-        return ProviderDecision(
-            provider="sora",
-            confidence=1.0,
-            reason="Veo generation disabled (VEO_GENERATION_ENABLED); using Sora.",
-            primary_failure_mode="low_risk",
-            features=_empty_features(),
-            fallback_used=False,
-        )
+    """Classify the full script with Grok; Sora preferred when classification fails.
 
+    Grok runs whenever the script is non-empty so ``lip_sync_risk`` and related
+  features are available for Sync lipsync — even when Veo routing is disabled.
+    """
     if not script or not script.strip():
         return ProviderDecision(
             provider="sora",
@@ -330,12 +324,27 @@ def choose_video_provider_with_reason(script: str) -> ProviderDecision:
         )
 
     try:
-        return _decision_from_grok(_classify_script_with_grok(script))
+        grok = _classify_script_with_grok(script)
     except VideoProviderClassificationError as exc:
         logger.warning("Video provider classification failed: %s", exc)
         return _classifier_failure_decision(
             f"Grok classifier failed ({exc}); defaulting to Sora."
         )
+
+    if not veo_generation_enabled():
+        return ProviderDecision(
+            provider="sora",
+            confidence=grok.confidence,
+            reason=(
+                "Veo generation disabled (VEO_GENERATION_ENABLED); using Sora. "
+                f"Classifier: {grok.reason}"
+            ),
+            primary_failure_mode=grok.primary_failure_mode,
+            features=dict(grok.features),
+            fallback_used=False,
+        )
+
+    return _decision_from_grok(grok)
 
 
 def choose_video_provider(script: str) -> VideoProvider:

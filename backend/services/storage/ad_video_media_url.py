@@ -16,6 +16,8 @@ _AZURE_PUBLIC_BLOB_SUFFIX = ".blob.core.windows.net"
 API_SAS_EXPIRY_HOURS = 1
 # Meta publish (download + multipart): allow slow networks / large files.
 PUBLISH_SAS_EXPIRY_HOURS = 24
+# Sync Labs fetches input blobs while generation is queued/processed.
+LIPSYNC_INPUT_SAS_EXPIRY_HOURS = 4
 
 
 def parse_storage_account_key(conn_str: str) -> tuple[str, str]:
@@ -88,6 +90,24 @@ def append_query(url: str, query_fragment: str) -> str:
 def _already_has_sas_signature(media_url: str) -> bool:
     q = urlsplit(media_url).query.lower()
     return "sig=" in q
+
+
+def signed_ad_video_blob_url(blob_name: str, *, expiry_hours: int = API_SAS_EXPIRY_HOURS) -> str:
+    """Return an https URL for a blob in ``ad-videos`` with read SAS (no existing query)."""
+    conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip()
+    if not conn_str:
+        raise ValueError("AZURE_STORAGE_CONNECTION_STRING is not configured")
+    account_name, account_key = parse_storage_account_key(conn_str)
+    sas_token = generate_blob_sas(
+        account_name=account_name,
+        container_name=VIDEO_CONTAINER_NAME,
+        blob_name=blob_name,
+        account_key=account_key,
+        permission=BlobSasPermissions(read=True),
+        expiry=datetime.now(timezone.utc) + timedelta(hours=expiry_hours),
+    )
+    base = f"https://{account_name}{_AZURE_PUBLIC_BLOB_SUFFIX}/{VIDEO_CONTAINER_NAME}/{blob_name}"
+    return append_query(base, sas_token)
 
 
 def signed_ad_video_media_url(

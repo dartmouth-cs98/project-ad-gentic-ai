@@ -8,7 +8,10 @@ from typing import TYPE_CHECKING
 
 from utils.video_provider_config import veo_configured
 from utils.video_timing import VEO_DURATION_SECONDS, allowed_video_seconds
-from workers.ad_video_generation_worker.provider_selection import choose_video_provider_with_reason
+from workers.ad_video_generation_worker.provider_selection import (
+    ProviderDecision,
+    choose_video_provider_with_reason,
+)
 from workers.ad_video_generation_worker.worker import VideoProvider, resolve_video_provider
 from workers.script_creation_worker.worker import generate_ad_script, retime_ad_script_for_veo
 from workers.script_moderation_worker.worker import evaluate_script
@@ -53,11 +56,13 @@ async def _moderate_script_with_optional_revision(
     )
 
 
-async def resolve_video_provider_for_script(script: str) -> VideoProvider:
+async def resolve_video_provider_for_script(script: str) -> tuple[VideoProvider, ProviderDecision]:
     decision = await asyncio.to_thread(choose_video_provider_with_reason, script)
     if decision.fallback_used:
-        return resolve_video_provider(script, preferred="sora")
-    return resolve_video_provider(script, preferred=decision.provider)
+        provider = resolve_video_provider(script, preferred="sora")
+    else:
+        provider = resolve_video_provider(script, preferred=decision.provider)
+    return provider, decision
 
 
 async def align_script_with_video_provider(

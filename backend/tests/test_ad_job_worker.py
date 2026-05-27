@@ -27,12 +27,29 @@ from workers.ad_job_worker.worker import (
     generate_campaign_ad_variants,
 )
 from workers.script_moderation_worker.worker import ModerationVerdict
+from workers.ad_video_generation_worker.provider_selection import (
+    ProviderDecision,
+    _empty_features,
+)
 
 _PASS_MODERATION = ModerationVerdict(passed=True, feedback="")
 
 
+def _provider_decision(*, lip_sync_risk: bool = False) -> ProviderDecision:
+    features = _empty_features()
+    features["lip_sync_risk"] = lip_sync_risk
+    return ProviderDecision(
+        provider="sora",
+        confidence=1.0,
+        reason="test",
+        primary_failure_mode="low_risk",
+        features=features,
+        fallback_used=False,
+    )
+
+
 @contextmanager
-def _mock_script_video_routing():
+def _mock_script_video_routing(*, lip_sync_risk: bool = False):
     """Isolate ad-job tests from Grok classifier and VIDEO_* env requirements."""
 
     async def _align(script: str, provider: str, **_: object):
@@ -42,7 +59,7 @@ def _mock_script_video_routing():
         patch(
             "workers.ad_job_worker.worker.resolve_video_provider_for_script",
             new_callable=AsyncMock,
-            return_value="sora",
+            return_value=("sora", _provider_decision(lip_sync_risk=lip_sync_risk)),
         ),
         patch(
             "workers.ad_job_worker.worker.align_script_with_video_provider",
@@ -227,9 +244,117 @@ async def test_execute_ad_job_returns_ad_variant_id(
 
     assert result == 42
     mock_db.close.assert_called_once()
-    # Script and video helpers should have been called
-    from workers.ad_job_worker.worker import generate_ad_script, generate_ad_video_for_script
-    # (patched, so we just check they were invoked via the fact that result is 42 and no exception)
+
+
+@pytest.mark.asyncio
+async def test_execute_ad_job_runs_lipsync_when_sync_enabled(
+    mock_db,
+    mock_session_factory,
+    mock_ad_variant,
+    mock_campaign,
+    mock_consumer,
+    mock_product,
+    mock_blob_client,
+    monkeypatch,
+):
+    """When Sync is enabled and lip_sync_risk is true, lipsync runs before final upload."""
+    monkeypatch.setenv("SYNC_LIPSYNC_ENABLED", "true")
+    monkeypatch.setenv("SYNC_API_KEY", "test-key")
+    mock_lipsync = AsyncMock(
+        return_value=(b"synced video", {"applied": True, "model": "sync-3", "sync_generation_id": "g1"})
+    )
+    with (
+        _mock_script_video_routing(lip_sync_risk=True),
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
+        patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
+        patch("workers.ad_job_worker.worker.update_ad_variant"),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
+        patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
+        patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
+        patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Mock script"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"raw video"),
+        patch("workers.ad_job_worker.worker.lipsync_ad_video", mock_lipsync),
+    ):
+        blob_cls.from_connection_string.return_value = mock_blob_client
+        result = await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)
+
+    assert result == 42
+    mock_lipsync.assert_awaited_once()
+    upload_call = mock_blob_client.upload_blob.call_args
+    assert upload_call[0][0] == b"synced video"
+
+
+@pytest.mark.asyncio
+async def test_execute_ad_job_skips_lipsync_when_sync_disabled(
+    mock_db,
+    mock_session_factory,
+    mock_ad_variant,
+    mock_campaign,
+    mock_consumer,
+    mock_product,
+    mock_blob_client,
+    monkeypatch,
+):
+    monkeypatch.setenv("SYNC_LIPSYNC_ENABLED", "false")
+    monkeypatch.setenv("SYNC_API_KEY", "test-key")
+    mock_lipsync = AsyncMock()
+    with (
+        _mock_script_video_routing(lip_sync_risk=True),
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
+        patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
+        patch("workers.ad_job_worker.worker.update_ad_variant"),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
+        patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
+        patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
+        patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Mock script"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"raw video"),
+        patch("workers.ad_job_worker.worker.lipsync_ad_video", mock_lipsync),
+    ):
+        blob_cls.from_connection_string.return_value = mock_blob_client
+        await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)
+
+    mock_lipsync.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_execute_ad_job_skips_lipsync_when_no_lip_sync_risk(
+    mock_db,
+    mock_session_factory,
+    mock_ad_variant,
+    mock_campaign,
+    mock_consumer,
+    mock_product,
+    mock_blob_client,
+    monkeypatch,
+):
+    """Sync enabled but lip_sync_risk false: upload raw provider MP4."""
+    monkeypatch.setenv("SYNC_LIPSYNC_ENABLED", "true")
+    monkeypatch.setenv("SYNC_API_KEY", "test-key")
+    mock_lipsync = AsyncMock()
+    with (
+        _mock_script_video_routing(lip_sync_risk=False),
+        patch("workers.ad_job_worker.worker._get_session_factory", return_value=mock_session_factory),
+        patch("workers.ad_job_worker.worker.create_ad_variant", return_value=mock_ad_variant),
+        patch("workers.ad_job_worker.worker.update_ad_variant"),
+        patch("workers.ad_job_worker.worker.get_campaign", return_value=mock_campaign),
+        patch("workers.ad_job_worker.worker.get_consumer", return_value=mock_consumer),
+        patch("workers.ad_job_worker.worker.get_product", return_value=mock_product),
+        patch("workers.ad_job_worker.worker.BlobClient") as blob_cls,
+        patch("workers.ad_job_worker.worker.evaluate_script", new_callable=AsyncMock, return_value=_PASS_MODERATION),
+        patch("workers.ad_job_worker.worker.generate_ad_script", new_callable=AsyncMock, return_value="Mock script"),
+        patch("workers.ad_job_worker.worker.generate_ad_video_for_script", new_callable=AsyncMock, return_value=b"raw video"),
+        patch("workers.ad_job_worker.worker.lipsync_ad_video", mock_lipsync),
+    ):
+        blob_cls.from_connection_string.return_value = mock_blob_client
+        await execute_ad_job(campaign_id=1, product_id=1, consumer_id=1, version_number=1)
+
+    mock_lipsync.assert_not_awaited()
+    upload_call = mock_blob_client.upload_blob.call_args
+    assert upload_call[0][0] == b"raw video"
 
 
 @pytest.mark.asyncio

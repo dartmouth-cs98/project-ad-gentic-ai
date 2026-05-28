@@ -32,6 +32,7 @@ from routes.personas import router as personas_router
 from routes.product import router as product_router
 from routes.chat_completions import router as chat_completions_router
 from routes.social_auth import router as social_auth_router
+from routes.tiktok_auth import router as tiktok_auth_router
 from routes.metrics import router as metrics_router
 from routes.ad_generation import router as ad_generation_router
 
@@ -209,6 +210,7 @@ app.include_router(consumers_router, prefix="/consumers", tags=["Consumers"])
 app.include_router(product_router, prefix="/products", tags=["Products"])
 app.include_router(personas_router, prefix="/personas", tags=["Personas"])
 app.include_router(social_auth_router, prefix="/social-auth", tags=["Social Auth"])
+app.include_router(tiktok_auth_router, prefix="/api/tiktok", tags=["TikTok Auth"])
 app.include_router(metrics_router, prefix="/campaigns", tags=["Campaign Metrics"])
 
 # Methods (GET and HEAD) for uptime robot to keep the app alive

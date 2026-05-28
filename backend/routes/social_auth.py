@@ -27,11 +27,12 @@ from services.ad_platforms.meta.auth import (
     fetch_platform_account_info,
     token_expiry_dt,
 )
+from services.ad_platforms.tiktok.auth import build_oauth_url as build_tiktok_oauth_url
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-SUPPORTED_PLATFORMS = {"instagram"}
+SUPPORTED_PLATFORMS = {"instagram", "tiktok"}
 STATE_ALGORITHM = "HS256"
 STATE_TTL_MINUTES = 15
 
@@ -59,11 +60,19 @@ def initiate_connect(
     platform: str = Query(default="instagram"),
     client_id: int = Depends(get_current_client_id),
 ):
-    """Return the OAuth URL for the client to redirect to."""
+    """Return the OAuth URL for the client to redirect to.
+
+    Each platform's authorize URL is built by its own adapter — callbacks
+    land on platform-specific routes (Meta → /social-auth/callback, TikTok
+    → /api/tiktok/callback) because each dev portal pins its own URI.
+    """
     if platform not in SUPPORTED_PLATFORMS:
         raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
     state = _make_state(client_id)
-    url = build_oauth_url(state)
+    if platform == "tiktok":
+        url = build_tiktok_oauth_url(state)
+    else:
+        url = build_oauth_url(state)
     return {"url": url}
 
 

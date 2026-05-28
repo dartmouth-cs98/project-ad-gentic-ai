@@ -1,5 +1,6 @@
 // FilterPanel — right-side slide-in drawer using gen-filter-drawer CSS
 import { FilterControls } from './FilterControls';
+import { PreferencesSaveIndicator } from './PreferencesSaveIndicator';
 import type { FilterState, FilterAction } from '../../hooks/useFilterState';
 import { countActiveFilters } from '../../hooks/useFilterState';
 import type { PreferencesSaveStatus } from '../../hooks/usePersistedCampaignPreferences';

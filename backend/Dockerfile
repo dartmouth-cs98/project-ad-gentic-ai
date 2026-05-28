@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
         msodbcsql18 \
         unixodbc-dev \
+        ffmpeg \
     && apt-get purge -y --auto-remove curl gnupg2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

@@ -79,6 +79,7 @@ export interface CreateCampaignPayload {
     product_context?: string | null;
     product_ids?: string | null;
     platforms?: string | null;
+    draft_generation_preferences?: import('./generationPreferences').GenerationPreferences | null;
 }
 
 /** Payload for PUT /campaigns/:id */

@@ -107,6 +107,7 @@ export function parseGenerationPreferencesToFilterState(prefs: GenerationPrefere
       typeof prefs.language === 'string' && prefs.language.trim()
         ? prefs.language
         : DEFAULT_FILTERS.language,
+    activePreset: null,
   };
 }
 

@@ -1,33 +1,45 @@
+// SettingsPage — Swiss/Linear editorial theme
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSocialConnectionStatus, useConnectSocialPlatform, useDisconnectSocialPlatform } from '../hooks/useSocialConnection';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { AppShell } from '../components/layout/AppShell';
 import { useCompany } from '../contexts/CompanyContext';
-import {
-  CreditCardIcon,
-  CheckIcon,
-  ShieldIcon,
-  ZapIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  AlertTriangleIcon,
-  LinkIcon,
-  MailIcon,
-  SmartphoneIcon,
-  HashIcon,
-  DollarSignIcon,
-  UsersIcon,
-  SettingsIcon,
-  ImageIcon,
-  Loader2Icon,
-  PaletteIcon,
-  PlugIcon,
-  ReceiptIcon,
-  ArrowRightIcon,
-  SparklesIcon,
-  UploadIcon,
-  XIcon,
-} from 'lucide-react';
+import { siFacebook, siTiktok, siYoutube, siGoogle, siHubspot, siZapier, siInstagram } from 'simple-icons';
+
+
+// Manual paths for brands not in this simple-icons version
+const SLACK_PATH = 'M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z';
+const LINKEDIN_PATH = 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z';
+
+const BRAND_ICON_MAP: Record<string, { path: string; color: string }> = {
+  meta:     { path: siFacebook.path,   color: '#1877F2' },
+  tiktok:   { path: siTiktok.path,     color: '#010101' },
+  youtube:  { path: siYoutube.path,    color: '#FF0000' },
+  linkedin: { path: LINKEDIN_PATH,     color: '#0A66C2' },
+  google:   { path: siGoogle.path,     color: '#4285F4' },
+  slack:    { path: SLACK_PATH,        color: '#4A154B' },
+  hubspot:  { path: siHubspot.path,    color: '#FF7A59' },
+  zapier:   { path: siZapier.path,     color: '#FF4F00' },
+  instagram:{ path: siInstagram.path,  color: '#E4405F' },
+};
+
+function BrandIcon({ id, size = 20 }: { id: string; size?: number }) {
+  const icon = BRAND_ICON_MAP[id];
+  if (!icon) return null;
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="#fff"
+      aria-label={id}
+      style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d={icon.path} />
+    </svg>
+  );
+}
+
 
 type TabKey = 'billing' | 'plans' | 'brand' | 'integrations' | 'notifications';
 
@@ -42,15 +54,28 @@ interface Integration {
   accountName?: string;
 }
 
+type NotifIcon = 'zap' | 'shield' | 'clock' | 'dollar' | 'users' | 'settings';
+
+interface NotificationSetting {
+  id: string;
+  title: string;
+  desc: string;
+  icon: NotifIcon;
+  email: boolean;
+  inApp: boolean;
+  slack: boolean;
+}
+
+
 const initialIntegrations: Integration[] = [
-  { id: 'meta', name: 'Meta (Facebook/Instagram)', description: 'Publish and manage ads across Facebook and Instagram.', icon: 'M', color: 'bg-blue-600', connected: false },
-  { id: 'tiktok', name: 'TikTok Ads', description: 'Create and deploy short-form video ad campaigns.', icon: 'T', color: 'bg-slate-800', connected: false },
-  { id: 'youtube', name: 'YouTube Ads', description: 'Run video ads and bumper campaigns on YouTube.', icon: 'Y', color: 'bg-red-600', connected: false, comingSoon: true },
-  { id: 'linkedin', name: 'LinkedIn Ads', description: 'Target professionals with sponsored content and InMail.', icon: 'in', color: 'bg-blue-700', connected: false, comingSoon: true },
-  { id: 'google', name: 'Google Ads', description: 'Search, display, and Performance Max campaigns.', icon: 'G', color: 'bg-emerald-600', connected: false, comingSoon: true },
-  { id: 'slack', name: 'Slack', description: 'Get campaign alerts and approvals in your Slack channels.', icon: 'S', color: 'bg-purple-600', connected: false, comingSoon: true },
-  { id: 'hubspot', name: 'HubSpot', description: 'Sync contacts and audience data from your CRM.', icon: 'H', color: 'bg-orange-500', connected: false, comingSoon: true },
-  { id: 'zapier', name: 'Zapier', description: 'Connect Ad-gentic to 5,000+ apps with automations.', icon: 'Z', color: 'bg-orange-600', connected: false, comingSoon: true },
+  { id: 'meta', name: 'Meta (Facebook/Instagram)', description: 'Publish and manage ads across Facebook and Instagram.', icon: 'M', color: '#1877F2', connected: false },
+  { id: 'tiktok', name: 'TikTok Ads', description: 'Create and deploy short-form video ad campaigns.', icon: 'T', color: '#010101', connected: false },
+  { id: 'youtube', name: 'YouTube Ads', description: 'Run video ads and bumper campaigns on YouTube.', icon: 'Y', color: '#FF0000', connected: false, comingSoon: true },
+  { id: 'linkedin', name: 'LinkedIn Ads', description: 'Target professionals with sponsored content and InMail.', icon: 'in', color: '#0A66C2', connected: false, comingSoon: true },
+  { id: 'google', name: 'Google Ads', description: 'Search, display, and Performance Max campaigns.', icon: 'G', color: '#34A853', connected: false, comingSoon: true },
+  { id: 'slack', name: 'Slack', description: 'Get campaign alerts and approvals in your Slack channels.', icon: 'S', color: '#4A154B', connected: false, comingSoon: true },
+  { id: 'hubspot', name: 'HubSpot', description: 'Sync contacts and audience data from your CRM.', icon: 'H', color: '#FF7A59', connected: false, comingSoon: true },
+  { id: 'zapier', name: 'Zapier', description: 'Connect Ad-gentic to 5,000+ apps with automations.', icon: 'Z', color: '#FF4A00', connected: false, comingSoon: true },
 ];
 
 const toneOptions = [
@@ -60,85 +85,117 @@ const toneOptions = [
   { value: 'playful', label: 'Playful', desc: 'Fun, witty, lighthearted' },
 ];
 
-interface NotificationSetting {
-  id: string;
-  title: string;
-  desc: string;
-  icon: React.ElementType;
-  email: boolean;
-  inApp: boolean;
-  slack: boolean;
-}
-
 const initialNotifications: NotificationSetting[] = [
-  { id: 'campaigns', title: 'Campaign Updates', desc: 'Approvals, launches, pauses, and status changes.', icon: ZapIcon, email: true, inApp: true, slack: true },
-  { id: 'personas', title: 'Persona Insights', desc: 'New audience segments discovered by AI.', icon: ShieldIcon, email: true, inApp: true, slack: false },
-  { id: 'weekly', title: 'Weekly Performance Report', desc: 'Summary of ad performance delivered every Monday.', icon: ClockIcon, email: true, inApp: false, slack: false },
-  { id: 'budget', title: 'Budget Alerts', desc: 'Warnings when spend approaches or exceeds limits.', icon: DollarSignIcon, email: true, inApp: true, slack: true },
-  { id: 'team', title: 'Team Activity', desc: 'When teammates create, edit, or approve campaigns.', icon: UsersIcon, email: false, inApp: true, slack: true },
-  { id: 'system', title: 'System Updates', desc: 'New features, maintenance, and platform announcements.', icon: SettingsIcon, email: true, inApp: true, slack: false },
+  { id: 'campaigns', title: 'Campaign Updates', desc: 'Approvals, launches, pauses, and status changes.', icon: 'zap', email: true, inApp: true, slack: true },
+  { id: 'personas', title: 'Persona Insights', desc: 'New audience segments discovered by AI.', icon: 'shield', email: true, inApp: true, slack: false },
+  { id: 'weekly', title: 'Weekly Performance Report', desc: 'Summary of ad performance delivered every Monday.', icon: 'clock', email: true, inApp: false, slack: false },
+  { id: 'budget', title: 'Budget Alerts', desc: 'Warnings when spend approaches or exceeds limits.', icon: 'dollar', email: true, inApp: true, slack: true },
+  { id: 'team', title: 'Team Activity', desc: 'When teammates create, edit, or approve campaigns.', icon: 'users', email: false, inApp: true, slack: true },
+  { id: 'system', title: 'System Updates', desc: 'New features, maintenance, and platform announcements.', icon: 'settings', email: true, inApp: true, slack: false },
 ];
 
-// ---------- Empty State Component ----------
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'billing', label: 'Billing & History' },
+  { key: 'plans', label: 'Plans' },
+  { key: 'brand', label: 'Brand Profile' },
+  { key: 'integrations', label: 'Integrations' },
+  { key: 'notifications', label: 'Notifications' },
+];
 
-function EmptyState({
-  icon: Icon,
-  iconBg,
-  iconColor,
-  glowColor,
-  title,
-  description,
-  cta,
-  onCta,
-  decorations,
-}: {
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  glowColor: string;
-  title: string;
-  description: string;
-  cta: string;
-  onCta: () => void;
-  decorations?: React.ReactNode;
-}) {
+
+function CheckIcon() {
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-      <div className="relative mb-8">
-        {/* Glow */}
-        <div className={`absolute inset-0 rounded-full blur-2xl opacity-30 scale-150 ${glowColor}`} />
-        {/* Icon ring */}
-        <div className={`relative w-20 h-20 rounded-2xl ${iconBg} flex items-center justify-center shadow-lg`}>
-          <Icon className={`w-9 h-9 ${iconColor}`} />
-        </div>
-        {/* Decorative orbiting dots */}
-        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500/40 border border-blue-500/60" />
-        <div className="absolute -bottom-2 -left-2 w-2 h-2 rounded-full bg-violet-500/40 border border-violet-500/60" />
-      </div>
-
-      <h3 className="text-xl font-bold text-foreground mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-8">{description}</p>
-
-      {decorations && <div className="mb-8">{decorations}</div>}
-
-      <button
-        onClick={onCta}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/20"
-      >
-        {cta}
-        <ArrowRightIcon className="w-4 h-4" />
-      </button>
-    </div>
+    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={9} height={9}>
+      <path d="M1.5 5l2.5 2.5L8.5 2" />
+    </svg>
   );
 }
 
-// ---------- Main Page ----------
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function CardIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" width={18} height={18}>
+      <rect x="2" y="5" width="16" height="12" />
+      <path d="M2 9h16" />
+    </svg>
+  );
+}
+
+function ReceiptIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}>
+      <path d="M5 2h10v16l-2-1.5L11 18l-1-1.5L9 18l-1-1.5L6 18l-2-1.5V2z" />
+      <path d="M8 7h4M8 10h4M8 13h2" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
+      <path d="M7 9V3M5 5l2-2 2 2" />
+      <path d="M2 11h10" />
+    </svg>
+  );
+}
+
+function PlugIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" width={22} height={22}>
+      <path d="M7 2v4M13 2v4M5 6h10l-1 6H6L5 6zM8 12v4M12 12v4" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={13} height={13} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+    </svg>
+  );
+}
+
+function NotifIconSvg({ type }: { type: NotifIcon }) {
+  const props = { viewBox: '0 0 14 14', fill: 'none', stroke: 'currentColor', strokeWidth: '1.5', strokeLinecap: 'round' as const, width: 12, height: 12 };
+  switch (type) {
+    case 'zap': return <svg {...props}><path d="M8 1L3 8h5l-2 5 6-7H7l1-5z" /></svg>;
+    case 'shield': return <svg {...props}><path d="M7 1L2 3v4c0 3 2.5 5.5 5 6 2.5-.5 5-3 5-6V3L7 1z" /></svg>;
+    case 'clock': return <svg {...props} strokeLinejoin="round"><circle cx="7" cy="7" r="5.5" /><path d="M7 4v3l2 1.5" /></svg>;
+    case 'dollar': return <svg {...props}><path d="M7 1v12M4 4h4.5a2 2 0 010 4H4.5a2 2 0 000 4H9" /></svg>;
+    case 'users': return <svg {...props}><circle cx="5" cy="5" r="2.5" /><path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4M10 4c1.1 0 2 .9 2 2s-.9 2-2 2M13 12c0-1.5-1-2.8-2.5-3.3" /></svg>;
+    case 'settings': return <svg {...props} strokeLinejoin="round"><circle cx="7" cy="7" r="2" /><path d="M7 1v2M7 11v2M1 7h2M11 7h2M3.2 3.2l1.4 1.4M9.4 9.4l1.4 1.4M9.4 4.6L8 6M5.4 8l-1.4 1.4" /></svg>;
+  }
+}
+
+
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      className={`stg-toggle${checked ? ' on' : ''}`}
+      onClick={onChange}
+    >
+      <span className="stg-toggle-thumb" />
+    </button>
+  );
+}
+
 
 export function SettingsPage() {
   const { profile, updateProfile } = useCompany();
   const location = useLocation();
-  const logoInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
   const [activeTab, setActiveTab] = useState<TabKey>('billing');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -148,17 +205,12 @@ export function SettingsPage() {
     | null
   >(null);
 
-  // Brand state — keys are scoped to the signed-in user so settings don't
-  // leak across accounts on the same device.
+  // Brand — persisted per user email
   const brandKey = `brand-settings-${profile.email}`;
   const configuredKey = `brand-configured-${profile.email}`;
 
   const [brandConfigured, setBrandConfigured] = useState(() => {
-    try {
-      return localStorage.getItem(configuredKey) === 'true';
-    } catch {
-      return false;
-    }
+    try { return localStorage.getItem(configuredKey) === 'true'; } catch { return false; }
   });
   const [brandSaving, setBrandSaving] = useState(false);
   const [brandSaved, setBrandSaved] = useState(false);
@@ -167,31 +219,15 @@ export function SettingsPage() {
     try {
       const saved = localStorage.getItem(brandKey);
       return saved ? (JSON.parse(saved).logoPreview ?? null) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   });
 
   const [brandForm, setBrandForm] = useState(() => {
-    const defaults = {
-      companyName: profile.companyName,
-      primaryColor: '#3B82F6',
-      secondaryColor: '#1E293B',
-      accentColor: '#10B981',
-      tone: 'professional',
-      guidelines: '',
-    };
+    const defaults = { companyName: profile.companyName, primaryColor: '#3B82F6', secondaryColor: '#1E293B', accentColor: '#10B981', tone: 'professional', guidelines: '' };
     try {
       const saved = localStorage.getItem(brandKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Use saved companyName if present (user may have renamed it); fall
-        // back to the live profile value only when no saved name exists.
-        return { ...defaults, ...parsed, companyName: parsed.companyName ?? profile.companyName };
-      }
-    } catch {
-      // ignore malformed data
-    }
+      if (saved) { const p = JSON.parse(saved); return { ...defaults, ...p, companyName: p.companyName ?? profile.companyName }; }
+    } catch { /* ignore */ }
     return defaults;
   });
 
@@ -199,37 +235,25 @@ export function SettingsPage() {
   const connectMeta = useConnectSocialPlatform();
   const disconnectMeta = useDisconnectSocialPlatform();
 
-  // Map frontend integration ids to backend platform identifiers.
   const integrationPlatformMap: Record<string, string> = {
-    meta: 'instagram',
-    tiktok: 'tiktok',
-    youtube: 'youtube',
-    linkedin: 'linkedin',
-    google: 'google',
-    slack: 'slack',
-    hubspot: 'hubspot',
-    zapier: 'zapier',
+    meta: 'instagram', tiktok: 'tiktok', youtube: 'youtube', linkedin: 'linkedin',
+    google: 'google', slack: 'slack', hubspot: 'hubspot', zapier: 'zapier',
   };
-  const statusByPlatform = new Map(socialStatus.map((status) => [status.platform, status]));
-  const integrations = initialIntegrations.map((integration) => {
-    const platformKey = integrationPlatformMap[integration.id];
-    const liveStatus = platformKey ? statusByPlatform.get(platformKey) : undefined;
-    if (!liveStatus) return integration;
-    return {
-      ...integration,
-      connected: liveStatus.connected,
-      accountName: liveStatus.platform_account_id ?? undefined,
-    };
+  const statusByPlatform = new Map(socialStatus.map((s) => [s.platform, s]));
+  const integrations = initialIntegrations.map((int) => {
+    const liveStatus = statusByPlatform.get(integrationPlatformMap[int.id]);
+    if (!liveStatus) return int;
+    return { ...int, connected: liveStatus.connected, accountName: liveStatus.platform_account_id ?? undefined };
   });
+  const connectedCount = integrations.filter((i) => i.connected).length;
+
   const [notifications, setNotifications] = useState(initialNotifications);
   const [channelMasters, setChannelMasters] = useState({ email: true, inApp: true, slack: true });
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
-    if (tab && ['plans', 'billing', 'notifications', 'brand', 'integrations'].includes(tab)) {
-      setActiveTab(tab as TabKey);
-    }
+    if (tab && TABS.some((t) => t.key === tab)) setActiveTab(tab as TabKey);
     const connectedPlatform = params.get('connected');
     const errorReason = params.get('error');
     if (connectedPlatform) {
@@ -242,11 +266,7 @@ export function SettingsPage() {
     if (connectedPlatform || errorReason) {
       params.delete('connected');
       params.delete('error');
-      const nextSearch = params.toString();
-      navigate(
-        `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}`,
-        { replace: true },
-      );
+      navigate(`${location.pathname}${params.toString() ? `?${params}` : ''}`, { replace: true });
     }
   }, [location.pathname, location.search, navigate]);
 
@@ -274,32 +294,9 @@ export function SettingsPage() {
     setTimeout(() => { updateProfile({ plan }); setShowSuccess(false); }, 2000);
   };
 
-  const handleCancelSubscription = () => { setShowCancelModal(false); handleUpgrade('basic'); };
-
   const getPlanButtonText = (planId: string) => {
     if (profile.plan === planId) return 'Current Plan';
-    const plans = ['basic', 'premium', 'enterprise'];
-    return plans.indexOf(profile.plan) < plans.indexOf(planId) ? 'Upgrade' : 'Downgrade';
-  };
-
-  const handleConnect = (id: string) => {
-    const platform = integrationPlatformMap[id];
-    if (!platform) return;
-    if (id === 'meta' || id === 'tiktok') {
-      connectMeta.mutate({ platform });
-    }
-  };
-
-  const handleDisconnect = (id: string) => {
-    const platform = integrationPlatformMap[id];
-    if (!platform) return;
-    if (id === 'meta' || id === 'tiktok') {
-      disconnectMeta.mutate({ platform });
-    }
-  };
-
-  const toggleNotification = (id: string, channel: 'email' | 'inApp' | 'slack') => {
-    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, [channel]: !n[channel] } : n));
+    return ['basic', 'premium', 'enterprise'].indexOf(profile.plan) < ['basic', 'premium', 'enterprise'].indexOf(planId) ? 'Upgrade' : 'Downgrade';
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -314,166 +311,112 @@ export function SettingsPage() {
     setBrandSaving(true);
     setTimeout(() => {
       updateProfile({ companyName: brandForm.companyName });
-      // Persist the full brand form (including logo) so nothing is lost on reload.
-      // Both writes are in the same try/catch — if storage is full (e.g. large
-      // logo data-URL) we don't want the second write to throw and abort the
-      // remaining state updates, leaving the UI stuck in the saving state.
       let persisted = false;
       try {
         localStorage.setItem(brandKey, JSON.stringify({ ...brandForm, logoPreview }));
         localStorage.setItem(configuredKey, 'true');
         persisted = true;
-      } catch {
-        // localStorage can throw if storage quota is exceeded (e.g. large logo).
-      }
+      } catch { /* storage full */ }
       setBrandSaving(false);
-      // Only show success and mark configured when settings were actually saved.
-      if (persisted) {
-        setBrandSaved(true);
-        setBrandConfigured(true);
-        setTimeout(() => setBrandSaved(false), 3000);
-      }
+      if (persisted) { setBrandSaved(true); setBrandConfigured(true); setTimeout(() => setBrandSaved(false), 3000); }
     }, 1200);
   };
 
-  const connectedCount = integrations.filter((i) => i.connected).length;
-
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: 'billing', label: 'Billing & History' },
-    { key: 'plans', label: 'Plans' },
-    { key: 'brand', label: 'Brand Profile' },
-    { key: 'integrations', label: 'Integrations' },
-    { key: 'notifications', label: 'Notifications' },
-  ];
-
   return (
-    <DashboardLayout>
-      <div className="relative">
+    <AppShell>
+      <div className="as-main">
+        <div className="as-canvas">
 
-        {/* Success Overlay — Plan change */}
-        {showSuccess && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-            <div className="bg-card border border-border p-8 rounded-2xl shadow-xl flex flex-col items-center">
-              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
-                <CheckCircleIcon className="w-8 h-8 text-emerald-500" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground">Plan Updated!</h3>
-              <p className="text-muted-foreground">Your subscription has been changed successfully.</p>
+          {/* Header */}
+          <div className="as-page-head">
+            <div>
+              <span className="as-eyebrow">— SETTINGS</span>
+              <h1>Settings & Billing</h1>
             </div>
           </div>
-        )}
 
-        {/* OAuth feedback toast (top-right) — separate from plan-change overlay */}
-        {oauthFeedback && (
-          <div className="fixed top-6 right-6 z-50 max-w-sm">
-            {oauthFeedback.kind === 'connected' ? (
-              <div className="flex items-start gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl shadow-lg backdrop-blur-sm">
-                <CheckCircleIcon className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-foreground">
+          {/* OAuth feedback toast (top-right) — editorial style */}
+          {oauthFeedback && (
+            <div
+              role="status"
+              style={{
+                position: 'fixed', top: 20, right: 20, zIndex: 1000, maxWidth: 380,
+                padding: '12px 16px',
+                border: `1px solid ${oauthFeedback.kind === 'connected' ? 'var(--as-rule-strong)' : 'rgba(185,28,28,0.45)'}`,
+                background: 'var(--as-bg)',
+                fontSize: 13,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              }}
+            >
+              {oauthFeedback.kind === 'connected' ? (
+                <>
+                  <div style={{ fontWeight: 600, color: 'var(--as-ink)' }}>
                     {platformDisplayName(oauthFeedback.platform)} connected
-                  </p>
-                  <p className="text-muted-foreground">
+                  </div>
+                  <div style={{ color: 'var(--as-ink-2)', marginTop: 2 }}>
                     You can now publish campaigns to {platformDisplayName(oauthFeedback.platform)}.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-start gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl shadow-lg backdrop-blur-sm">
-                <AlertTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-foreground">Connection failed</p>
-                  <p className="text-muted-foreground">{oauthErrorMessage(oauthFeedback.reason)}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Cancel Modal */}
-        {showCancelModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
-            <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-8 z-10">
-              <div className="flex flex-col items-center text-center mb-6">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
-                  <AlertTriangleIcon className="w-6 h-6 text-amber-500" />
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">Are you sure?</h3>
-                <p className="text-muted-foreground text-sm">You will lose access to unlimited ad variants and automated posting.</p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCancelSubscription}
-                  className="flex-1 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-muted transition-colors">
-                  Confirm Cancellation
-                </button>
-                <button
-                  onClick={() => setShowCancelModal(false)}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
-                  Keep My Plan
-                </button>
-              </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 600, color: 'var(--as-danger, #b91c1c)' }}>
+                    Connection failed
+                  </div>
+                  <div style={{ color: 'var(--as-ink-2)', marginTop: 2 }}>
+                    {oauthErrorMessage(oauthFeedback.reason)}
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="mx-auto">
-          <div className="flex items-center justify-between mb-1">
-            <h1 className="text-2xl font-bold text-foreground">Settings & Billing</h1>
-          </div>
-          <p className="text-muted-foreground mb-8">Manage your subscription, brand identity, integrations, and preferences.</p>
-
-          {/* Tabs */}
-          <div className="flex border-b border-border mb-8 overflow-x-auto">
-            {tabs.map((tab) => (
+          {/* Tab bar */}
+          <div className="stg-tabs">
+            {TABS.map((tab) => (
               <button
                 key={tab.key}
+                className={`stg-tab${activeTab === tab.key ? ' on' : ''}`}
                 onClick={() => setActiveTab(tab.key)}
-                className={`pb-4 px-4 text-sm font-medium transition-colors relative whitespace-nowrap ${activeTab === tab.key ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'}`}>
+              >
                 {tab.label}
-                {activeTab === tab.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
               </button>
             ))}
           </div>
 
-          {/* ==================== BILLING TAB ==================== */}
+          {/* ══ BILLING TAB ══ */}
           {activeTab === 'billing' && (
-            <div className="space-y-8">
-              <div className="grid grid-cols-3 gap-6">
-                {/* Current Plan + Payment */}
-                <div className="col-span-2 bg-card border border-border rounded-xl p-7">
-                  <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="stg-billing-grid">
+                {/* Current plan + payment */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                     <div>
-                      <h3 className="text-base font-semibold text-foreground">Current Plan</h3>
-                      <p className="text-muted-foreground text-sm">Renews on March 12, 2026</p>
+                      <div className="stg-section-head">Current Plan</div>
+                      <div className="stg-section-sub" style={{ marginBottom: 0 }}>Renews March 12, 2026</div>
                     </div>
-                    <span className="px-3 py-1 bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-full text-xs font-semibold capitalize">
-                      {profile.plan} Plan
+                    <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', border: '1px solid var(--as-rule-strong)', padding: '3px 10px', color: 'var(--as-ink-2)' }}>
+                      {profile.plan} plan
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 p-4 bg-muted rounded-xl border border-border mb-6">
-                    <div className="w-12 h-12 bg-card rounded-xl border border-border flex items-center justify-center flex-shrink-0">
-                      <CreditCardIcon className="w-6 h-6 text-muted-foreground" />
+
+                  <div className="stg-payment-row">
+                    <div className="stg-payment-icon"><CardIcon /></div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--as-ink)' }}>Visa ending in 4242</div>
+                      <div style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace" }}>Expires 12/28</div>
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">Visa ending in 4242</p>
-                      <p className="text-xs text-muted-foreground">Expires 12/28</p>
-                    </div>
-                    <button className="ml-auto px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors">
-                      Update
-                    </button>
+                    <button className="as-btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }}>Update</button>
                   </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setActiveTab('plans')}
-                      className="px-4 py-2 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors">
+
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className="as-btn-ghost" style={{ padding: '8px 16px', fontSize: 12 }} onClick={() => setActiveTab('plans')}>
                       Change Plan
                     </button>
                     {profile.plan !== 'basic' && (
                       <button
                         onClick={() => setShowCancelModal(true)}
-                        className="px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-xl transition-colors">
+                        style={{ padding: '8px 16px', fontSize: 12, background: 'none', border: '1px solid rgba(185,28,28,0.3)', color: 'var(--as-danger)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
                         Cancel Subscription
                       </button>
                     )}
@@ -481,82 +424,63 @@ export function SettingsPage() {
                 </div>
 
                 {/* Usage */}
-                <div className="bg-card border border-border rounded-xl p-7">
-                  <h3 className="text-base font-semibold text-foreground mb-5">Usage</h3>
-                  <div className="space-y-5">
-                    {[
-                      { label: 'Generations', value: '84 / 100', pct: 84, color: 'bg-blue-500' },
-                      { label: 'Storage', value: '2.1GB / 5GB', pct: 42, color: 'bg-violet-500' },
-                      { label: 'Team Members', value: '3 / 5', pct: 60, color: 'bg-emerald-500' },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                          <span>{item.label}</span>
-                          <span>{item.value}</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div className={`h-full ${item.color} rounded-full`} style={{ width: `${item.pct}%` }} />
-                        </div>
+                <div style={{ borderLeft: '1px solid var(--as-rule)' }}>
+                  <div className="stg-section-head" style={{ marginBottom: 20 }}>Usage</div>
+                  {[
+                    { label: 'Generations', value: '84 / 100', pct: 84 },
+                    { label: 'Storage', value: '2.1 GB / 5 GB', pct: 42 },
+                    { label: 'Team Members', value: '3 / 5', pct: 60 },
+                  ].map((item) => (
+                    <div key={item.label} className="stg-usage-item">
+                      <div className="stg-usage-labels"><span>{item.label}</span><span>{item.value}</span></div>
+                      <div className="stg-usage-track">
+                        <div className="stg-usage-fill" style={{ width: `${item.pct}%` }} />
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Billing History */}
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <div className="p-6 border-b border-border">
-                  <h3 className="text-base font-semibold text-foreground">Billing History</h3>
+              {/* Billing history */}
+              <div style={{ border: '1px solid var(--as-rule)' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--as-rule)', fontSize: 13, fontWeight: 500 }}>
+                  Billing History
                 </div>
-
                 {profile.plan === 'basic' ? (
-                  /* Empty state for free plan — no invoices yet */
-                  <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 rounded-full blur-2xl opacity-25 scale-150 bg-blue-500" />
-                      <div className="relative w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <ReceiptIcon className="w-7 h-7 text-blue-500" />
-                      </div>
-                    </div>
-                    <h4 className="text-base font-semibold text-foreground mb-1.5">No invoices yet</h4>
-                    <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-6">
-                      You're on the free plan. Upgrade to Premium to unlock invoices and detailed billing history.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('plans')}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+                  <div className="stg-empty">
+                    <div className="stg-empty-icon"><ReceiptIcon /></div>
+                    <h4>No invoices yet</h4>
+                    <p>You're on the free plan. Upgrade to Premium to unlock invoices and detailed billing history.</p>
+                    <button className="as-btn-solid" style={{ padding: '9px 18px' }} onClick={() => setActiveTab('plans')}>
                       View Plans
-                      <ArrowRightIcon className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-muted text-muted-foreground">
+                  <table className="stg-invoice-table">
+                    <thead>
                       <tr>
-                        <th className="px-6 py-3 font-medium">Date</th>
-                        <th className="px-6 py-3 font-medium">Plan</th>
-                        <th className="px-6 py-3 font-medium">Amount</th>
-                        <th className="px-6 py-3 font-medium">Status</th>
-                        <th className="px-6 py-3 font-medium text-right">Invoice</th>
+                        <th>Date</th>
+                        <th>Plan</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Invoice</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody>
                       {[
-                        { date: 'Feb 12, 2026', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
-                        { date: 'Jan 12, 2026', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
-                        { date: 'Dec 12, 2025', plan: 'Premium Plan', amount: '$99.00', status: 'Paid' },
+                        { date: 'Feb 12, 2026', plan: 'Premium Plan', amount: '$99.00' },
+                        { date: 'Jan 12, 2026', plan: 'Premium Plan', amount: '$99.00' },
+                        { date: 'Dec 12, 2025', plan: 'Premium Plan', amount: '$99.00' },
                       ].map((item, i) => (
-                        <tr key={i} className="hover:bg-muted/50 transition-colors">
-                          <td className="px-6 py-4 text-foreground">{item.date}</td>
-                          <td className="px-6 py-4 text-muted-foreground">{item.plan}</td>
-                          <td className="px-6 py-4 text-foreground font-medium">{item.amount}</td>
-                          <td className="px-6 py-4">
-                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-xs font-medium">
-                              {item.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button className="text-sm text-blue-600 hover:text-blue-700 transition-colors">Download</button>
+                        <tr key={i}>
+                          <td style={{ color: 'var(--as-ink)', fontWeight: 500 }}>{item.date}</td>
+                          <td>{item.plan}</td>
+                          <td style={{ color: 'var(--as-ink)', fontWeight: 500 }}>{item.amount}</td>
+                          <td><span className="stg-invoice-paid">Paid</span></td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button style={{ fontSize: 11, color: 'var(--as-ink-3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                              Download
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -567,58 +491,37 @@ export function SettingsPage() {
             </div>
           )}
 
-          {/* ==================== PLANS TAB ==================== */}
+          {/* ══ PLANS TAB ══ */}
           {activeTab === 'plans' && (
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="stg-plans-grid">
               {[
-                { id: 'basic', name: 'Basic', price: '$0', features: ['3 campaigns', 'Basic analytics', 'Email support'] },
-                { id: 'premium', name: 'Premium', price: '$99', features: ['Unlimited campaigns', 'Advanced analytics', 'Priority support', 'Team access'], highlight: true },
-                { id: 'enterprise', name: 'Enterprise', price: 'Custom', features: ['Dedicated manager', 'Custom integrations', 'SLA guarantee', 'SSO'] },
+                { id: 'basic', name: 'Basic', price: '$0', period: 'Free forever', features: ['3 campaigns', 'Basic analytics', 'Email support'] },
+                { id: 'premium', name: 'Premium', price: '$99', period: 'per month', features: ['Unlimited campaigns', 'Advanced analytics', 'Priority support', 'Team access'], highlight: true },
+                { id: 'enterprise', name: 'Enterprise', price: 'Custom', period: 'contact sales', features: ['Dedicated manager', 'Custom integrations', 'SLA guarantee', 'SSO'] },
               ].map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`relative flex flex-col bg-card border rounded-xl p-7 ${
-                    profile.plan === plan.id
-                      ? 'ring-2 ring-blue-600 border-blue-600/30'
-                      : plan.highlight && profile.plan !== plan.id
-                        ? 'ring-2 ring-blue-600 border-blue-600/30'
-                        : 'border-border hover:border-foreground/20'
-                  } transition-colors`}>
-                  {profile.plan === plan.id && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
-                      Current Plan
+                <div key={plan.id} className={`stg-plan-card${profile.plan === plan.id ? ' current' : ''}`}>
+                  {(profile.plan === plan.id || (plan.highlight && profile.plan !== plan.id)) && (
+                    <div className="stg-plan-badge">
+                      {profile.plan === plan.id ? 'Current Plan' : 'Most Popular'}
                     </div>
                   )}
-                  {plan.highlight && profile.plan !== plan.id && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
-                      Most Popular
-                    </div>
-                  )}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
-                    <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-3xl font-bold text-foreground">{plan.price}</span>
-                      {plan.price !== 'Custom' && <span className="text-muted-foreground">/mo</span>}
-                    </div>
-                  </div>
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        {feature}
+                  <div className="stg-plan-name">{plan.name}</div>
+                  <div className="stg-plan-price">{plan.price}</div>
+                  <div className="stg-plan-period">{plan.period}</div>
+                  <ul className="stg-plan-features">
+                    {plan.features.map((f) => (
+                      <li key={f} className="stg-plan-feature">
+                        <span className="stg-plan-feature-check"><CheckIcon /></span>
+                        {f}
                       </li>
                     ))}
                   </ul>
                   <button
+                    className={profile.plan === plan.id ? 'as-btn-ghost' : 'as-btn-solid'}
                     disabled={profile.plan === plan.id}
                     onClick={() => handleUpgrade(plan.id as 'basic' | 'premium' | 'enterprise')}
-                    className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                      profile.plan === plan.id
-                        ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                        : plan.highlight
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'border border-border text-foreground hover:bg-muted'
-                    }`}>
+                    style={{ width: '100%', padding: '10px', justifyContent: 'center' }}
+                  >
                     {getPlanButtonText(plan.id)}
                   </button>
                 </div>
@@ -626,328 +529,219 @@ export function SettingsPage() {
             </div>
           )}
 
-          {/* ==================== BRAND PROFILE TAB ==================== */}
+          {/* ══ BRAND TAB ══ */}
           {activeTab === 'brand' && (
-            <>
-              {!brandConfigured ? (
-                /* ── Brand Empty State ── */
-                <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                  {/* Hero gradient strip */}
-                  <div className="relative h-2 bg-gradient-to-r from-blue-600 via-violet-500 to-emerald-500" />
-
-                  <EmptyState
-                    icon={PaletteIcon}
-                    iconBg="bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-blue-500/20"
-                    iconColor="text-blue-400"
-                    glowColor="bg-blue-500"
-                    title="Your brand profile isn't set up yet"
-                    description="Add your logo, brand colors, and voice so Ad-gentic can generate ads that look and sound exactly like you."
-                    cta="Set Up Brand Profile"
-                    onCta={() => setBrandConfigured(true)}
-                    decorations={
-                      <div className="flex items-center gap-3">
-                        {[
-                          { color: '#3B82F6', label: 'Primary' },
-                          { color: '#1E293B', label: 'Secondary' },
-                          { color: '#10B981', label: 'Accent' },
-                        ].map((swatch) => (
-                          <div key={swatch.label} className="flex flex-col items-center gap-1.5">
-                            <div
-                              className="w-8 h-8 rounded-lg border border-white/10 shadow-md"
-                              style={{ backgroundColor: swatch.color }}
-                            />
-                            <span className="text-[10px] text-muted-foreground">{swatch.label}</span>
-                          </div>
-                        ))}
-                        <div className="w-px h-10 bg-border mx-1" />
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg border border-border">
-                          <SparklesIcon className="w-3.5 h-3.5 text-blue-400" />
-                          <span className="text-xs text-muted-foreground">AI-matched tone</span>
-                        </div>
-                      </div>
-                    }
-                  />
-
-                  {/* Feature hints at bottom */}
-                  <div className="border-t border-border px-8 py-5 bg-muted/30">
-                    <div className="flex items-center justify-center gap-8">
-                      {[
-                        { icon: ImageIcon, text: 'Logo upload' },
-                        { icon: PaletteIcon, text: 'Brand colors' },
-                        { icon: SparklesIcon, text: 'AI voice & tone' },
-                      ].map(({ icon: Icon, text }) => (
-                        <div key={text} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Icon className="w-3.5 h-3.5 text-blue-500" />
-                          {text}
-                        </div>
-                      ))}
-                    </div>
+            !brandConfigured ? (
+              /* Empty state */
+              <div style={{ border: '1px solid var(--as-rule)' }}>
+                <div className="stg-empty">
+                  <div className="stg-empty-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" width={20} height={20}>
+                      <circle cx="10" cy="10" r="8" />
+                      <path d="M10 6v4l2.5 2.5" />
+                    </svg>
                   </div>
+                  <h4>Your brand profile isn't set up yet</h4>
+                  <p>Add your logo, brand colors, and voice so Ad-gentic can generate ads that look and sound exactly like you.</p>
+                  <button className="as-btn-solid" style={{ padding: '9px 18px' }} onClick={() => setBrandConfigured(true)}>
+                    Set Up Brand Profile
+                  </button>
                 </div>
-              ) : (
-                /* ── Brand Form ── */
-                <div className="space-y-6 max-w-3xl">
-
-                  {/* Brand saved toast */}
-                  {brandSaved && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-500">
-                      <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
-                      Brand profile saved successfully.
-                    </div>
-                  )}
-
-                  {/* Company Identity */}
-                  <div className="bg-card border border-border rounded-xl p-7">
-                    <h3 className="text-base font-semibold text-foreground mb-1">Company Identity</h3>
-                    <p className="text-sm text-muted-foreground mb-6">Your brand identity is used across all generated ads.</p>
-                    <div className="flex items-start gap-6 mb-6">
-                      {/* Logo upload */}
-                      <div className="flex-shrink-0">
-                        <input
-                          ref={logoInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleLogoUpload}
-                        />
-                        {logoPreview ? (
-                          <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-border group cursor-pointer" onClick={() => logoInputRef.current?.click()}>
-                            <img src={logoPreview} alt="Brand logo" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                              <UploadIcon className="w-5 h-5 text-white" />
-                              <span className="text-[10px] text-white font-medium">Replace</span>
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setLogoPreview(null); if (logoInputRef.current) logoInputRef.current.value = ''; }}
-                              className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <XIcon className="w-3 h-3 text-white" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => logoInputRef.current?.click()}
-                            className="w-24 h-24 rounded-xl bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-500/5 transition-all group">
-                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-1.5 group-hover:bg-blue-500/20 transition-colors">
-                              <UploadIcon className="w-4 h-4 text-blue-500" />
-                            </div>
-                            <span className="text-[10px] text-muted-foreground group-hover:text-blue-500 transition-colors font-medium">Upload logo</span>
-                            <span className="text-[9px] text-muted-foreground mt-0.5">PNG, JPG, SVG</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium text-foreground mb-1.5">Company Name</label>
-                        <input
-                          type="text"
-                          value={brandForm.companyName}
-                          onChange={(e) => setBrandForm({ ...brandForm, companyName: e.target.value })}
-                          placeholder="e.g. Acme Inc."
-                          className="w-full px-3 py-2 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
+                <div style={{ borderTop: '1px solid var(--as-rule)', padding: '14px 24px', display: 'flex', justifyContent: 'center', gap: 32 }}>
+                  {['Logo upload', 'Brand colors', 'AI voice & tone'].map((label) => (
+                    <span key={label} style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace", letterSpacing: '0.06em' }}>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Brand form */
+              <div style={{ maxWidth: 680 }}>
+                {brandSaved && (
+                  <div className="stg-toast ok">
+                    <CheckIcon /> Brand profile saved successfully.
                   </div>
+                )}
 
-                  {/* Brand Colors */}
-                  <div className="bg-card border border-border rounded-xl p-7">
-                    <h3 className="text-base font-semibold text-foreground mb-1">Brand Colors</h3>
-                    <p className="text-sm text-muted-foreground mb-6">These colors will be applied to generated ad creatives.</p>
-                    <div className="grid grid-cols-3 gap-4">
-                      {[
-                        { label: 'Primary', key: 'primaryColor' as const },
-                        { label: 'Secondary', key: 'secondaryColor' as const },
-                        { label: 'Accent', key: 'accentColor' as const },
-                      ].map((color) => (
-                        <div key={color.key}>
-                          <label className="block text-sm font-medium text-foreground mb-2">{color.label}</label>
-                          <div className="rounded-xl border border-border overflow-hidden">
-                            <div
-                              className="h-14 w-full relative cursor-pointer group"
-                              style={{ backgroundColor: brandForm[color.key] }}
-                              onClick={() => {
-                                const input = document.getElementById(`color-picker-${color.key}`) as HTMLInputElement;
-                                input?.click();
-                              }}
-                            >
-                              <input
-                                id={`color-picker-${color.key}`}
-                                type="color"
-                                value={brandForm[color.key]}
-                                onChange={(e) => setBrandForm({ ...brandForm, [color.key]: e.target.value })}
-                                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                <PaletteIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-70 transition-opacity" />
-                              </div>
-                            </div>
-                            <input
-                              type="text"
-                              value={brandForm[color.key]}
-                              onChange={(e) => setBrandForm({ ...brandForm, [color.key]: e.target.value })}
-                              className="w-full px-3 py-2 bg-muted border-t border-border rounded-b-xl text-sm font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Brand Voice */}
-                  <div className="bg-card border border-border rounded-xl p-7">
-                    <h3 className="text-base font-semibold text-foreground mb-1">Brand Voice & Tone</h3>
-                    <p className="text-sm text-muted-foreground mb-6">AI will match this tone when generating ad copy.</p>
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                      {toneOptions.map((tone) => (
+                {/* Company identity */}
+                <div className="stg-section">
+                  <div className="stg-section-head">Company Identity</div>
+                  <div className="stg-section-sub">Your brand identity is used across all generated ads.</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, marginBottom: 0 }}>
+                    <input ref={logoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} />
+                    {logoPreview ? (
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <img src={logoPreview} alt="Brand logo" className="stg-logo-img" onClick={() => logoInputRef.current?.click()} />
                         <button
-                          key={tone.value}
-                          onClick={() => setBrandForm({ ...brandForm, tone: tone.value })}
-                          className={`p-4 rounded-xl border text-left transition-all ${brandForm.tone === tone.value ? 'border-blue-600 bg-blue-500/5 ring-1 ring-blue-600' : 'border-border hover:border-foreground/20'}`}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-sm text-foreground">{tone.label}</span>
-                            {brandForm.tone === tone.value && <CheckIcon className="w-4 h-4 text-blue-600" />}
-                          </div>
-                          <p className="text-xs text-muted-foreground">{tone.desc}</p>
+                          onClick={(e) => { e.stopPropagation(); setLogoPreview(null); if (logoInputRef.current) logoInputRef.current.value = ''; }}
+                          style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#fff' }}
+                        >
+                          <XIcon />
                         </button>
-                      ))}
-                    </div>
-
-                    {/* Guidelines — empty state hint when blank */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1.5">Brand Guidelines</label>
-                      {brandForm.guidelines === '' && (
-                        <div className="mb-2 flex items-start gap-2 px-3 py-2 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                          <SparklesIcon className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
-                          <p className="text-xs text-blue-400/80 leading-relaxed">
-                            Tip: describe your dos and don'ts (e.g. "Always lead with value. Avoid jargon. Use data to back claims.") — the more specific, the better your ads.
-                          </p>
-                        </div>
-                      )}
-                      <textarea
-                        rows={4}
-                        placeholder="Describe your brand's dos and don'ts for ad copy..."
-                        value={brandForm.guidelines}
-                        onChange={(e) => setBrandForm({ ...brandForm, guidelines: e.target.value })}
-                        className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      </div>
+                    ) : (
+                      <div className="stg-logo-drop" onClick={() => logoInputRef.current?.click()}>
+                        <UploadIcon />
+                        <div className="stg-logo-drop-label">Upload<br />logo</div>
+                      </div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <label className="stg-label">Company Name</label>
+                      <input
+                        className="stg-input"
+                        type="text"
+                        value={brandForm.companyName}
+                        onChange={(e) => setBrandForm({ ...brandForm, companyName: e.target.value })}
+                        placeholder="e.g. Acme Inc."
                       />
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => { setBrandConfigured(false); localStorage.removeItem(configuredKey); }}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      ← Back
-                    </button>
-                    <button
-                      onClick={handleSaveBrand}
-                      disabled={brandSaving}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20">
-                      {brandSaving ? (
-                        <><Loader2Icon className="w-4 h-4 animate-spin" />Saving...</>
-                      ) : (
-                        <><CheckIcon className="w-4 h-4" />Save Brand Settings</>
-                      )}
-                    </button>
+                {/* Brand colors */}
+                <div className="stg-section">
+                  <div className="stg-section-head">Brand Colors</div>
+                  <div className="stg-section-sub">These colors will be applied to generated ad creatives.</div>
+                  <div className="stg-colors-grid">
+                    {[
+                      { label: 'Primary', key: 'primaryColor' as const },
+                      { label: 'Secondary', key: 'secondaryColor' as const },
+                      { label: 'Accent', key: 'accentColor' as const },
+                    ].map((c) => (
+                      <div key={c.key} className="stg-color-cell">
+                        <label className="stg-label">{c.label}</label>
+                        <div className="stg-color-swatch" style={{ backgroundColor: brandForm[c.key] }} onClick={() => (document.getElementById(`cp-${c.key}`) as HTMLInputElement)?.click()}>
+                          <input id={`cp-${c.key}`} type="color" value={brandForm[c.key]} onChange={(e) => setBrandForm({ ...brandForm, [c.key]: e.target.value })} />
+                        </div>
+                        <input className="stg-color-hex" type="text" value={brandForm[c.key]} onChange={(e) => setBrandForm({ ...brandForm, [c.key]: e.target.value })} />
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
-            </>
+
+                {/* Brand voice */}
+                <div className="stg-section">
+                  <div className="stg-section-head">Brand Voice & Tone</div>
+                  <div className="stg-section-sub">AI will match this tone when generating ad copy.</div>
+                  <div className="stg-tones-grid">
+                    {toneOptions.map((tone) => (
+                      <button
+                        key={tone.value}
+                        className={`stg-tone-btn${brandForm.tone === tone.value ? ' on' : ''}`}
+                        onClick={() => setBrandForm({ ...brandForm, tone: tone.value })}
+                      >
+                        <div>
+                          <div className="stg-tone-name">{tone.label}</div>
+                          <div className="stg-tone-desc">{tone.desc}</div>
+                        </div>
+                        {brandForm.tone === tone.value && <CheckIcon />}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="stg-label">Brand Guidelines</label>
+                  <textarea
+                    className="stg-input stg-textarea"
+                    rows={4}
+                    placeholder="Describe your brand's dos and don'ts for ad copy…"
+                    value={brandForm.guidelines}
+                    onChange={(e) => setBrandForm({ ...brandForm, guidelines: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <button
+                    className="as-btn-ghost"
+                    style={{ padding: '8px 16px', fontSize: 12 }}
+                    onClick={() => { setBrandConfigured(false); localStorage.removeItem(configuredKey); }}
+                  >
+                    ← Reset
+                  </button>
+                  <button
+                    className="as-btn-solid"
+                    style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+                    onClick={handleSaveBrand}
+                    disabled={brandSaving}
+                  >
+                    {brandSaving ? <><SpinnerIcon /> Saving…</> : <><CheckIcon /> Save Brand</>}
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
-          {/* ==================== INTEGRATIONS TAB ==================== */}
+          {/* ══ INTEGRATIONS TAB ══ */}
           {activeTab === 'integrations' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">Connected Platforms</h3>
-                <p className="text-sm text-muted-foreground">
+            <div>
+              <div style={{ marginBottom: 20 }}>
+                <div className="stg-section-head">Connected Platforms</div>
+                <div className="stg-section-sub" style={{ marginBottom: 0 }}>
                   {connectedCount === 0
                     ? 'No integrations connected yet'
                     : `${connectedCount} of ${integrations.length} integrations active`}
-                </p>
+                </div>
               </div>
 
               {connectedCount === 0 && (
-                /* ── Integrations Empty State Banner ── */
-                <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                  <div className="relative h-1.5 bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500" />
-                  <div className="flex flex-col items-center py-12 px-8 text-center">
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 rounded-full blur-2xl opacity-25 scale-150 bg-violet-500" />
-                      <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 border border-violet-500/20 flex items-center justify-center">
-                        <PlugIcon className="w-7 h-7 text-violet-400" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500/40 border border-blue-500/60" />
-                      <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-pink-500/40 border border-pink-500/60" />
-                    </div>
-
-                    <h4 className="text-lg font-bold text-foreground mb-2">Connect your first platform</h4>
-                    <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-6">
-                      Push ads directly to your ad channels and get alerts in your tools. Connect a platform below to get started.
-                    </p>
-
-                    {/* Platform preview pills */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 mb-2">
-                      {initialIntegrations.slice(0, 5).map((int) => (
-                        <div
-                          key={int.id}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border rounded-full text-xs text-muted-foreground"
-                        >
-                          <div className={`w-4 h-4 rounded ${int.color} flex items-center justify-center text-white text-[8px] font-bold`}>
-                            {int.icon}
-                          </div>
-                          {int.name.split(' ')[0]}
-                        </div>
-                      ))}
-                      <div className="px-3 py-1.5 bg-muted border border-border rounded-full text-xs text-muted-foreground">
-                        +{initialIntegrations.length - 5} more
-                      </div>
-                    </div>
+                <div style={{ border: '1px solid var(--as-rule)', marginBottom: 20 }}>
+                  <div className="stg-empty" style={{ padding: '40px 24px' }}>
+                    <div className="stg-empty-icon"><PlugIcon /></div>
+                    <h4>Connect your first platform</h4>
+                    <p>Push ads directly to your ad channels and get alerts in your tools.</p>
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--as-rule)', padding: '12px 24px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {initialIntegrations.slice(0, 5).map((int) => (
+                      <span key={int.id} style={{ fontSize: 11, color: 'var(--as-ink-3)', border: '1px solid var(--as-rule-strong)', padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 16, height: 16, background: BRAND_ICON_MAP[int.id]?.color ?? int.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <BrandIcon id={int.id} size={10} />
+                        </span>
+                        {int.name.split(' ')[0]}
+                      </span>
+                    ))}
+                    <span style={{ fontSize: 11, color: 'var(--as-ink-3)', border: '1px solid var(--as-rule-strong)', padding: '3px 10px' }}>
+                      +{initialIntegrations.length - 5} more
+                    </span>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                {integrations.map((integration) => (
-                  <div key={integration.id} className="bg-card border border-border rounded-xl p-5 flex items-start gap-4 hover:border-foreground/20 transition-colors">
-                    <div className={`w-11 h-11 rounded-xl ${integration.color} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                      {integration.icon}
+              <div className="stg-integrations-grid">
+                {integrations.map((int) => (
+                  <div key={int.id} className="stg-int-card">
+                    <div className="stg-int-icon" style={{ background: BRAND_ICON_MAP[int.id]?.color ?? int.color }}>
+                      <BrandIcon id={int.id} size={20} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h4 className="font-semibold text-foreground text-sm">{integration.name}</h4>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
-                          integration.connected
-                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                            : integration.comingSoon
-                              ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                              : 'bg-muted text-muted-foreground border-border'
-                        }`}>
-                          {integration.connected ? 'Connected' : integration.comingSoon ? 'Coming soon' : 'Not connected'}
-                        </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="stg-int-name">{int.name}</div>
+                      <div className={`stg-int-status${int.connected ? ' connected' : int.comingSoon ? ' soon' : ' none'}`}>
+                        {int.connected ? 'Connected' : int.comingSoon ? 'Coming soon' : 'Not connected'}
                       </div>
-                      <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{integration.description}</p>
-                      {integration.connected ? (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground truncate">{integration.accountName}</span>
+                      <div className="stg-int-desc">{int.description}</div>
+                      {int.connected ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11, color: 'var(--as-ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{int.accountName}</span>
                           <button
-                            onClick={() => handleDisconnect(integration.id)}
-                            className="text-xs text-red-500 border border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors flex-shrink-0">
+                            onClick={() => disconnectMeta.mutate({ platform: integrationPlatformMap[int.id] ?? int.id })}
+                            style={{ fontSize: 11, color: 'var(--as-danger)', background: 'none', border: '1px solid rgba(185,28,28,0.3)', padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, marginLeft: 8 }}
+                          >
                             Disconnect
                           </button>
                         </div>
-                      ) : integration.comingSoon ? (
-                        <button
-                          disabled
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground bg-muted/40 cursor-not-allowed">
-                          <ClockIcon className="w-3 h-3" />
-                          Coming soon
-                        </button>
+                      ) : int.comingSoon ? (
+                        <span style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace" }}>Available soon</span>
                       ) : (
                         <button
-                          onClick={() => handleConnect(integration.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors">
-                          <LinkIcon className="w-3 h-3" />Connect
+                          className="as-btn-ghost"
+                          style={{ padding: '5px 12px', fontSize: 11 }}
+                          onClick={() => {
+                            const platform = integrationPlatformMap[int.id];
+                            if (platform && (int.id === 'meta' || int.id === 'tiktok')) {
+                              connectMeta.mutate({ platform });
+                            }
+                          }}
+                        >
+                          Connect
                         </button>
                       )}
                     </div>
@@ -957,91 +751,127 @@ export function SettingsPage() {
             </div>
           )}
 
-          {/* ==================== NOTIFICATIONS TAB ==================== */}
+          {/* ══ NOTIFICATIONS TAB ══ */}
           {activeTab === 'notifications' && (
-            <div className="space-y-6 max-w-3xl">
-              {/* Channel Masters */}
-              <div className="bg-card border border-border rounded-xl p-7">
-                <h3 className="text-base font-semibold text-foreground mb-1">Notification Channels</h3>
-                <p className="text-sm text-muted-foreground mb-6">Enable or disable entire notification channels.</p>
-                <div className="grid grid-cols-3 gap-4">
+            <div style={{ maxWidth: 720 }}>
+              {/* Channel masters */}
+              <div className="stg-section">
+                <div className="stg-section-head">Notification Channels</div>
+                <div className="stg-section-sub">Enable or disable entire notification channels.</div>
+                <div className="stg-notif-channels">
                   {[
-                    { key: 'email' as const, label: 'Email', desc: 'alex@acme.inc', icon: MailIcon },
-                    { key: 'inApp' as const, label: 'In-App', desc: 'Browser notifications', icon: SmartphoneIcon },
-                    { key: 'slack' as const, label: 'Slack', desc: '#marketing-ads', icon: HashIcon },
-                  ].map((channel) => (
-                    <div key={channel.key} className={`p-4 rounded-xl border transition-all ${channelMasters[channel.key] ? 'border-border bg-card' : 'border-border bg-muted opacity-60'}`}>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                          <channel.icon className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={channelMasters[channel.key]}
-                            onChange={() => setChannelMasters((prev) => ({ ...prev, [channel.key]: !prev[channel.key] }))}
-                          />
-                          <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
-                        </label>
+                    { key: 'email' as const, label: 'Email', desc: 'alex@acme.inc', icon: (
+                      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={12} height={12}>
+                        <rect x="1" y="3" width="12" height="9" /><path d="M1 3l6 5 6-5" />
+                      </svg>
+                    )},
+                    { key: 'inApp' as const, label: 'In-App', desc: 'Browser notifications', icon: (
+                      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={12} height={12}>
+                        <rect x="2" y="1" width="10" height="13" rx="0" /><path d="M5 11h4" />
+                      </svg>
+                    )},
+                    { key: 'slack' as const, label: 'Slack', desc: '#marketing-ads', icon: (
+                      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={12} height={12}>
+                        <path d="M6 2v4M8 2v4M2 6h4M2 8h4M8 10v2M6 10v2M10 6h2M10 8h2" />
+                      </svg>
+                    )},
+                  ].map((ch) => (
+                    <div key={ch.key} className={`stg-notif-channel${!channelMasters[ch.key] ? ' off' : ''}`}>
+                      <div className="stg-notif-channel-top">
+                        <div className="stg-notif-channel-icon">{ch.icon}</div>
+                        <Toggle
+                          checked={channelMasters[ch.key]}
+                          onChange={() => setChannelMasters((prev) => ({ ...prev, [ch.key]: !prev[ch.key] }))}
+                        />
                       </div>
-                      <h4 className="font-medium text-foreground text-sm">{channel.label}</h4>
-                      <p className="text-xs text-muted-foreground">{channel.desc}</p>
+                      <div className="stg-notif-ch-name">{ch.label}</div>
+                      <div className="stg-notif-ch-desc">{ch.desc}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Granular Controls */}
-              <div className="bg-card border border-border rounded-xl p-7">
-                <h3 className="text-base font-semibold text-foreground mb-1">Notification Preferences</h3>
-                <p className="text-sm text-muted-foreground mb-6">Fine-tune which notifications you receive per channel.</p>
-
-                <div className="flex items-center mb-4 pb-3 border-b border-border">
-                  <div className="flex-1" />
-                  <div className="flex items-center gap-6 pr-1">
-                    {['Email', 'In-App', 'Slack'].map((h) => (
-                      <span key={h} className="w-14 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  {notifications.map((item) => (
-                    <div key={item.id} className="flex items-center py-3 border-b border-border last:border-0">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                          <item.icon className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-medium text-foreground text-sm">{item.title}</h4>
-                          <p className="text-xs text-muted-foreground truncate">{item.desc}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6 pr-1">
-                        {(['email', 'inApp', 'slack'] as const).map((channel) => (
-                          <div key={channel} className="w-14 flex justify-center">
-                            <label className="relative inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={item[channel] && channelMasters[channel]}
-                                disabled={!channelMasters[channel]}
-                                onChange={() => toggleNotification(item.id, channel)}
-                              />
-                              <div className={`w-9 h-5 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${!channelMasters[channel] ? 'bg-muted cursor-not-allowed' : 'bg-muted peer-checked:bg-blue-600'}`} />
-                            </label>
+              {/* Granular controls */}
+              <div className="stg-section">
+                <div className="stg-section-head">Notification Preferences</div>
+                <div className="stg-section-sub">Fine-tune which notifications you receive per channel.</div>
+                <table className="stg-notif-table">
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th className="center">Email</th>
+                      <th className="center">In-App</th>
+                      <th className="center">Slack</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {notifications.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="stg-notif-icon"><NotifIconSvg type={item.icon} /></div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--as-ink)' }}>{item.title}</div>
+                              <div style={{ fontSize: 11, color: 'var(--as-ink-3)' }}>{item.desc}</div>
+                            </div>
                           </div>
+                        </td>
+                        {(['email', 'inApp', 'slack'] as const).map((ch) => (
+                          <td key={ch} className="center">
+                            <Toggle
+                              checked={item[ch] && channelMasters[ch]}
+                              disabled={!channelMasters[ch]}
+                              onChange={() => setNotifications((prev) => prev.map((n) => n.id === item.id ? { ...n, [ch]: !n[ch] } : n))}
+                            />
+                          </td>
                         ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
+
         </div>
       </div>
-    </DashboardLayout>
+
+      {/* Plan-change success overlay */}
+      {showSuccess && (
+        <div className="as-modal-overlay" style={{ backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'var(--as-bg)', border: '1px solid var(--as-rule-strong)', padding: '40px 48px', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', display: 'grid', placeItems: 'center', margin: '0 auto 16px', color: '#10b981' }}>
+              <CheckIcon />
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--as-ink)', marginBottom: 4 }}>Plan Updated</div>
+            <div style={{ fontSize: 12, color: 'var(--as-ink-3)' }}>Your subscription has been changed.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel modal */}
+      {showCancelModal && (
+        <div className="as-modal-overlay" onClick={() => setShowCancelModal(false)}>
+          <div className="stg-cancel-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Are you sure?</h3>
+            <p>You will lose access to unlimited ad variants and automated posting.</p>
+            <div className="stg-cancel-actions">
+              <button
+                style={{ border: '1px solid var(--as-rule-strong)', color: 'var(--as-ink-2)', background: 'none' }}
+                onClick={() => { setShowCancelModal(false); handleUpgrade('basic'); }}
+              >
+                Confirm Cancellation
+              </button>
+              <button
+                style={{ background: 'var(--as-ink)', color: 'var(--as-bg)', border: 'none', fontWeight: 500 }}
+                onClick={() => setShowCancelModal(false)}
+              >
+                Keep My Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppShell>
   );
 }

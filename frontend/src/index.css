@@ -17,7 +17,7 @@
   --card-foreground: #0F1419;
   --popover: #FFFFFF;
   --popover-foreground: #0F1419;
-  --primary: #4A9EBD;
+  --primary: #18181B;
   --primary-foreground: #FFFFFF;
   --secondary: #7AB85C;
   --secondary-foreground: #FFFFFF;
@@ -26,7 +26,7 @@
   --muted: #E6E9EF;
   --muted-foreground: #5C6370;
   --border: #D1D5DB;
-  --ring: #4A9EBD;
+  --ring: #18181B;
   --gradient-start: #4A9EBD;
   --gradient-middle: #7AB85C;
   --gradient-end: #D97742;
@@ -50,9 +50,9 @@
   --glass-bg: rgba(255, 255, 255, 0.08);
   --glass-border: rgba(255, 255, 255, 0.12);
   /* Persona Theme Variables — defaults to neutral */
-  --persona-accent: #3B82F6;
-  --persona-accent-light: rgba(59, 130, 246, 0.1);
-  --persona-glow: rgba(59, 130, 246, 0.15);
+  --persona-accent: #818CF8;
+  --persona-accent-light: rgba(129, 140, 248, 0.1);
+  --persona-glow: rgba(129, 140, 248, 0.15);
 }
 * {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -62,28 +62,29 @@ html, body, #root {
   margin: 0;
   padding: 0;
   background-color: var(--background);
+  color: var(--foreground);
 }
 /* Dark mode theme variable overrides */
 .dark {
-  --background: #0F1520;
-  --foreground: #E6E9EF;
-  --card: #111720;
-  --card-foreground: #E6E9EF;
-  --popover: #111720;
-  --popover-foreground: #E6E9EF;
-  --primary: #4A9EBD;
+  --background: #0C0C0D;
+  --foreground: #EDEDEF;
+  --card: #161618;
+  --card-foreground: #EDEDEF;
+  --popover: #161618;
+  --popover-foreground: #EDEDEF;
+  --primary: #818CF8;
   --primary-foreground: #FFFFFF;
-  --secondary: #7AB85C;
-  --secondary-foreground: #0A0E14;
-  --accent: #D97742;
-  --accent-foreground: #FFFFFF;
-  --muted: #1A1F29;
-  --muted-foreground: #8B92A8;
-  --border: #252D3A;
-  --ring: #4A9EBD;
-  --gradient-start: #8b5cf6;
-  --gradient-middle: #ec4899;
-  --gradient-end: #f97316;
+  --secondary: #F59E0B;
+  --secondary-foreground: #0C0C0D;
+  --accent: #34D399;
+  --accent-foreground: #0C0C0D;
+  --muted: #1C1C1F;
+  --muted-foreground: #A1A1AA;
+  --border: #2A2A2E;
+  --ring: #818CF8;
+  --gradient-start: #F59E0B;
+  --gradient-middle: #818CF8;
+  --gradient-end: #34D399;
 }
 
 /* Custom scrollbar for dark sections */

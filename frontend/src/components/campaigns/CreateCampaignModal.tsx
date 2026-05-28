@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useCreateCampaign } from '../../hooks/useCampaigns';
 import { useProducts } from '../../hooks/useProducts';
-import type { Product } from '../../types';
+import type { Product, Campaign } from '../../types';
 import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
 
 const regions = [
@@ -20,7 +20,7 @@ const regions = [
   { id: 'global', label: 'Global' },
 ];
 
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
+const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
 const labelClass = 'block text-sm font-medium mb-1.5';
 
 // ---------- Product Selector ----------
@@ -63,11 +63,11 @@ function ProductSelector({
     return (
       <div>
         <label className={labelClass}>Product <span className="text-red-500">*</span></label>
-        <div className="flex items-center gap-2 px-3 py-2 bg-blue-600/10 border border-blue-600/20 rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded">
           {selectedProduct.image_urls[0] ? (
-            <img src={selectedProduct.image_urls[0]} alt={selectedProduct.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+            <img src={selectedProduct.image_urls[0]} alt={selectedProduct.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
               <ImageIcon className="w-4 h-4 text-muted-foreground" />
             </div>
           )}
@@ -108,7 +108,7 @@ function ProductSelector({
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
+        <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded shadow-lg max-h-52 overflow-y-auto">
           {isLoading && (
             <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
               <Loader2Icon className="w-4 h-4 animate-spin" /> Loading products...
@@ -130,9 +130,9 @@ function ProductSelector({
               className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors text-left"
             >
               {product.image_urls[0] ? (
-                <img src={product.image_urls[0]} alt={product.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                <img src={product.image_urls[0]} alt={product.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
                   <ImageIcon className="w-4 h-4 text-muted-foreground" />
                 </div>
               )}
@@ -156,9 +156,11 @@ interface CreateCampaignModalProps {
   /** Positive business client id; parent must not render the modal until this is set. */
   businessClientId: number;
   onClose: () => void;
+  /** Optional: called with the created Campaign so the parent can navigate into the generate flow. */
+  onCreated?: (campaign: Campaign) => void;
 }
 
-export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaignModalProps) {
+export function CreateCampaignModal({ businessClientId, onClose, onCreated }: CreateCampaignModalProps) {
   const createMutation = useCreateCampaign();
   const autofillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -210,7 +212,14 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
         goal: newCampaign.goal === 'other' ? customGoal || 'other' : newCampaign.goal || null,
         platforms: JSON.stringify(newCampaign.platforms),
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: (campaign) => {
+          // Close the modal first, then hand the new campaign to the parent
+          // so it can optionally jump straight into the generate flow
+          onClose();
+          onCreated?.(campaign);
+        },
+      },
     );
   };
 
@@ -218,10 +227,10 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => !isCreating && onClose()} />
 
-      <div className="relative w-full max-w-lg bg-card border border-border rounded-xl max-h-[90vh] overflow-y-auto text-foreground">
+      <div className="relative w-full max-w-lg bg-card border border-border rounded max-h-[90vh] overflow-y-auto text-foreground">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-lg font-semibold">Create New Campaign</h2>
-          <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+          <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground">
             <XIcon className="w-4 h-4" />
           </button>
         </div>
@@ -295,13 +304,13 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
                   type="button"
                   onClick={() => togglePlatform(platform.id)}
                   disabled={isCreating}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors disabled:opacity-50 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm transition-colors disabled:opacity-50 ${
                     newCampaign.platforms.includes(platform.id)
-                      ? 'border-blue-600 bg-blue-600/10 text-foreground'
+                      ? 'border-primary bg-primary/10 text-foreground'
                       : 'border-border text-muted-foreground hover:border-foreground/30'
                   }`}
                 >
-                  {newCampaign.platforms.includes(platform.id) && <CheckIcon className="w-3.5 h-3.5 text-blue-600" />}
+                  {newCampaign.platforms.includes(platform.id) && <CheckIcon className="w-3.5 h-3.5 text-primary" />}
                   {platform.label}
                 </button>
               ))}
@@ -335,7 +344,7 @@ export function CreateCampaignModal({ businessClientId, onClose }: CreateCampaig
           <button
             onClick={handleCreateCampaign}
             disabled={isCreating}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {isCreating ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Creating...</> : <><PlusIcon className="w-4 h-4" /> Create Campaign</>}
           </button>

@@ -200,6 +200,15 @@ export function SettingsPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
+  const cardKey = `card-info-${profile.email}`;
+  const [savedCard, setSavedCard] = useState<{ last4: string; brand: string; expiry: string; name: string; address: string; city: string; state: string; zip: string; country: string } | null>(() => {
+    try { const s = localStorage.getItem(`card-info-${profile.email}`); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<'basic' | 'premium' | 'enterprise' | null>(null);
+  const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '', name: '', address: '', city: '', state: '', zip: '', country: '' });
+  const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
+
   // Brand — persisted per user email
   const brandKey = `brand-settings-${profile.email}`;
   const configuredKey = `brand-configured-${profile.email}`;
@@ -258,8 +267,41 @@ export function SettingsPage() {
   }, [location.pathname, location.search, navigate]);
 
   const handleUpgrade = (plan: 'basic' | 'premium' | 'enterprise') => {
+    if (plan !== 'basic' && !savedCard) {
+      setPendingPlan(plan);
+      setShowCardModal(true);
+      return;
+    }
     setShowSuccess(true);
     setTimeout(() => { updateProfile({ plan }); setShowSuccess(false); }, 2000);
+  };
+
+  const handleCardSubmit = () => {
+    const errs: Record<string, string> = {};
+    const raw = cardForm.number.replace(/\s/g, '');
+    if (raw.length < 15) errs.number = 'Enter a valid card number';
+    const parts = cardForm.expiry.split('/');
+    if (parts.length !== 2 || parts[0].length !== 2 || parts[1].length !== 2) errs.expiry = 'Use MM/YY format';
+    if (cardForm.cvv.length < 3) errs.cvv = 'Enter a valid CVV';
+    if (!cardForm.name.trim()) errs.name = 'Name is required';
+    if (!cardForm.address.trim()) errs.address = 'Address is required';
+    if (!cardForm.city.trim()) errs.city = 'City is required';
+    if (!cardForm.zip.trim()) errs.zip = 'ZIP / postal code is required';
+    if (!cardForm.country.trim()) errs.country = 'Country is required';
+    if (Object.keys(errs).length > 0) { setCardErrors(errs); return; }
+    const brand = raw[0] === '4' ? 'Visa' : raw[0] === '5' ? 'Mastercard' : raw[0] === '3' ? 'Amex' : 'Card';
+    const card = { last4: raw.slice(-4), brand, expiry: cardForm.expiry, name: cardForm.name.trim(), address: cardForm.address.trim(), city: cardForm.city.trim(), state: cardForm.state.trim(), zip: cardForm.zip.trim(), country: cardForm.country.trim() };
+    try { localStorage.setItem(cardKey, JSON.stringify(card)); } catch { /* ignore */ }
+    setSavedCard(card);
+    setShowCardModal(false);
+    setCardForm({ number: '', expiry: '', cvv: '', name: '', address: '', city: '', state: '', zip: '', country: '' });
+    setCardErrors({});
+    if (pendingPlan) {
+      const plan = pendingPlan;
+      setPendingPlan(null);
+      setShowSuccess(true);
+      setTimeout(() => { updateProfile({ plan }); setShowSuccess(false); }, 2000);
+    }
   };
 
   const getPlanButtonText = (planId: string) => {
@@ -325,21 +367,41 @@ export function SettingsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                     <div>
                       <div className="stg-section-head">Current Plan</div>
-                      <div className="stg-section-sub" style={{ marginBottom: 0 }}>Renews March 12, 2026</div>
+                      {profile.plan !== 'basic' && <div className="stg-section-sub" style={{ marginBottom: 0 }}>Renews March 12, 2026</div>}
                     </div>
                     <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', border: '1px solid var(--as-rule-strong)', padding: '3px 10px', color: 'var(--as-ink-2)' }}>
                       {profile.plan} plan
                     </span>
                   </div>
 
-                  <div className="stg-payment-row">
-                    <div className="stg-payment-icon"><CardIcon /></div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--as-ink)' }}>Visa ending in 4242</div>
-                      <div style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace" }}>Expires 12/28</div>
+                  {savedCard ? (
+                    <div className="stg-payment-row">
+                      <div className="stg-payment-icon"><CardIcon /></div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--as-ink)' }}>{savedCard.brand} ending in {savedCard.last4}</div>
+                        <div style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace" }}>
+                          Expires {savedCard.expiry}{savedCard.name ? ` · ${savedCard.name}` : ''}
+                        </div>
+                        {savedCard.address && (
+                          <div style={{ fontSize: 11, color: 'var(--as-ink-3)', marginTop: 2 }}>
+                            {savedCard.address}, {savedCard.city}{savedCard.state ? `, ${savedCard.state}` : ''} {savedCard.zip}{savedCard.country ? ` · ${savedCard.country}` : ''}
+                          </div>
+                        )}
+                      </div>
+                      <button className="as-btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setShowCardModal(true)}>Update</button>
                     </div>
-                    <button className="as-btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }}>Update</button>
-                  </div>
+                  ) : (
+                    <div className="stg-payment-row">
+                      <div className="stg-payment-icon" style={{ opacity: 0.4 }}><CardIcon /></div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, color: 'var(--as-ink-3)' }}>No payment method on file</div>
+                        <div style={{ fontSize: 11, color: 'var(--as-ink-3)', fontFamily: "'Geist Mono', monospace" }}>Required for paid plans</div>
+                      </div>
+                      {profile.plan !== 'basic' && (
+                        <button className="as-btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setShowCardModal(true)}>Add Card</button>
+                      )}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button className="as-btn-ghost" style={{ padding: '8px 16px', fontSize: 12 }} onClick={() => setActiveTab('plans')}>
@@ -773,6 +835,167 @@ export function SettingsPage() {
             </div>
             <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--as-ink)', marginBottom: 4 }}>Plan Updated</div>
             <div style={{ fontSize: 12, color: 'var(--as-ink-3)' }}>Your subscription has been changed.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Card input modal */}
+      {showCardModal && (
+        <div className="as-modal-overlay" onClick={() => { setShowCardModal(false); setPendingPlan(null); setCardErrors({}); }}>
+          <div style={{ background: 'var(--as-bg)', border: '1px solid var(--as-rule-strong)', padding: '32px 36px', width: 360 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--as-ink)', marginBottom: 4 }}>
+              {pendingPlan ? `Upgrade to ${pendingPlan.charAt(0).toUpperCase() + pendingPlan.slice(1)}` : 'Payment Method'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--as-ink-3)', marginBottom: 24 }}>
+              {pendingPlan ? 'Add a payment method to complete your upgrade.' : 'Update your saved payment method.'}
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label className="stg-label">Name on Card</label>
+              <input
+                className="stg-input"
+                type="text"
+                placeholder="Jane Smith"
+                value={cardForm.name}
+                onChange={(e) => { setCardForm({ ...cardForm, name: e.target.value }); if (cardErrors.name) setCardErrors({ ...cardErrors, name: '' }); }}
+              />
+              {cardErrors.name && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.name}</div>}
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label className="stg-label">Card Number</label>
+              <input
+                className="stg-input"
+                type="text"
+                placeholder="1234 5678 9012 3456"
+                value={cardForm.number}
+                maxLength={19}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 16);
+                  const formatted = digits.replace(/(.{4})(?=.)/g, '$1 ');
+                  setCardForm({ ...cardForm, number: formatted });
+                  if (cardErrors.number) setCardErrors({ ...cardErrors, number: '' });
+                }}
+              />
+              {cardErrors.number && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.number}</div>}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label className="stg-label">Expiry</label>
+                <input
+                  className="stg-input"
+                  type="text"
+                  placeholder="MM/YY"
+                  value={cardForm.expiry}
+                  maxLength={5}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    const formatted = digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+                    setCardForm({ ...cardForm, expiry: formatted });
+                    if (cardErrors.expiry) setCardErrors({ ...cardErrors, expiry: '' });
+                  }}
+                />
+                {cardErrors.expiry && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.expiry}</div>}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="stg-label">CVV</label>
+                <input
+                  className="stg-input"
+                  type="text"
+                  placeholder="123"
+                  value={cardForm.cvv}
+                  maxLength={4}
+                  onChange={(e) => {
+                    setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) });
+                    if (cardErrors.cvv) setCardErrors({ ...cardErrors, cvv: '' });
+                  }}
+                />
+                {cardErrors.cvv && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.cvv}</div>}
+              </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--as-rule)', margin: '20px 0 16px', paddingTop: 16, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--as-ink-3)' }}>
+              Billing Address
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label className="stg-label">Address</label>
+              <input
+                className="stg-input"
+                type="text"
+                placeholder="123 Main St"
+                value={cardForm.address}
+                onChange={(e) => { setCardForm({ ...cardForm, address: e.target.value }); if (cardErrors.address) setCardErrors({ ...cardErrors, address: '' }); }}
+              />
+              {cardErrors.address && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.address}</div>}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 2 }}>
+                <label className="stg-label">City</label>
+                <input
+                  className="stg-input"
+                  type="text"
+                  placeholder="New York"
+                  value={cardForm.city}
+                  onChange={(e) => { setCardForm({ ...cardForm, city: e.target.value }); if (cardErrors.city) setCardErrors({ ...cardErrors, city: '' }); }}
+                />
+                {cardErrors.city && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.city}</div>}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="stg-label">State</label>
+                <input
+                  className="stg-input"
+                  type="text"
+                  placeholder="NY"
+                  value={cardForm.state}
+                  onChange={(e) => setCardForm({ ...cardForm, state: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label className="stg-label">ZIP / Postal Code</label>
+                <input
+                  className="stg-input"
+                  type="text"
+                  placeholder="10001"
+                  value={cardForm.zip}
+                  onChange={(e) => { setCardForm({ ...cardForm, zip: e.target.value }); if (cardErrors.zip) setCardErrors({ ...cardErrors, zip: '' }); }}
+                />
+                {cardErrors.zip && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.zip}</div>}
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="stg-label">Country</label>
+                <input
+                  className="stg-input"
+                  type="text"
+                  placeholder="United States"
+                  value={cardForm.country}
+                  onChange={(e) => { setCardForm({ ...cardForm, country: e.target.value }); if (cardErrors.country) setCardErrors({ ...cardErrors, country: '' }); }}
+                />
+                {cardErrors.country && <div style={{ fontSize: 11, color: 'var(--as-danger)', marginTop: 4 }}>{cardErrors.country}</div>}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
+              <button
+                className="as-btn-ghost"
+                style={{ padding: '9px 18px', fontSize: 12 }}
+                onClick={() => { setShowCardModal(false); setPendingPlan(null); setCardErrors({}); setCardForm({ number: '', expiry: '', cvv: '', name: '', address: '', city: '', state: '', zip: '', country: '' }); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="as-btn-solid"
+                style={{ padding: '9px 18px', fontSize: 12 }}
+                onClick={handleCardSubmit}
+              >
+                {pendingPlan ? 'Add Card & Upgrade' : 'Save Card'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -2404,30 +2404,39 @@
 .cmp-view-btn.on { background: var(--as-ink); color: var(--as-bg); }
 .cmp-view-btn:not(.on):hover { color: var(--as-ink); background: var(--as-paper); }
 
-/* Campaign grid */
+/* Campaign grid — fixed track width so cards don't stretch across the row.
+   auto-fill (not auto-fit) is fine: empty tracks have no fill background. */
 .cmp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1px;
-  background: var(--as-rule);
-  border: 1px solid var(--as-rule);
+  grid-template-columns: repeat(auto-fill, min(100%, 380px));
+  gap: 12px;
+  justify-content: start;
 }
 
 /* Campaign card */
 .cmp-card {
   display: flex;
   background: var(--as-bg);
+  border: 1px solid var(--as-rule-strong);
   text-decoration: none;
   color: inherit;
-  transition: background 0.12s;
+  transition: background 0.12s, border-color 0.12s;
   position: relative;
 }
-.cmp-card:hover { background: var(--as-paper); }
-.cmp-card.selected { background: var(--as-paper); box-shadow: inset 3px 0 0 0 var(--as-accent); }
+.cmp-card:hover {
+  background: var(--as-paper);
+  border-color: color-mix(in srgb, var(--as-ink) 28%, var(--as-rule-strong));
+}
+.cmp-card.selected {
+  background: var(--as-paper);
+  border-color: var(--as-accent);
+  box-shadow: inset 3px 0 0 0 var(--as-accent);
+}
 .cmp-card-thumb {
   width: 88px;
   flex-shrink: 0;
-  background: var(--as-ink);
+  background: var(--as-paper-2);
+  border-right: 1px solid var(--as-rule);
   position: relative;
   overflow: hidden;
 }
@@ -2437,12 +2446,16 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: rgba(255,255,255,0.15);
+  color: var(--as-ink-3);
 }
 .cmp-card-stripes {
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 8px);
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--as-ink) 4%, transparent) 0 1px,
+    transparent 1px 8px
+  );
   pointer-events: none;
 }
 .cmp-card-body {
@@ -2507,8 +2520,8 @@
   top: 10px;
   left: 10px;
   width: 18px; height: 18px;
-  background: rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.35);
+  background: color-mix(in srgb, var(--as-ink) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--as-bg) 45%, transparent);
   display: grid;
   place-items: center;
   z-index: 10;
@@ -2679,26 +2692,33 @@
 .prd-search:focus { border-color: var(--as-ink); }
 .prd-search::placeholder { color: var(--as-ink-3); }
 
-/* Product grid */
+/* Product grid — fixed track width so cards don't stretch across the row.
+   auto-fill (not auto-fit) is fine: empty tracks have no fill background. */
 .prd-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1px;
-  background: var(--as-rule);
-  border: 1px solid var(--as-rule);
+  grid-template-columns: repeat(auto-fill, min(100%, 280px));
+  gap: 12px;
+  justify-content: start;
 }
 
 /* Product card */
 .prd-card {
   background: var(--as-bg);
+  border: 1px solid var(--as-rule-strong);
   display: flex;
   flex-direction: column;
   cursor: default;
+  transition: background 0.12s, border-color 0.12s;
+}
+.prd-card:hover {
+  background: var(--as-paper);
+  border-color: color-mix(in srgb, var(--as-ink) 28%, var(--as-rule-strong));
 }
 .prd-card-media {
   position: relative;
   aspect-ratio: 4 / 3;
-  background: var(--as-ink);
+  background: var(--as-paper-2);
+  border-bottom: 1px solid var(--as-rule);
   overflow: hidden;
 }
 .prd-card-stripes {
@@ -2706,10 +2726,8 @@
   inset: 0;
   background: repeating-linear-gradient(
     45deg,
-    rgba(255,255,255,0.03) 0px,
-    rgba(255,255,255,0.03) 1px,
-    transparent 1px,
-    transparent 8px
+    color-mix(in srgb, var(--as-ink) 4%, transparent) 0 1px,
+    transparent 1px 8px
   );
   pointer-events: none;
 }
@@ -2721,7 +2739,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: rgba(255,255,255,0.25);
+  color: var(--as-ink-3);
 }
 .prd-card-no-img span {
   font-family: 'Geist Mono', monospace;

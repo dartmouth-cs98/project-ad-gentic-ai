@@ -36,8 +36,8 @@ export function BrandImportModal({ initialUrl = '', onClose, onApplied }: Props)
 
   const productDescriptionSuggestion = useMemo(() => {
     if (!preview) return '';
-    const props = preview.brand.value_propositions;
-    return props.length > 0 ? props.join(' ') : '';
+    const valuePropositions = preview.brand.value_propositions;
+    return valuePropositions.length > 0 ? valuePropositions.join(' ') : '';
   }, [preview]);
 
   const handleAnalyze = async () => {
@@ -280,21 +280,4 @@ export function BrandImportModal({ initialUrl = '', onClose, onApplied }: Props)
       </div>
     </div>
   );
-}
-
-/** Exported for onboarding: analyze only, returns preview. */
-export async function analyzeBrandUrlForOnboarding(url: string): Promise<BrandImportPreview> {
-  return analyzeBrandUrl(url);
-}
-
-export function brandPreviewToOnboardingFields(preview: BrandImportPreview): {
-  productDescription: string;
-  targetCustomer: string;
-} {
-  const productDescription =
-    preview.brand.value_propositions.join(' ') ||
-    preview.products[0]?.description ||
-    '';
-  const targetCustomer = preview.brand.target_customer_assumptions || '';
-  return { productDescription, targetCustomer };
 }

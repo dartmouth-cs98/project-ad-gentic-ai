@@ -163,7 +163,7 @@ export function OnboardingPage() {
     setIsAutoFilling(true);
     try {
       const { analyzeBrandUrlForOnboarding, brandPreviewToOnboardingFields } = await import(
-        '../components/products/BrandImportModal'
+        '../utils/brandImportOnboarding'
       );
       const preview = await analyzeBrandUrlForOnboarding(site);
       const { productDescription, targetCustomer } = brandPreviewToOnboardingFields(preview);

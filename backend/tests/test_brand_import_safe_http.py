@@ -20,7 +20,7 @@ def test_redirect_to_private_ip_rejected():
     response.status_code = 302
     response.url = "https://example.com/start"
     response.headers = {"location": "http://127.0.0.1/internal"}
-    with pytest.raises(BrandImportUrlError, match="private|not allowed|reserved"):
+    with pytest.raises(BrandImportUrlError, match="non-public|private|reserved"):
         _validate_redirect_target(response)
 
 

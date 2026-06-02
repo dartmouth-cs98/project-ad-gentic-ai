@@ -79,7 +79,7 @@ def test_head_check_redirect_to_private_rejected():
     redirect_response.headers = {"location": "http://127.0.0.1/internal.jpg"}
 
     mock_client = MagicMock(spec=httpx.Client)
-    mock_client.head.side_effect = BrandImportUrlError("URL resolves to a private or reserved address")
+    mock_client.head.side_effect = BrandImportUrlError("URL resolves to a non-public address")
     mock_client.__enter__ = MagicMock(return_value=mock_client)
     mock_client.__exit__ = MagicMock(return_value=False)
 

@@ -29,24 +29,21 @@ _BLOCKED_HOSTNAMES = frozenset(
 
 
 def _is_blocked_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    return (
-        addr.is_private
-        or addr.is_loopback
-        or addr.is_link_local
-        or addr.is_multicast
-        or addr.is_reserved
-        or addr.is_unspecified
-    )
+    """True for any address that is not globally routable on the public Internet."""
+    return not addr.is_global
+
+
+_NON_PUBLIC_ADDRESS_MSG = "non-public address"
 
 
 def validate_connected_ip(ip_str: str) -> None:
-    """Reject TCP peers that resolve to private, loopback, or reserved space."""
+    """Reject TCP peers that are not globally routable."""
     try:
         addr = ipaddress.ip_address(ip_str)
     except ValueError as exc:
         raise BrandImportUrlError(f"Connected to invalid address {ip_str!r}") from exc
     if _is_blocked_ip(addr):
-        raise BrandImportUrlError("Connection resolved to a private or reserved address")
+        raise BrandImportUrlError(f"Connection resolved to a {_NON_PUBLIC_ADDRESS_MSG}")
 
 
 def _resolve_hostname_ips(hostname: str) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
@@ -89,13 +86,13 @@ def validate_public_http_url(raw: str) -> ValidatedUrl:
     try:
         literal = ipaddress.ip_address(hostname)
         if _is_blocked_ip(literal):
-            raise BrandImportUrlError("URL points to a private or reserved address")
+            raise BrandImportUrlError(f"URL points to a {_NON_PUBLIC_ADDRESS_MSG}")
     except ValueError:
         pass
 
     for addr in _resolve_hostname_ips(hostname):
         if _is_blocked_ip(addr):
-            raise BrandImportUrlError("URL resolves to a private or reserved address")
+            raise BrandImportUrlError(f"URL resolves to a {_NON_PUBLIC_ADDRESS_MSG}")
 
     port = parsed.port
     if port is not None and port not in (80, 443, 8080, 8443):

@@ -38,8 +38,13 @@ def test_rejects_localhost():
 
 
 def test_rejects_private_ip_literal():
-    with pytest.raises(BrandImportUrlError, match="private"):
+    with pytest.raises(BrandImportUrlError, match="non-public"):
         validate_public_http_url("http://127.0.0.1/")
+
+
+def test_rejects_cgnat_shared_space_ip_literal():
+    with pytest.raises(BrandImportUrlError, match="non-public"):
+        validate_public_http_url("http://100.64.0.1/")
 
 
 def test_rejects_private_resolved_ip():
@@ -47,5 +52,14 @@ def test_rejects_private_resolved_ip():
         "services.brand_import.url_validation._resolve_hostname_ips",
         return_value=[__import__("ipaddress").ip_address("10.0.0.1")],
     ):
-        with pytest.raises(BrandImportUrlError, match="private"):
+        with pytest.raises(BrandImportUrlError, match="non-public"):
+            validate_public_http_url("https://evil.example.com")
+
+
+def test_rejects_cgnat_shared_space_resolved_ip():
+    with patch(
+        "services.brand_import.url_validation._resolve_hostname_ips",
+        return_value=[__import__("ipaddress").ip_address("100.64.0.1")],
+    ):
+        with pytest.raises(BrandImportUrlError, match="non-public"):
             validate_public_http_url("https://evil.example.com")

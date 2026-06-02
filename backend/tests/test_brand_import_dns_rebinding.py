@@ -42,13 +42,10 @@ class _FakeAsyncStream(_FakeStream):
         return self
 
 
-def test_validate_connected_ip_rejects_private_peer():
-    with pytest.raises(BrandImportUrlError, match="private|reserved"):
-        validate_connected_ip("127.0.0.1")
-    with pytest.raises(BrandImportUrlError, match="private|reserved"):
-        validate_connected_ip("10.0.0.1")
-    with pytest.raises(BrandImportUrlError, match="private|reserved"):
-        validate_connected_ip("169.254.169.254")
+def test_validate_connected_ip_rejects_non_public_peers():
+    for ip in ("127.0.0.1", "10.0.0.1", "169.254.169.254", "100.64.0.1", "198.18.0.1"):
+        with pytest.raises(BrandImportUrlError, match="non-public"):
+            validate_connected_ip(ip)
 
 
 def test_validate_connected_ip_allows_public_peer():
@@ -60,7 +57,7 @@ async def test_validating_async_backend_rejects_private_peer_after_connect():
     backend = ValidatingAsyncNetworkBackend()
     backend._backend.connect_tcp = AsyncMock(return_value=_FakeAsyncStream("127.0.0.1"))
 
-    with pytest.raises(BrandImportUrlError, match="private|reserved"):
+    with pytest.raises(BrandImportUrlError, match="non-public"):
         await backend.connect_tcp("example.com", 443)
 
 
@@ -68,7 +65,7 @@ def test_validating_sync_backend_rejects_private_peer_after_connect():
     backend = ValidatingSyncNetworkBackend()
     backend._backend.connect_tcp = MagicMock(return_value=_FakeStream("127.0.0.1"))
 
-    with pytest.raises(BrandImportUrlError, match="private|reserved"):
+    with pytest.raises(BrandImportUrlError, match="non-public"):
         backend.connect_tcp("example.com", 443)
 
 

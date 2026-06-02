@@ -9,7 +9,6 @@ from schemas.brand_import import (
     BrandImportPreview,
     FaqExtract,
     ImageCandidate,
-    PricingExtract,
     ProductExtract,
     TestimonialExtract,
 )
@@ -31,20 +30,13 @@ def _norm_name(name: str) -> str:
 
 
 def structured_hint_to_product_extract(hint: StructuredProductHint) -> ProductExtract:
-    pricing = None
-    if hint.price_display or hint.price_amount is not None:
-        pricing = PricingExtract(
-            display=hint.price_display,
-            amount=hint.price_amount,
-            currency=hint.price_currency,
-        )
     product_url = hint.url
     return ProductExtract(
         name=clean_product_display_name(hint.name, product_url),
         description=hint.description,
         product_url=product_url,
         value_propositions=[],
-        pricing=pricing,
+        pricing=None,
         offers=[],
         image_candidates=[
             ImageCandidate(
@@ -104,11 +96,8 @@ def _pick_better_url(current: str | None, candidate: str | None) -> str | None:
 
 
 def _merge_two_products(primary: ProductExtract, secondary: ProductExtract) -> ProductExtract:
-    """Merge secondary into primary; primary (structured seed) keeps pricing when set."""
+    """Merge secondary into primary; primary (structured seed) wins on core fields."""
     better_url = _pick_better_url(primary.product_url, secondary.product_url)
-    pricing = primary.pricing
-    if pricing is None or pricing.amount is None:
-        pricing = secondary.pricing or pricing
 
     description = primary.description or secondary.description
     if secondary.description and (
@@ -131,7 +120,7 @@ def _merge_two_products(primary: ProductExtract, secondary: ProductExtract) -> P
             "description": description,
             "value_propositions": primary.value_propositions or secondary.value_propositions,
             "offers": primary.offers or secondary.offers,
-            "pricing": pricing,
+            "pricing": None,
             # Keep structured images only; LLM often assigns the same homepage carousel to all products.
             "image_candidates": list(primary.image_candidates),
         }
@@ -142,7 +131,7 @@ def merge_products(
     structured_seeds: list[ProductExtract],
     llm_products: list[ProductExtract],
 ) -> list[ProductExtract]:
-    """Structured seeds first; dedupe by name/slug; structured pricing wins on match."""
+    """Structured seeds first; dedupe by name/slug."""
     merged: list[ProductExtract] = []
 
     for product in structured_seeds + llm_products:
@@ -159,7 +148,7 @@ def merge_products(
         if match_index is None:
             merged.append(product)
         else:
-            # Seeds are processed before LLM rows; keep structured pricing on merge.
+            # Seeds are processed before LLM rows.
             merged[match_index] = _merge_two_products(merged[match_index], product)
 
     return merged
@@ -176,6 +165,7 @@ def merge_preview_with_structured(
     merged_products = merge_products(seeds, preview.products)
     if pages:
         merged_products = reconcile_product_image_candidates(pages, merged_products)
+    merged_products = [p.model_copy(update={"pricing": None}) for p in merged_products]
     merged_brand = merge_brand_fields(preview.brand, site)
 
     warnings = list(preview.warnings)

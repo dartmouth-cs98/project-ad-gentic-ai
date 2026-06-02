@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from schemas.brand_import import BrandExtract, BrandImportPreview, PricingExtract, ProductExtract
+from schemas.brand_import import BrandExtract, BrandImportPreview, ProductExtract
 from services.brand_import.merge import merge_preview_with_structured, merge_products
 from services.brand_import.product_dedupe import canonical_product_slug, products_match
 from services.brand_import.structured_data import (
@@ -54,7 +54,6 @@ def test_merge_products_dedupes_homepage_and_product_page():
         ProductExtract(
             name="GLAZING MILK",
             product_url="https://www.rhodeskin.com/",
-            pricing=PricingExtract(display="USD 32", amount=32.0, currency="USD"),
         ),
         ProductExtract(
             name="Glazing Milk",
@@ -65,8 +64,7 @@ def test_merge_products_dedupes_homepage_and_product_page():
     merged = merge_products(seeds, [])
     assert len(merged) == 1
     assert merged[0].product_url == "https://www.rhodeskin.com/products/glazing-milk"
-    assert merged[0].pricing is not None
-    assert merged[0].pricing.amount == 32.0
+    assert merged[0].pricing is None
     assert merged[0].description == "Ceramide facial essence"
 
 

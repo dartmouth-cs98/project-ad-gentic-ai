@@ -33,3 +33,12 @@ def brand_import_http_client(**kwargs: object) -> httpx.AsyncClient:
     response_hooks.append(_validate_redirect_response_hook)
     event_hooks["response"] = response_hooks
     return httpx.AsyncClient(event_hooks=event_hooks, follow_redirects=True, **kwargs)
+
+
+def brand_import_sync_http_client(**kwargs: object) -> httpx.Client:
+    """Sync client with the same redirect validation as brand_import_http_client."""
+    event_hooks = dict(kwargs.pop("event_hooks", {}) or {})
+    response_hooks = list(event_hooks.get("response") or [])
+    response_hooks.append(_validate_redirect_target)
+    event_hooks["response"] = response_hooks
+    return httpx.Client(event_hooks=event_hooks, follow_redirects=True, **kwargs)

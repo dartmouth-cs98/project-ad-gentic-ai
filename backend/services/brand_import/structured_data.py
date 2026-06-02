@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from urllib.parse import urljoin
@@ -124,27 +123,6 @@ def _image_urls_from_value(value: Any, base_url: str) -> list[str]:
     return urls
 
 
-def _offer_fields(offer: Any) -> tuple[str | None, float | None, str | None]:
-    if not isinstance(offer, dict):
-        return None, None, None
-    price = offer.get("price")
-    currency = offer.get("priceCurrency")
-    amount: float | None = None
-    if isinstance(price, (int, float)):
-        amount = float(price)
-    elif isinstance(price, str):
-        try:
-            amount = float(re.sub(r"[^\d.]", "", price))
-        except ValueError:
-            amount = None
-    display = None
-    if amount is not None and currency:
-        display = f"{currency} {amount:g}"
-    elif isinstance(price, str) and price.strip():
-        display = price.strip()
-    return display, amount, str(currency) if currency else None
-
-
 def _product_from_node(node: dict[str, Any], page_url: str) -> StructuredProductHint | None:
     types = {t.lower() for t in _type_names(node)}
     if not types.intersection({"product", "individualproduct", "someproducts"}):
@@ -161,17 +139,11 @@ def _product_from_node(node: dict[str, Any], page_url: str) -> StructuredProduct
     if not display_name:
         display_name = clean_product_display_name(raw_name.strip(), resolved_url)
     images = _image_urls_from_value(node.get("image"), page_url)
-    display, amount, currency = _offer_fields(node.get("offers"))
-    if display is None:
-        display, amount, currency = _offer_fields(node.get("offer"))
     return StructuredProductHint(
         name=display_name,
         description=desc_str,
         url=resolved_url,
         image_urls=images,
-        price_display=display,
-        price_amount=amount,
-        price_currency=currency,
         source_url=page_url,
     )
 
@@ -354,9 +326,6 @@ def structured_page_json_for_prompt(structured: StructuredPageHints, meta: dict[
                 "description": p.description,
                 "url": p.url,
                 "image_urls": p.image_urls[: brand_import_max_images_per_product()],
-                "price_display": p.price_display,
-                "price_amount": p.price_amount,
-                "price_currency": p.price_currency,
             }
             for p in structured.products[:10]
         ],

@@ -35,15 +35,16 @@ logger = logging.getLogger(__name__)
 _EXTRACTION_INSTRUCTIONS = """You extract structured marketing data from website page text for an ad-generation platform.
 
 Rules:
-- Use ONLY facts explicitly supported by the provided page text. Do not invent pricing, testimonials, or product names.
+- Use ONLY facts explicitly supported by the provided page text. Do not invent testimonials or product names.
+- Do not extract product prices.
 - If a field is unknown, use null or an empty array.
 - tone must be one of: formal, playful, bold, minimal — or null if unclear.
-- confidence: low if little text; medium if partial; high if rich product/pricing/FAQ content.
+- confidence: low if little text; medium if partial; high if rich product/FAQ content.
 - Limit products to what is clearly offered on the site (max {max_products}).
 - Product names: use the base product name only (e.g. "Highlight Milk"), not variant shades (e.g. "03", "sunbed") or Shopify labels like "Default Title".
 - image_candidates: leave empty unless you have URLs from that product's own PAGE IMAGE CANDIDATES with matching linked_product_slug. Do NOT reuse homepage carousel images for every product.
 - Do not use favicon, logo, icon, or tiny tracking pixels as product images.
-- When STRUCTURED_JSON lists products with name and price, prefer those facts; use PAGE TEXT only to enrich descriptions.
+- When STRUCTURED_JSON lists products, prefer those names and URLs; use PAGE TEXT only to enrich descriptions.
 
 Respond with ONLY a single JSON object (no markdown fences) matching this shape:
 {{
@@ -63,7 +64,6 @@ Respond with ONLY a single JSON object (no markdown fences) matching this shape:
     "description": string | null,
     "product_url": string | null,
     "value_propositions": [string],
-    "pricing": {{ "display": string | null, "amount": number | null, "currency": string | null }},
     "offers": [string],
     "image_candidates": [{{ "url": string, "alt": string | null, "linked_product_slug": string | null }}]
   }}],
@@ -141,7 +141,8 @@ async def extract_brand_preview(
                             "name": clean_product_display_name(
                                 product.name,
                                 product.product_url,
-                            )
+                            ),
+                            "pricing": None,
                         }
                     )
                 )

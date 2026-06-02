@@ -200,9 +200,6 @@ export function BrandImportModal({ initialUrl = '', onClose, onApplied }: Props)
                         />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                          {p.pricing?.display && (
-                            <div style={{ fontSize: 12, color: 'var(--as-ink-2)' }}>{p.pricing.display}</div>
-                          )}
                           {p.image_candidates.length > 0 && (
                             <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                               {p.image_candidates.map((img, imgIdx) => {

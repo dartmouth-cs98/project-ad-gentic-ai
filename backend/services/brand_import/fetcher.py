@@ -26,10 +26,45 @@ from services.brand_import.url_validation import ValidatedUrl, absolutize, same_
 logger = logging.getLogger(__name__)
 
 
+def effective_page_url(response: httpx.Response) -> str:
+    """Final URL after redirects; use as base for extraction and link resolution."""
+    return str(response.url)
+
+
+async def read_limited_response_body(
+    response: httpx.Response,
+    max_bytes: int,
+    *,
+    chunk_size: int = 64 * 1024,
+) -> tuple[bytes, bool]:
+    """Read up to max_bytes from an open streaming response; stop downloading early."""
+    parts: list[bytes] = []
+    total = 0
+    truncated = False
+    async for chunk in response.aiter_bytes(chunk_size):
+        if not chunk:
+            continue
+        remaining = max_bytes - total
+        if remaining <= 0:
+            truncated = True
+            break
+        if len(chunk) > remaining:
+            parts.append(chunk[:remaining])
+            total += remaining
+            truncated = True
+            break
+        parts.append(chunk)
+        total += len(chunk)
+    if truncated:
+        await response.aclose()
+    return b"".join(parts), truncated
+
+
 @dataclass(frozen=True)
 class FetchResult:
     pages: list[PageContent]
     warnings: list[str]
+    site_url: str
 
 
 async def fetch_site_pages(validated: ValidatedUrl) -> FetchResult:
@@ -40,6 +75,7 @@ async def fetch_site_pages(validated: ValidatedUrl) -> FetchResult:
     pages: list[PageContent] = []
     queue: list[str] = [validated.normalized]
     seen: set[str] = set()
+    crawl_origin = validated.normalized
 
     headers = {"User-Agent": brand_import_user_agent(), "Accept": "text/html,application/xhtml+xml"}
 
@@ -49,41 +85,47 @@ async def fetch_site_pages(validated: ValidatedUrl) -> FetchResult:
         headers=headers,
     ) as client:
         while queue and len(pages) < max_pages:
-            url = queue.pop(0)
-            if url in seen:
+            request_url = queue.pop(0)
+            if request_url in seen:
                 continue
-            seen.add(url)
-            if not same_registrable_domain(validated.normalized, url):
+            seen.add(request_url)
+            if not same_registrable_domain(crawl_origin, request_url):
                 continue
             try:
-                response = await client.get(url)
-                response.raise_for_status()
+                async with client.stream("GET", request_url) as response:
+                    response.raise_for_status()
+
+                    page_url = effective_page_url(response)
+                    if page_url != request_url:
+                        seen.add(page_url)
+                        if len(pages) == 0:
+                            crawl_origin = page_url
+
+                    content_type = (response.headers.get("content-type") or "").lower()
+                    if "html" not in content_type and "text/" not in content_type:
+                        warnings.append(f"Skipped non-HTML URL {page_url} ({content_type})")
+                        continue
+
+                    max_bytes = brand_import_max_bytes_per_page()
+                    body, truncated = await read_limited_response_body(response, max_bytes)
+                    if truncated:
+                        warnings.append(f"Truncated large response from {page_url}")
+
+                    try:
+                        html = body.decode(response.encoding or "utf-8", errors="replace")
+                    except Exception:
+                        html = body.decode("utf-8", errors="replace")
             except httpx.HTTPError as exc:
-                warnings.append(f"Failed to fetch {url}: {exc}")
+                warnings.append(f"Failed to fetch {request_url}: {exc}")
                 continue
 
-            content_type = (response.headers.get("content-type") or "").lower()
-            if "html" not in content_type and "text/" not in content_type:
-                warnings.append(f"Skipped non-HTML URL {url} ({content_type})")
-                continue
-
-            body = response.content
-            if len(body) > brand_import_max_bytes_per_page():
-                body = body[: brand_import_max_bytes_per_page()]
-                warnings.append(f"Truncated large response from {url}")
-
-            try:
-                html = body.decode(response.encoding or "utf-8", errors="replace")
-            except Exception:
-                html = body.decode("utf-8", errors="replace")
-
-            page = extract_page_content(url, html)
+            page = extract_page_content(page_url, html)
             pages.append(page)
 
             if len(pages) >= max_pages:
                 break
 
-            for link in discover_same_site_links(url, html):
+            for link in discover_same_site_links(page_url, html):
                 if link not in seen and link not in queue:
                     queue.append(link)
             queue.sort(key=score_link, reverse=True)
@@ -91,4 +133,4 @@ async def fetch_site_pages(validated: ValidatedUrl) -> FetchResult:
     if not pages:
         raise RuntimeError("Could not fetch any HTML pages from the provided URL")
 
-    return FetchResult(pages=pages, warnings=warnings)
+    return FetchResult(pages=pages, warnings=warnings, site_url=crawl_origin)

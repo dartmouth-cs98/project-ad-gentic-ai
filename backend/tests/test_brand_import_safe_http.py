@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.brand_import.safe_http import _validate_redirect_target
+from services.brand_import.safe_http import _validate_redirect_target, brand_import_sync_http_client
 from services.brand_import.url_validation import BrandImportUrlError
 
 
@@ -36,3 +36,12 @@ def test_non_redirect_skipped():
     response = MagicMock()
     response.status_code = 200
     _validate_redirect_target(response)
+
+
+def test_sync_client_registers_redirect_validation_hook():
+    client = brand_import_sync_http_client()
+    try:
+        hooks = client.event_hooks.get("response") or []
+        assert _validate_redirect_target in hooks
+    finally:
+        client.close()

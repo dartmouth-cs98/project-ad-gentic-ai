@@ -37,12 +37,12 @@ class TestJsonLdParsing:
         assert hints.organization_name == "Acme Inc"
         assert "Product" in hints.json_ld_types
 
-    def test_product_has_price_and_image(self):
+    def test_product_has_image_without_price(self):
         html = _read_fixture("product_jsonld.html")
         hints = extract_structured_page_hints(html, "https://example.com/")
         product = hints.products[0]
-        assert product.price_amount == pytest.approx(29.99)
-        assert product.price_currency == "USD"
+        assert product.price_amount is None
+        assert product.price_currency is None
         assert any("widget-pro.jpg" in u for u in product.image_urls)
 
     def test_faq_fixture(self):
@@ -89,8 +89,7 @@ class TestMergeStructuredSeeds:
         seeds = seed_products_from_structured(site)
         assert len(seeds) == 1
         assert seeds[0].name == "Widget Pro"
-        assert seeds[0].pricing is not None
-        assert seeds[0].pricing.amount == pytest.approx(29.99)
+        assert seeds[0].pricing is None
 
     def test_merge_preview_adds_structured_products(self):
         from schemas.brand_import import BrandExtract, BrandImportPreview

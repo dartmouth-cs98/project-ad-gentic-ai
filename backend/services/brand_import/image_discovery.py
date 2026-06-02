@@ -300,14 +300,26 @@ def filter_images_with_head_check(images: list[DiscoveredImage]) -> list[Discove
 
     import httpx
 
-    from services.brand_import.config import brand_import_fetch_timeout_seconds
+    from services.brand_import.config import (
+        brand_import_fetch_timeout_seconds,
+        brand_import_user_agent,
+    )
+    from services.brand_import.safe_http import brand_import_sync_http_client
+    from services.brand_import.url_validation import BrandImportUrlError, validate_public_http_url
 
     timeout = min(5.0, brand_import_fetch_timeout_seconds())
     kept: list[DiscoveredImage] = []
-    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+    headers = {"User-Agent": brand_import_user_agent(), "Accept": "image/*"}
+    with brand_import_sync_http_client(timeout=timeout, headers=headers) as client:
         for img in images:
             try:
-                response = client.head(img.url)
+                validated = validate_public_http_url(img.url)
+            except BrandImportUrlError as exc:
+                logger.debug("HEAD rejected URL %s: %s", img.url, exc)
+                continue
+
+            try:
+                response = client.head(validated.normalized)
                 if response.status_code >= 400:
                     continue
                 content_type = (response.headers.get("content-type") or "").lower()
@@ -321,6 +333,8 @@ def filter_images_with_head_check(images: list[DiscoveredImage]) -> list[Discove
                     except ValueError:
                         pass
                 kept.append(img)
+            except BrandImportUrlError as exc:
+                logger.debug("HEAD rejected redirect for %s: %s", img.url, exc)
             except httpx.HTTPError as exc:
                 logger.debug("HEAD skip %s: %s", img.url, exc)
                 kept.append(img)

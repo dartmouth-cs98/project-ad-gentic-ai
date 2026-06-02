@@ -90,7 +90,7 @@ async def analyze_business_url(client_id: int, raw_url: str) -> BrandImportPrevi
 
     try:
         preview = await extract_brand_preview(
-            validated.normalized,
+            fetch_result.site_url,
             fetch_result.pages,
             fetch_result.warnings,
         )
@@ -101,7 +101,7 @@ async def analyze_business_url(client_id: int, raw_url: str) -> BrandImportPrevi
             "yes",
         ):
             preview = heuristic_preview(
-                validated.normalized,
+                fetch_result.site_url,
                 fetch_result.pages,
                 fetch_result.warnings,
             )
@@ -169,7 +169,6 @@ async def apply_brand_import(
             "import_source": "brand_url",
             "source_url": preview.source_url,
             "value_propositions": product_extract.value_propositions,
-            "pricing": product_extract.pricing.model_dump() if product_extract.pricing else None,
             "offers": product_extract.offers,
         }
         created = create_product(

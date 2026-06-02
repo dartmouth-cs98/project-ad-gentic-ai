@@ -7,7 +7,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.brand_import.safe_http import _validate_redirect_target, brand_import_sync_http_client
+from services.brand_import.safe_http import (
+    ValidatingSyncNetworkBackend,
+    _validate_redirect_target,
+    brand_import_sync_http_client,
+)
 from services.brand_import.url_validation import BrandImportUrlError
 
 
@@ -43,5 +47,6 @@ def test_sync_client_registers_redirect_validation_hook():
     try:
         hooks = client.event_hooks.get("response") or []
         assert _validate_redirect_target in hooks
+        assert isinstance(client._transport._pool._network_backend, ValidatingSyncNetworkBackend)
     finally:
         client.close()

@@ -39,6 +39,16 @@ def _is_blocked_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     )
 
 
+def validate_connected_ip(ip_str: str) -> None:
+    """Reject TCP peers that resolve to private, loopback, or reserved space."""
+    try:
+        addr = ipaddress.ip_address(ip_str)
+    except ValueError as exc:
+        raise BrandImportUrlError(f"Connected to invalid address {ip_str!r}") from exc
+    if _is_blocked_ip(addr):
+        raise BrandImportUrlError("Connection resolved to a private or reserved address")
+
+
 def _resolve_hostname_ips(hostname: str) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
     try:
         infos = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)

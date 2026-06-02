@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Widget Pro — Acme Shop</title>
+  <meta property="og:image" content="https://shop.example.com/assets/widget-pro-hero.jpg" />
+  <link rel="icon" href="https://shop.example.com/favicon.ico" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "Widget Pro",
+    "image": "https://shop.example.com/images/widget-pro-jsonld.jpg",
+    "offers": { "@type": "Offer", "price": "29.99", "priceCurrency": "USD" }
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <img src="https://shop.example.com/brand-logo.png" alt="Acme logo" width="120" />
+    <img src="https://shop.example.com/pixel.gif" width="1" height="1" alt="" />
+  </header>
+  <main>
+    <h1>Widget Pro</h1>
+    <picture>
+      <source
+        srcset="https://shop.example.com/images/widget-pro-480w.jpg 480w, https://shop.example.com/images/widget-pro-1200w.jpg 1200w"
+        type="image/jpeg" />
+      <img
+        src="https://shop.example.com/images/widget-pro-thumb.jpg"
+        data-src="https://shop.example.com/images/widget-pro-lazy.jpg"
+        alt="Widget Pro on desk"
+        loading="lazy" />
+    </picture>
+    <img
+      data-lazy-src="https://shop.example.com/images/widget-pro-gallery-2.jpg"
+      src="https://shop.example.com/placeholder.png"
+      alt="Widget Pro side view" />
+    <img src="https://shop.example.com/icons/star.svg" alt="rating icon" />
+  </main>
+</body>
+</html>

@@ -1,0 +1,38 @@
+"""Tests for SSRF-safe redirect handling."""
+
+from __future__ import annotations
+
+import ipaddress
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from services.brand_import.safe_http import _validate_redirect_target
+from services.brand_import.url_validation import BrandImportUrlError
+
+
+def test_redirect_to_private_ip_rejected():
+    response = MagicMock()
+    response.status_code = 302
+    response.url = "https://example.com/start"
+    response.headers = {"location": "http://127.0.0.1/internal"}
+    with pytest.raises(BrandImportUrlError, match="private|not allowed|reserved"):
+        _validate_redirect_target(response)
+
+
+def test_redirect_to_public_https_allowed():
+    response = MagicMock()
+    response.status_code = 302
+    response.url = "https://example.com/start"
+    response.headers = {"location": "https://example.com/ok"}
+    with patch(
+        "services.brand_import.url_validation._resolve_hostname_ips",
+        return_value=[ipaddress.ip_address("93.184.216.34")],
+    ):
+        _validate_redirect_target(response)
+
+
+def test_non_redirect_skipped():
+    response = MagicMock()
+    response.status_code = 200
+    _validate_redirect_target(response)

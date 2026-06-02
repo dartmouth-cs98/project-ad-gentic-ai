@@ -174,3 +174,34 @@ def update_onboarding(
     db.commit()
     db.refresh(client)
     return client
+
+
+def merge_brand_profile_traits(
+    db: Session,
+    client_id: int,
+    *,
+    brand_profile: dict,
+    merge_onboarding: bool = True,
+) -> bool:
+    """Persist brand import under traits.brand_profile; optionally map onboarding fields."""
+    client = get_by_id(db, client_id)
+    if not client:
+        return False
+
+    existing = json.loads(client.traits) if client.traits else {}
+    existing["brand_profile"] = brand_profile
+
+    if merge_onboarding:
+        brand = brand_profile.get("brand") if isinstance(brand_profile.get("brand"), dict) else {}
+        if brand.get("target_customer_assumptions") and not existing.get("target_customer"):
+            existing["target_customer"] = brand["target_customer_assumptions"]
+        value_props = brand.get("value_propositions") if isinstance(brand.get("value_propositions"), list) else []
+        if value_props and not existing.get("product_description"):
+            existing["product_description"] = value_props[0]
+        if brand_profile.get("source_url") and not existing.get("website"):
+            existing["website"] = brand_profile["source_url"]
+
+    client.traits = json.dumps(existing)
+    db.commit()
+    db.refresh(client)
+    return True

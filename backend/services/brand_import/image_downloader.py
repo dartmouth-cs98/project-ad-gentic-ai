@@ -61,22 +61,35 @@ async def download_and_upload_product_image(image_url: str) -> tuple[str, str]:
     timeout = brand_import_fetch_timeout_seconds()
     headers = {"User-Agent": brand_import_user_agent(), "Accept": "image/*"}
 
-    async with brand_import_http_client(
-        timeout=httpx.Timeout(timeout, connect=min(10.0, timeout)),
-        headers=headers,
-    ) as client:
-        async with client.stream("GET", validated.normalized) as response:
-            response.raise_for_status()
-            response_headers = dict(response.headers)
-            final_url = str(response.url)
+    try:
+        async with brand_import_http_client(
+            timeout=httpx.Timeout(timeout, connect=min(10.0, timeout)),
+            headers=headers,
+        ) as client:
+            async with client.stream("GET", validated.normalized) as response:
+                try:
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    raise ProductImageError(
+                        f"Remote image request failed with HTTP {exc.response.status_code}"
+                    ) from exc
 
-            if content_length_exceeds(response_headers, MAX_IMAGE_SIZE):
-                await response.aclose()
-                raise ProductImageError(_SIZE_LIMIT_MESSAGE)
+                response_headers = dict(response.headers)
+                final_url = str(response.url)
 
-            body, truncated = await read_limited_response_body(response, MAX_IMAGE_SIZE)
-            if truncated:
-                raise ProductImageError(_SIZE_LIMIT_MESSAGE)
+                if content_length_exceeds(response_headers, MAX_IMAGE_SIZE):
+                    await response.aclose()
+                    raise ProductImageError(_SIZE_LIMIT_MESSAGE)
+
+                body, truncated = await read_limited_response_body(response, MAX_IMAGE_SIZE)
+                if truncated:
+                    raise ProductImageError(_SIZE_LIMIT_MESSAGE)
+    except ProductImageError:
+        raise
+    except BrandImportUrlError as exc:
+        raise ProductImageError(str(exc)) from exc
+    except httpx.HTTPError as exc:
+        raise ProductImageError(f"Failed to download remote image: {exc}") from exc
 
     content_type = _content_type_from_response(final_url, response_headers, body)
     if not content_type:

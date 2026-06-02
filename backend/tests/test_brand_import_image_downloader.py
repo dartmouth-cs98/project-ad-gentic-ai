@@ -158,3 +158,28 @@ async def test_download_uploads_valid_streamed_image():
     assert blob_name == "ok.png"
     mock_upload.assert_called_once_with(png_body, "image/png")
     response.aclose.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_download_wraps_http_status_error_as_product_image_error():
+    response = MagicMock(spec=httpx.Response)
+    response.url = httpx.URL("https://cdn.example.com/missing.png")
+    response.status_code = 404
+    response.headers = {}
+    response.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "Not Found",
+        request=MagicMock(),
+        response=response,
+    )
+
+    client = AsyncMock()
+    client.stream = MagicMock(return_value=_StreamContext(response))
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=None)
+
+    with _public_ip_patch(), patch(
+        "services.brand_import.image_downloader.brand_import_http_client",
+        return_value=client,
+    ):
+        with pytest.raises(ProductImageError, match="HTTP 404"):
+            await download_and_upload_product_image("https://cdn.example.com/missing.png")

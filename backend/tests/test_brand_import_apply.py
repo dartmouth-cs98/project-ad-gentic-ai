@@ -28,6 +28,7 @@ from schemas.brand_import import (
     ProductExtract,
 )
 from services.brand_import.service import apply_brand_import
+from services.storage.product_images import ProductImageError
 
 _original_product_schema = getattr(Product.__table__, "schema", None)
 _original_client_schema = getattr(BusinessClient.__table__, "schema", None)
@@ -209,3 +210,43 @@ async def test_apply_defaults_to_first_image_when_key_omitted(db_session):
 
     assert len(result.products_created) == 1
     mock_download.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_apply_records_image_http_failure_without_aborting(db_session):
+    db, client_id = db_session
+    preview = BrandImportPreview(
+        source_url="https://example.com",
+        products=[
+            ProductExtract(
+                name="Widget Pro",
+                image_candidates=[ImageCandidate(url="https://cdn.example.com/missing.png", alt="widget")],
+            )
+        ],
+        warnings=[],
+        confidence="medium",
+    )
+    with patch(
+        "services.brand_import.service.download_and_upload_product_image",
+        new_callable=AsyncMock,
+        side_effect=ProductImageError("Remote image request failed with HTTP 404"),
+    ):
+        result = await apply_brand_import(
+            db,
+            client_id,
+            BrandImportApplyRequest(
+                preview=preview,
+                create_products=True,
+                selected_product_indexes=[0],
+                selected_images={"0": [0]},
+            ),
+        )
+
+    assert len(result.products_created) == 1
+    assert result.products_created[0].product_id > 0
+    assert result.products_created[0].image_errors == [
+        "https://cdn.example.com/missing.png: Remote image request failed with HTTP 404"
+    ]
+    product = db.get(Product, result.products_created[0].product_id)
+    assert product.name == "Widget Pro"
+    assert product.image_name is None or json.loads(product.image_name) == []

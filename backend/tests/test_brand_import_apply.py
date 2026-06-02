@@ -141,3 +141,71 @@ async def test_apply_merges_traits_and_creates_product(db_session):
     product = db.get(Product, result.products_created[0].product_id)
     assert product.name == "Widget Pro"
     assert json.loads(product.image_name) == ["abc.png"]
+
+
+@pytest.mark.asyncio
+async def test_apply_honors_explicit_empty_image_list(db_session):
+    db, client_id = db_session
+    preview = BrandImportPreview(
+        source_url="https://example.com",
+        products=[
+            ProductExtract(
+                name="Widget Pro",
+                image_candidates=[ImageCandidate(url="https://example.com/img.png", alt="widget")],
+            )
+        ],
+        warnings=[],
+        confidence="medium",
+    )
+    with patch(
+        "services.brand_import.service.download_and_upload_product_image",
+        new_callable=AsyncMock,
+    ) as mock_download:
+        result = await apply_brand_import(
+            db,
+            client_id,
+            BrandImportApplyRequest(
+                preview=preview,
+                create_products=True,
+                selected_product_indexes=[0],
+                selected_images={"0": []},
+            ),
+        )
+
+    assert len(result.products_created) == 1
+    mock_download.assert_not_awaited()
+    product = db.get(Product, result.products_created[0].product_id)
+    assert product.image_name is None or json.loads(product.image_name) == []
+
+
+@pytest.mark.asyncio
+async def test_apply_defaults_to_first_image_when_key_omitted(db_session):
+    db, client_id = db_session
+    preview = BrandImportPreview(
+        source_url="https://example.com",
+        products=[
+            ProductExtract(
+                name="Widget Pro",
+                image_candidates=[ImageCandidate(url="https://example.com/img.png", alt="widget")],
+            )
+        ],
+        warnings=[],
+        confidence="medium",
+    )
+    with patch(
+        "services.brand_import.service.download_and_upload_product_image",
+        new_callable=AsyncMock,
+        return_value=("https://blob/img.png", "abc.png"),
+    ) as mock_download:
+        result = await apply_brand_import(
+            db,
+            client_id,
+            BrandImportApplyRequest(
+                preview=preview,
+                create_products=True,
+                selected_product_indexes=[0],
+            ),
+        )
+
+    assert len(result.products_created) == 1
+    mock_download.assert_awaited_once()

@@ -20,7 +20,7 @@ from services.brand_import.content_extractor import (
     extract_page_content,
     score_link,
 )
-from services.brand_import.safe_http import brand_import_http_client
+from services.brand_import.safe_http import brand_import_http_client, read_limited_response_body
 from services.brand_import.url_validation import ValidatedUrl, absolutize, same_registrable_domain
 
 logger = logging.getLogger(__name__)
@@ -29,35 +29,6 @@ logger = logging.getLogger(__name__)
 def effective_page_url(response: httpx.Response) -> str:
     """Final URL after redirects; use as base for extraction and link resolution."""
     return str(response.url)
-
-
-async def read_limited_response_body(
-    response: httpx.Response,
-    max_bytes: int,
-    *,
-    chunk_size: int = 64 * 1024,
-) -> tuple[bytes, bool]:
-    """Read up to max_bytes from an open streaming response; stop downloading early."""
-    parts: list[bytes] = []
-    total = 0
-    truncated = False
-    async for chunk in response.aiter_bytes(chunk_size):
-        if not chunk:
-            continue
-        remaining = max_bytes - total
-        if remaining <= 0:
-            truncated = True
-            break
-        if len(chunk) > remaining:
-            parts.append(chunk[:remaining])
-            total += remaining
-            truncated = True
-            break
-        parts.append(chunk)
-        total += len(chunk)
-    if truncated:
-        await response.aclose()
-    return b"".join(parts), truncated
 
 
 @dataclass(frozen=True)

@@ -12,11 +12,8 @@ import pytest
 _backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_backend_dir))
 
-from services.brand_import.fetcher import (
-    effective_page_url,
-    fetch_site_pages,
-    read_limited_response_body,
-)
+from services.brand_import.fetcher import effective_page_url, fetch_site_pages
+from services.brand_import.safe_http import read_limited_response_body
 from services.brand_import.url_validation import ValidatedUrl
 
 

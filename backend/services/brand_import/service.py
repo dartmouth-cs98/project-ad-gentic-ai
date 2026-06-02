@@ -186,9 +186,13 @@ async def apply_brand_import(
         image_errors: list[str] = []
         new_urls: list[str] = []
         new_names: list[str] = []
-        selected_image_indexes = request.selected_images.get(str(idx), [])
-        if not selected_image_indexes and product_extract.image_candidates:
+        image_key = str(idx)
+        if image_key in request.selected_images:
+            selected_image_indexes = request.selected_images[image_key]
+        elif product_extract.image_candidates:
             selected_image_indexes = [0]
+        else:
+            selected_image_indexes = []
 
         for img_idx in selected_image_indexes:
             if len(new_urls) >= min(MAX_IMAGES_PER_PRODUCT, brand_import_max_images_per_product()):

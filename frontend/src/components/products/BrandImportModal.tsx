@@ -91,9 +91,8 @@ export function BrandImportModal({ initialUrl = '', onClose, onApplied }: Props)
       const selected_images: Record<string, number[]> = {};
       for (const idx of selectedProducts) {
         const key = String(idx);
-        const set = selectedImages[key];
-        if (set && set.size > 0) {
-          selected_images[key] = Array.from(set);
+        if (key in selectedImages) {
+          selected_images[key] = Array.from(selectedImages[key]);
         }
       }
       const result = await applyBrandImport({

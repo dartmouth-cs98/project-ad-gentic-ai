@@ -26,6 +26,46 @@ async def _validate_redirect_response_hook(response: httpx.Response) -> None:
     _validate_redirect_target(response)
 
 
+def content_length_exceeds(headers: dict[str, str] | httpx.Headers, max_bytes: int) -> bool:
+    """True when Content-Length is present and larger than max_bytes."""
+    content_length = headers.get("content-length")
+    if content_length is None:
+        return False
+    try:
+        return int(content_length.strip()) > max_bytes
+    except ValueError:
+        return False
+
+
+async def read_limited_response_body(
+    response: httpx.Response,
+    max_bytes: int,
+    *,
+    chunk_size: int = 64 * 1024,
+) -> tuple[bytes, bool]:
+    """Read up to max_bytes from an open streaming response; stop downloading early."""
+    parts: list[bytes] = []
+    total = 0
+    truncated = False
+    async for chunk in response.aiter_bytes(chunk_size):
+        if not chunk:
+            continue
+        remaining = max_bytes - total
+        if remaining <= 0:
+            truncated = True
+            break
+        if len(chunk) > remaining:
+            parts.append(chunk[:remaining])
+            total += remaining
+            truncated = True
+            break
+        parts.append(chunk)
+        total += len(chunk)
+    if truncated:
+        await response.aclose()
+    return b"".join(parts), truncated
+
+
 def brand_import_http_client(**kwargs: object) -> httpx.AsyncClient:
     """Async client that re-validates each redirect target before following."""
     event_hooks = dict(kwargs.pop("event_hooks", {}) or {})

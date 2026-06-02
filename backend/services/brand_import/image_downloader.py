@@ -8,7 +8,11 @@ from urllib.parse import urlparse
 import httpx
 
 from services.brand_import.config import brand_import_fetch_timeout_seconds, brand_import_user_agent
-from services.brand_import.safe_http import brand_import_http_client
+from services.brand_import.safe_http import (
+    brand_import_http_client,
+    content_length_exceeds,
+    read_limited_response_body,
+)
 from services.brand_import.url_validation import validate_public_http_url, BrandImportUrlError
 from services.storage.product_images import (
     ALLOWED_IMAGE_TYPES,
@@ -26,6 +30,8 @@ _GUESS_TYPE = {
     ".webp": "image/webp",
     ".gif": "image/gif",
 }
+
+_SIZE_LIMIT_MESSAGE = "Remote image exceeds 10 MB limit"
 
 
 def _content_type_from_response(url: str, headers: dict[str, str], body: bytes) -> str | None:
@@ -59,18 +65,20 @@ async def download_and_upload_product_image(image_url: str) -> tuple[str, str]:
         timeout=httpx.Timeout(timeout, connect=min(10.0, timeout)),
         headers=headers,
     ) as client:
-        response = await client.get(validated.normalized)
-        response.raise_for_status()
-        body = response.content
-        response_headers = dict(response.headers)
-        if len(body) > MAX_IMAGE_SIZE:
-            raise ProductImageError("Remote image exceeds 10 MB limit")
+        async with client.stream("GET", validated.normalized) as response:
+            response.raise_for_status()
+            response_headers = dict(response.headers)
+            final_url = str(response.url)
 
-    content_type = _content_type_from_response(
-        validated.normalized,
-        response_headers,
-        body,
-    )
+            if content_length_exceeds(response_headers, MAX_IMAGE_SIZE):
+                await response.aclose()
+                raise ProductImageError(_SIZE_LIMIT_MESSAGE)
+
+            body, truncated = await read_limited_response_body(response, MAX_IMAGE_SIZE)
+            if truncated:
+                raise ProductImageError(_SIZE_LIMIT_MESSAGE)
+
+    content_type = _content_type_from_response(final_url, response_headers, body)
     if not content_type:
         raise ProductImageError(f"Unsupported or unknown image type for {image_url}")
 

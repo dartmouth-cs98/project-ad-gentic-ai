@@ -117,6 +117,39 @@ def same_registrable_domain(url_a: str, url_b: str) -> bool:
     return urlparse(url_a).hostname == urlparse(url_b).hostname
 
 
+def is_canonical_host_redirect(submitted_host: str, final_host: str) -> bool:
+    """True for common apex <-> www canonicalization on the seed URL only."""
+    submitted = (submitted_host or "").lower().strip(".")
+    final = (final_host or "").lower().strip(".")
+    if not submitted or not final or submitted == final:
+        return submitted == final
+    return final == f"www.{submitted}" or submitted == f"www.{final}"
+
+
+def redirect_allowed_for_crawl(
+    *,
+    request_url: str,
+    page_url: str,
+    submitted_host: str,
+    crawl_origin: str,
+    is_seed_page: bool,
+) -> tuple[bool, str | None]:
+    """
+    Decide whether a post-redirect final URL may be crawled.
+
+    Returns (allowed, new_crawl_host) where new_crawl_host is set only for an
+    explicit seed-page canonical redirect (e.g. example.com -> www.example.com).
+    """
+    page_host = (urlparse(page_url).hostname or "").lower()
+    if not page_host:
+        return False, None
+    if same_registrable_domain(crawl_origin, page_url):
+        return True, None
+    if is_seed_page and is_canonical_host_redirect(submitted_host, page_host):
+        return True, page_host
+    return False, None
+
+
 def absolutize(base_url: str, href: str) -> str | None:
     if not href or href.startswith(("#", "mailto:", "tel:", "javascript:")):
         return None

@@ -21,7 +21,11 @@ from services.brand_import.content_extractor import (
     score_link,
 )
 from services.brand_import.safe_http import brand_import_http_client, read_limited_response_body
-from services.brand_import.url_validation import ValidatedUrl, absolutize, same_registrable_domain
+from services.brand_import.url_validation import (
+    ValidatedUrl,
+    redirect_allowed_for_crawl,
+    same_registrable_domain,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +73,21 @@ async def fetch_site_pages(validated: ValidatedUrl) -> FetchResult:
                     page_url = effective_page_url(response)
                     if page_url != request_url:
                         seen.add(page_url)
-                        if len(pages) == 0:
-                            crawl_origin = page_url
+
+                    allowed, new_crawl_host = redirect_allowed_for_crawl(
+                        request_url=request_url,
+                        page_url=page_url,
+                        submitted_host=validated.hostname,
+                        crawl_origin=crawl_origin,
+                        is_seed_page=len(pages) == 0,
+                    )
+                    if not allowed:
+                        warnings.append(
+                            f"Skipped offsite redirect from {request_url} to {page_url}"
+                        )
+                        continue
+                    if new_crawl_host:
+                        crawl_origin = page_url
 
                     content_type = (response.headers.get("content-type") or "").lower()
                     if "html" not in content_type and "text/" not in content_type:

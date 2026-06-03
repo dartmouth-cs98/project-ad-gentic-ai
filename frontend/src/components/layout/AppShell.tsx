@@ -1,11 +1,11 @@
-// AppShell — Swiss/Linear rail + topbar for /dashboard and /generate routes.
-// All other routes continue to use DashboardLayout.
+// AppShell — Swiss/Linear rail + topbar for authenticated app routes.
 
 import { ReactNode } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { AppIcon } from '../ui/AppIcon';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useUser } from '../../contexts/UserContext';
+import { useCompany } from '../../contexts/CompanyContext';
 import '../../app.css';
 
 const NAV_ITEMS = [
@@ -15,6 +15,14 @@ const NAV_ITEMS = [
   { id: 'generate',      path: '/generate',         icon: 'sparkles' as const,   label: 'Generate' },
   { id: 'customer-data', path: '/customer-data',    icon: 'database' as const,   label: 'Customer Data' },
 ];
+
+const CRUMB_LABEL_MAX = 28;
+
+function formatCrumbLabel(label: string): string {
+  const upper = label.toUpperCase();
+  if (upper.length <= CRUMB_LABEL_MAX) return upper;
+  return `${upper.slice(0, CRUMB_LABEL_MAX - 1)}…`;
+}
 
 const PAGE_LABELS: Record<string, string> = {
   '/dashboard':    'DASHBOARD',
@@ -36,6 +44,8 @@ interface AppShellProps {
   onNewCampaign?: () => void;
   /** Pass true on /generate to use height:100vh layout */
   fullHeight?: boolean;
+  /** Override the breadcrumb segment after WORKSPACE (e.g. campaign name on detail page) */
+  pageLabel?: string;
 }
 
 export function AppShell({
@@ -45,14 +55,22 @@ export function AppShell({
   showNewCampaign,
   onNewCampaign,
   fullHeight,
+  pageLabel: pageLabelOverride,
 }: AppShellProps) {
   const { theme, toggleTheme } = useTheme();
-  const { user, logout } = useUser();
+  const { user, logout, loading: userLoading } = useUser();
+  const { profile, loading: companyLoading } = useCompany();
   const location = useLocation();
   const navigate = useNavigate();
 
   const dark = theme === 'dark';
-  const pageLabel = PAGE_LABELS[location.pathname] ?? 'WORKSPACE';
+  const isCampaignDetail = /^\/campaign\/\d+/.test(location.pathname);
+  const rawPageLabel = pageLabelOverride
+    ?? (isCampaignDetail ? 'CAMPAIGN' : PAGE_LABELS[location.pathname])
+    ?? 'WORKSPACE';
+  const pageLabel = formatCrumbLabel(rawPageLabel);
+  const creditsLoading = companyLoading || userLoading;
+  const creditsBalance = profile.creditsBalance;
 
   const userInitial = user?.business_name
     ? user.business_name.charAt(0).toUpperCase()
@@ -77,7 +95,7 @@ export function AppShell({
               key={n.id}
               to={n.path}
               className={({ isActive }) =>
-                `as-rail-item${isActive ? ' active' : ''}`
+                `as-rail-item${isActive || (n.id === 'campaigns' && isCampaignDetail) ? ' active' : ''}`
               }
             >
               <span className="as-rail-icon">
@@ -89,6 +107,25 @@ export function AppShell({
         </nav>
 
         <div className="as-rail-foot">
+          <div
+            className={`as-rail-credits${
+              creditsLoading
+                ? ''
+                : creditsBalance <= 0
+                  ? ' empty'
+                  : creditsBalance <= 5
+                    ? ' low'
+                    : ''
+            }`}
+            title={
+              creditsLoading
+                ? 'Loading credits…'
+                : `${creditsBalance} credit${creditsBalance === 1 ? '' : 's'} remaining`
+            }
+          >
+            <span className="as-rail-credits-val">{creditsLoading ? '—' : creditsBalance}</span>
+            <span className="as-rail-credits-label">LEFT</span>
+          </div>
           <NavLink
             to="/settings"
             className={({ isActive }) =>
@@ -160,8 +197,15 @@ export function AppShell({
               </button>
             )}
 
-            {/* User dot */}
-            <div className="as-user-dot">{userInitial}</div>
+            {/* User profile */}
+            <NavLink
+              to="/profile"
+              className={({ isActive }) => `as-user-dot${isActive ? ' active' : ''}`}
+              aria-label="Company profile"
+              title="Company profile"
+            >
+              {userInitial}
+            </NavLink>
           </div>
         </header>
 

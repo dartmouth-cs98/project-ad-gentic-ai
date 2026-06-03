@@ -4,14 +4,6 @@ import type { CampaignListItem } from '../../lib/campaignsList';
 
 export type CampaignItem = CampaignListItem & { thumbnail?: string };
 
-// Kept for CampaignDetailPage Badge variant mapping
-export const statusColors = {
-  active: 'success',
-  completed: 'default',
-  draft: 'warning',
-  paused: 'info',
-} as const;
-
 function CheckIcon() {
   return (
     <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={9} height={9}>

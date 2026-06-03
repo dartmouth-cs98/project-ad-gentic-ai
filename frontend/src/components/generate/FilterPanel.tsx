@@ -31,7 +31,7 @@ export function FilterPanel({
   onClose,
   phase: _phase,
   onEditClick: _onEditClick,
-  preferencesSaveStatus: _preferencesSaveStatus = 'idle',
+  preferencesSaveStatus = 'idle',
 }: FilterPanelProps) {
   const activeCount = countActiveFilters(filterState);
 
@@ -77,12 +77,15 @@ export function FilterPanel({
         </div>
 
         <div className="gen-drawer-foot">
-          <button
-            className="gen-reset-btn"
-            onClick={() => filterDispatch({ type: 'RESET' })}
-          >
-            Reset all
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <PreferencesSaveIndicator status={preferencesSaveStatus} />
+            <button
+              className="gen-reset-btn"
+              onClick={() => filterDispatch({ type: 'RESET' })}
+            >
+              Reset all
+            </button>
+          </div>
           <button className="as-btn-solid" onClick={onClose}>
             Apply
           </button>

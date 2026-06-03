@@ -1,13 +1,10 @@
 import { Loader2Icon, BarChart3Icon } from 'lucide-react';
-import { Card } from '../ui/Card';
 import type { MetricsSummary, CampaignMetricDay } from '../../api/metrics';
 
 interface CampaignAnalyticsProps {
   data: MetricsSummary | null;
   isLoading?: boolean;
 }
-
-// ---------- Helpers ----------
 
 function fmt(n: number | null | undefined): string {
   if (n == null) return '—';
@@ -28,7 +25,6 @@ function fmtPct(s: string | null | undefined): string {
   return isNaN(n) ? '—' : `${n.toFixed(2)}%`;
 }
 
-// Build an SVG polyline points string from an array of values.
 function toPolylinePoints(
   values: number[],
   maxVal: number,
@@ -47,10 +43,10 @@ function toPolylinePoints(
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <Card variant="elevated" padding="md">
-      <p className="text-sm text-slate-500 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
-    </Card>
+    <div className="cmp-analytics-metric">
+      <div className="l">{label}</div>
+      <div className="v">{value}</div>
+    </div>
   );
 }
 
@@ -70,82 +66,76 @@ function DailyChart({ days }: { days: CampaignMetricDay[] }) {
   const xLabels = sorted.filter((_, i) => i % labelStep === 0 || i === sorted.length - 1);
 
   return (
-    <Card variant="elevated" padding="lg">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-semibold text-slate-900">Performance Over Time</h3>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Impressions
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Clicks
-          </span>
+    <div className="cmp-analytics-chart">
+      <div className="cmp-analytics-chart-head">
+        <h3>Performance Over Time</h3>
+        <div className="cmp-analytics-legend">
+          <span><span className="dot imp" /> Impressions</span>
+          <span><span className="dot clk" /> Clicks</span>
         </div>
       </div>
 
-      <svg className="w-full h-48" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+      <svg className="w-full h-48" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: 192 }}>
         <defs>
-          <linearGradient id="impGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+          <linearGradient id="cmpImpGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--as-accent)" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="var(--as-accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <line x1="0" y1="45" x2={W} y2="45" stroke="#e2e8f0" strokeWidth="1" />
-        <line x1="0" y1="90" x2={W} y2="90" stroke="#e2e8f0" strokeWidth="1" />
-        <line x1="0" y1="135" x2={W} y2="135" stroke="#e2e8f0" strokeWidth="1" />
+        <line x1="0" y1="45" x2={W} y2="45" stroke="var(--as-rule)" strokeWidth="1" />
+        <line x1="0" y1="90" x2={W} y2="90" stroke="var(--as-rule)" strokeWidth="1" />
+        <line x1="0" y1="135" x2={W} y2="135" stroke="var(--as-rule)" strokeWidth="1" />
         {impPoints && (
           <>
             <polyline
               points={`${impPoints} ${W},${H} 0,${H}`}
-              fill="url(#impGrad)"
+              fill="url(#cmpImpGrad)"
             />
-            <polyline points={impPoints} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />
+            <polyline points={impPoints} fill="none" stroke="var(--as-accent)" strokeWidth="2.5" strokeLinejoin="round" />
           </>
         )}
         {clickPoints && (
-          <polyline points={clickPoints} fill="none" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
+          <polyline points={clickPoints} fill="none" stroke="var(--as-ink-2)" strokeWidth="2" strokeLinejoin="round" />
         )}
       </svg>
 
-      <div className="flex justify-between mt-2 text-xs text-slate-400">
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: "'Geist Mono', monospace", fontSize: 10, color: 'var(--as-ink-3)' }}>
         {xLabels.map((d) => (
           <span key={d.date}>
             {new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </span>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }
-
-// ---------- Component ----------
 
 export function CampaignAnalytics({ data, isLoading }: CampaignAnalyticsProps) {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-slate-400">
-        <Loader2Icon className="w-6 h-6 animate-spin mr-2" />
-        <span className="text-sm">Loading metrics…</span>
+      <div className="prd-state" style={{ padding: '48px 0' }}>
+        <Loader2Icon size={20} style={{ animation: 'as-spin 0.8s linear infinite' }} />
+        <p>Loading metrics…</p>
       </div>
     );
   }
 
   if (!data || data.days.length === 0) {
     return (
-      <Card variant="elevated" padding="lg">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-            <BarChart3Icon className="w-6 h-6 text-slate-400" />
+      <div className="cmp-detail-empty">
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          <div style={{ width: 44, height: 44, border: '1px solid var(--as-rule)', background: 'var(--as-paper-2)', display: 'grid', placeItems: 'center', color: 'var(--as-ink-3)', flexShrink: 0 }}>
+            <BarChart3Icon size={20} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">No analytics data yet</h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <h2>No analytics data yet</h2>
+            <p>
               Charts and performance metrics will appear here once this campaign is live on Meta and
               we receive the first day of Insights data.
             </p>
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -160,17 +150,17 @@ export function CampaignAnalytics({ data, isLoading }: CampaignAnalyticsProps) {
   ];
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <DailyChart days={data.days} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="cmp-analytics-grid">
         {metricCards.map((m) => (
           <MetricCard key={m.label} label={m.label} value={m.value} />
         ))}
       </div>
 
       {data.last_fetched_at && (
-        <p className="text-xs text-slate-400">
+        <p className="cmp-analytics-sync">
           Last synced:{' '}
           {new Date(data.last_fetched_at).toLocaleString('en-US', {
             month: 'short',

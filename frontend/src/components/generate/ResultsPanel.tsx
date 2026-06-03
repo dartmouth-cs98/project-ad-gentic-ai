@@ -168,6 +168,37 @@ const EXAMPLES = [
   { idx: 'EX.03', text: 'Try a more confident tone for the Skeptic persona; everything else stays the same.' },
 ];
 
+function FiltersButton({
+  activeFilterCount,
+  onClick,
+}: {
+  activeFilterCount: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="as-btn-ghost"
+      onClick={onClick}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', fontSize: 12 }}
+    >
+      <SlidersIcon />
+      Filters
+      {activeFilterCount > 0 && (
+        <span style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 10,
+          background: 'var(--as-accent)',
+          color: 'white',
+          padding: '1px 5px',
+          letterSpacing: '0.02em',
+        }}>
+          {activeFilterCount}
+        </span>
+      )}
+    </button>
+  );
+}
+
 function EmptyBriefState({ onTry }: { onTry: (text: string) => void }) {
   return (
     <div className="gen-empty-brief">
@@ -247,12 +278,34 @@ export function ResultsPanel({
 
       {/* ── Empty brief (campaign set, idle, no variants) ── */}
       {chatStarted && phase === 'idle' && adVariants.length === 0 && (
-        <EmptyBriefState onTry={(text) => onSendExample?.(text)} />
+        <>
+          <div className="gen-results-head">
+            <span className="gen-results-context">— BRIEF · READY</span>
+            <div className="gen-head-actions">
+              <FiltersButton
+                activeFilterCount={activeFilterCount}
+                onClick={() => setDrawerOpen(true)}
+              />
+            </div>
+          </div>
+          <EmptyBriefState onTry={(text) => onSendExample?.(text)} />
+        </>
       )}
 
       {/* ── Generating ── */}
       {phase === 'generating' && (
-        <GeneratingView progressIdx={progressIdx} variantCount={6} />
+        <>
+          <div className="gen-results-head">
+            <span className="gen-results-context">— GENERATING</span>
+            <div className="gen-head-actions">
+              <FiltersButton
+                activeFilterCount={activeFilterCount}
+                onClick={() => setDrawerOpen(true)}
+              />
+            </div>
+          </div>
+          <GeneratingView progressIdx={progressIdx} variantCount={6} />
+        </>
       )}
 
       {/* ── Results ── */}
@@ -281,26 +334,10 @@ export function ResultsPanel({
             )}
 
             <div className="gen-head-actions">
-              <button
-                className="as-btn-ghost"
+              <FiltersButton
+                activeFilterCount={activeFilterCount}
                 onClick={() => setDrawerOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', fontSize: 12 }}
-              >
-                <SlidersIcon />
-                Filters
-                {activeFilterCount > 0 && (
-                  <span style={{
-                    fontFamily: "'Geist Mono', monospace",
-                    fontSize: 10,
-                    background: 'var(--as-accent)',
-                    color: 'white',
-                    padding: '1px 5px',
-                    letterSpacing: '0.02em',
-                  }}>
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
+              />
             </div>
 
             {/* Selection bar overlays head */}
@@ -367,16 +404,19 @@ export function ResultsPanel({
             )}
           </div>
 
-          <FilterPanel
-            filterState={filterState}
-            filterDispatch={filterDispatch}
-            isOpen={drawerOpen}
-            onClose={() => { setDrawerOpen(false); onApplyFilters?.(); }}
-            phase={phase}
-            onEditClick={() => setDrawerOpen(true)}
-            preferencesSaveStatus={preferencesSaveStatus}
-          />
         </>
+      )}
+
+      {chatStarted && (
+        <FilterPanel
+          filterState={filterState}
+          filterDispatch={filterDispatch}
+          isOpen={drawerOpen}
+          onClose={() => { setDrawerOpen(false); onApplyFilters?.(); }}
+          phase={phase}
+          onEditClick={() => setDrawerOpen(true)}
+          preferencesSaveStatus={preferencesSaveStatus}
+        />
       )}
     </div>
   );

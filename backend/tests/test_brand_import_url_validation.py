@@ -63,3 +63,24 @@ def test_rejects_cgnat_shared_space_resolved_ip():
     ):
         with pytest.raises(BrandImportUrlError, match="non-public"):
             validate_public_http_url("https://evil.example.com")
+
+
+def test_normalize_crawl_url_rejects_disallowed_port():
+    from services.brand_import.url_validation import normalize_crawl_url
+
+    assert normalize_crawl_url("https://example.com:25/smtp") is None
+    assert normalize_crawl_url("http://example.com:9999/") is None
+
+
+def test_normalize_crawl_url_returns_normalized_allowed_url():
+    from services.brand_import.url_validation import normalize_crawl_url
+
+    with patch(
+        "services.brand_import.url_validation._resolve_hostname_ips",
+        return_value=[__import__("ipaddress").ip_address("93.184.216.34")],
+    ):
+        assert (
+            normalize_crawl_url("https://example.com/products/widget")
+            == "https://example.com/products/widget"
+        )
+        assert normalize_crawl_url("https://example.com:8080/deals") == "https://example.com:8080/deals"

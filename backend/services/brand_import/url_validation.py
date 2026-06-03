@@ -112,6 +112,14 @@ def validate_public_http_url(raw: str) -> ValidatedUrl:
     return ValidatedUrl(original=raw.strip(), normalized=normalized, hostname=hostname)
 
 
+def normalize_crawl_url(raw: str) -> str | None:
+    """Return a normalized crawl URL when safe, else None."""
+    try:
+        return validate_public_http_url(raw).normalized
+    except BrandImportUrlError:
+        return None
+
+
 def same_registrable_domain(url_a: str, url_b: str) -> bool:
     """True when both URLs share the same hostname (MVP same-site rule)."""
     return urlparse(url_a).hostname == urlparse(url_b).hostname

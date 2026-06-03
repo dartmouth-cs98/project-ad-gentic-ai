@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -161,3 +162,57 @@ async def test_fetch_rejects_seed_offsite_open_redirect():
     ):
         with pytest.raises(RuntimeError, match="Could not fetch any HTML"):
             await fetch_site_pages(validated)
+
+
+@pytest.mark.asyncio
+async def test_fetch_skips_discovered_links_with_disallowed_ports():
+    from services.brand_import.url_validation import ValidatedUrl
+
+    home_html = (
+        '<html><body>'
+        '<a href="https://www.example.com:25/track">Bad port</a>'
+        '<a href="https://www.example.com/products/widget">Widget</a>'
+        "</body></html>"
+    )
+    product_html = "<html><body><h1>Widget</h1></body></html>"
+
+    client = AsyncMock()
+    client.stream = MagicMock(
+        side_effect=[
+            _StreamContext(_html_stream_response(url="https://www.example.com/", html=home_html)),
+            _StreamContext(
+                _html_stream_response(
+                    url="https://www.example.com/products/widget",
+                    html=product_html,
+                )
+            ),
+        ]
+    )
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=None)
+
+    validated = ValidatedUrl(
+        original="https://www.example.com",
+        normalized="https://www.example.com/",
+        hostname="www.example.com",
+    )
+
+    with patch(
+        "services.brand_import.url_validation._resolve_hostname_ips",
+        return_value=[ipaddress.ip_address("93.184.216.34")],
+    ), patch(
+        "services.brand_import.fetcher.brand_import_max_pages",
+        return_value=5,
+    ), patch(
+        "services.brand_import.fetcher.brand_import_http_client",
+        return_value=client,
+    ):
+        result = await fetch_site_pages(validated)
+
+    assert len(result.pages) == 2
+    assert {p.url for p in result.pages} == {
+        "https://www.example.com/",
+        "https://www.example.com/products/widget",
+    }
+    assert client.stream.call_count == 2
+    assert not any(":25" in call.args[1] for call in client.stream.call_args_list)

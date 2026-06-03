@@ -23,6 +23,7 @@ from services.brand_import.content_extractor import (
 from services.brand_import.safe_http import brand_import_http_client, read_limited_response_body
 from services.brand_import.url_validation import (
     ValidatedUrl,
+    normalize_crawl_url,
     redirect_allowed_for_crawl,
     same_registrable_domain,
 )
@@ -114,8 +115,13 @@ async def fetch_site_pages(validated: ValidatedUrl) -> FetchResult:
                 break
 
             for link in discover_same_site_links(page_url, html):
-                if link not in seen and link not in queue:
-                    queue.append(link)
+                validated_link = normalize_crawl_url(link)
+                if not validated_link:
+                    continue
+                if not same_registrable_domain(crawl_origin, validated_link):
+                    continue
+                if validated_link not in seen and validated_link not in queue:
+                    queue.append(validated_link)
             queue.sort(key=score_link, reverse=True)
 
     if not pages:

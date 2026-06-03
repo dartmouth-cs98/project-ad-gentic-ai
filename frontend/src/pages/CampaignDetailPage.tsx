@@ -1,29 +1,13 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import {
-  ArrowLeftIcon,
-  BarChart3Icon,
-  UsersIcon,
-  GlobeIcon,
-  PackageIcon,
-  EditIcon,
-  TrashIcon,
-  Loader2Icon,
-  AlertCircleIcon,
-  CheckCircle2Icon,
-  PlayIcon,
-} from 'lucide-react';
+import { AppShell } from '../components/layout/AppShell';
+import { PackageIcon, Loader2Icon, AlertCircleIcon, CheckCircle2Icon, PlayIcon, EditIcon, TrashIcon } from 'lucide-react';
 
 import { AdVariantsGrid } from '../components/campaigns/AdVariantsGrid';
 import { CampaignAnalytics } from '../components/campaigns/CampaignAnalytics';
 import { CampaignSettings } from '../components/campaigns/CampaignSettings';
 import { EditCampaignModal } from '../components/campaigns/EditCampaignModal';
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
-import { statusColors } from '../components/campaigns/CampaignGridCard';
 
 import type { EditFormData } from '../components/campaigns/EditCampaignModal';
 import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
@@ -34,19 +18,7 @@ import { useCampaignMetrics } from '../hooks/useCampaignMetrics';
 import { useUser } from '../contexts/UserContext';
 import { useProducts } from '../hooks/useProducts';
 import type { CampaignStatus, Product, CampaignAnalyticsSummary } from '../types';
-import { HERO_ICON_STYLES, normalizeCampaignHeroIcon, getHeroIconStyles } from '../lib/campaignHeroIcon';
-
-// ---------- Analytics helpers (live data only; empty state when API omits summary) ----------
-
-function heroBadgeClass(style: 'positive' | 'neutral' | 'muted'): string {
-  if (style === 'positive') {
-    return 'text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full';
-  }
-  if (style === 'neutral') {
-    return 'text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full';
-  }
-  return 'text-xs font-medium text-muted-foreground bg-muted/80 px-2 py-1 rounded-full';
-}
+import { normalizeCampaignHeroIcon } from '../lib/campaignHeroIcon';
 
 function resolveAnalyticsSummary(campaign: { analytics_summary?: CampaignAnalyticsSummary | null }): CampaignAnalyticsSummary | null {
   const s = campaign.analytics_summary;
@@ -63,62 +35,20 @@ function resolveAnalyticsSummary(campaign: { analytics_summary?: CampaignAnalyti
   };
 }
 
-function MousePointerClickIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m9 9 5 12 1.8-5.2L21 14Z" />
-      <path d="M7.2 2.2 8 5.1" />
-      <path d="m5.1 8-2.9-.8" />
-      <path d="M14 4.1 12 6" />
-      <path d="m6 12-1.9 2" />
-    </svg>
-  );
-}
-
-function renderHeroIcon(icon: unknown) {
-  const resolved = normalizeCampaignHeroIcon(icon);
-  const { iconClass } = HERO_ICON_STYLES[resolved];
-  switch (resolved) {
-    case 'users':
-      return <UsersIcon className={iconClass} />;
-    case 'pointer':
-      return <MousePointerClickIcon className={iconClass} />;
-    case 'chart':
-      return <BarChart3Icon className={iconClass} />;
-    case 'globe':
-      return <GlobeIcon className={iconClass} />;
-  }
-}
-
 function HeroKpiGrid({ hero }: { hero: CampaignAnalyticsSummary['hero'] }) {
   return (
-    <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
-      {hero.map((kpi, index) => {
-        const wrap = getHeroIconStyles(kpi.icon).wrap;
-        return (
-          <Card key={`${kpi.label}-${index}`} variant="elevated" padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-2 rounded ${wrap}`}>{renderHeroIcon(kpi.icon)}</div>
-              {kpi.badge != null ? (
-                <span className={heroBadgeClass(kpi.badgeStyle)}>{kpi.badge}</span>
-              ) : null}
-            </div>
-            <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
-            <p className="text-sm text-muted-foreground">{kpi.label}</p>
-          </Card>
-        );
-      })}
+    <div className="cmp-detail-kpi-grid">
+      {hero.map((kpi, index) => (
+        <div key={`${kpi.label}-${index}`} className="cmp-detail-kpi">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <span className="cmp-detail-kpi-label">{kpi.label}</span>
+            {kpi.badge != null ? (
+              <span className="cmp-detail-kpi-badge">{kpi.badge}</span>
+            ) : null}
+          </div>
+          <span className="cmp-detail-kpi-val">{kpi.value}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -126,24 +56,15 @@ function HeroKpiGrid({ hero }: { hero: CampaignAnalyticsSummary['hero'] }) {
 function AnalyticsEmptyState({
   title,
   description,
-  className = '',
 }: {
   title: string;
   description: ReactNode;
-  className?: string;
 }) {
   return (
-    <Card variant="elevated" padding="lg" className={className}>
-      <div className="flex flex-col sm:flex-row items-start gap-4">
-        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-          <BarChart3Icon className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <div className="text-sm text-muted-foreground mt-1 space-y-2">{description}</div>
-        </div>
-      </div>
-    </Card>
+    <div className="cmp-detail-empty">
+      <h2>{title}</h2>
+      <div>{description}</div>
+    </div>
   );
 }
 
@@ -187,39 +108,43 @@ function parseProductContext(raw: string | null): string | null {
 
 function AttachedProducts({ products }: { products: Product[] }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="cmp-detail-product-grid">
       {products.map((product) => (
-        <Card key={product.id} padding="md">
-          <div className="flex items-start gap-3">
-            {product.image_urls[0] ? (
-              <img
-                src={product.image_urls[0]}
-                alt={product.name}
-                className="w-12 h-12 rounded object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                <PackageIcon className="w-5 h-5 text-muted-foreground" />
-              </div>
-            )}
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-foreground truncate">
-                {product.name}
-              </h3>
-              {product.description && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {product.description}
-                </p>
-              )}
+        <div key={product.id} className="cmp-detail-product">
+          {product.image_urls[0] ? (
+            <img src={product.image_urls[0]} alt={product.name} />
+          ) : (
+            <div className="cmp-detail-product-thumb">
+              <PackageIcon size={18} />
             </div>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div className="cmp-detail-product-name">{product.name}</div>
+            {product.description && (
+              <div className="cmp-detail-product-desc">{product.description}</div>
+            )}
           </div>
-        </Card>
+        </div>
       ))}
     </div>
   );
 }
 
-// ---------- Component ----------
+function BackArrowIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width={12} height={12}>
+      <path d="M8 2L4 7l4 5" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width={16} height={16} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+    </svg>
+  );
+}
 
 export function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -242,7 +167,6 @@ export function CampaignDetailPage() {
     !!campaign?.meta_campaign_id,
   );
 
-  // Two separate mutation instances — one for the edit modal, one for the settings tab
   const editMutation = useUpdateCampaign();
   const settingsMutation = useUpdateCampaign();
   const deleteMutation = useDeleteCampaign();
@@ -255,8 +179,6 @@ export function CampaignDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Update the browser tab title with the campaign name so the address bar
-  // (e.g. Arc's breadcrumb bar) shows the name instead of the raw numeric ID
   useEffect(() => {
     if (campaign?.name) {
       document.title = `${campaign.name} — Ad-gentic AI`;
@@ -271,8 +193,6 @@ export function CampaignDetailPage() {
     { key: 'analytics' as const, label: 'Analytics' },
     { key: 'settings' as const, label: 'Settings' },
   ];
-
-  // ---------- Handlers ----------
 
   const handleEditSave = (data: EditFormData) => {
     editMutation.mutate(
@@ -321,47 +241,35 @@ export function CampaignDetailPage() {
     });
   };
 
-  // ---------- Loading state ----------
-
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center text-muted-foreground">
-            <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
-            <p className="text-sm">Loading campaign...</p>
+      <AppShell pageLabel="CAMPAIGN">
+        <div className="as-canvas">
+          <div className="prd-state">
+            <SpinnerIcon />
+            <p>Loading campaign…</p>
           </div>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
 
-  // ---------- Error state ----------
-
   if (isError || !campaign) {
     return (
-      <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <AlertCircleIcon className="w-7 h-7 text-red-500" />
-            </div>
-            <h2 className="text-lg font-semibold text-foreground mb-1">
-              Campaign not found
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {(error as Error)?.message}
-            </p>
-            <Link to="/campaigns" className="text-muted-foreground text-sm hover:text-foreground">
+      <AppShell pageLabel="CAMPAIGN">
+        <div className="as-canvas">
+          <div className="prd-state">
+            <AlertCircleIcon size={28} style={{ color: 'var(--as-danger)' }} />
+            <h2>Campaign not found</h2>
+            <p>{(error as Error)?.message}</p>
+            <Link to="/campaigns" className="as-btn-ghost" style={{ padding: '8px 16px' }}>
               Back to campaigns
             </Link>
           </div>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
-
-  // ---------- Derived values ----------
 
   const editInitial: EditFormData = {
     name: campaign.name,
@@ -380,7 +288,6 @@ export function CampaignDetailPage() {
     endDate: campaign.end_date ?? '',
   };
 
-  const statusVariant = statusColors[campaign.status as keyof typeof statusColors] ?? 'default';
   const attachedProductIds = parseProductIds(campaign.product_ids);
   const attachedProducts = attachedProductIds
     .map((productId) => products.find((p) => p.id === productId))
@@ -399,81 +306,93 @@ export function CampaignDetailPage() {
   };
   const analyticsSummary = resolveAnalyticsSummary(campaign);
 
-  // ---------- Render ----------
-
   return (
-    <DashboardLayout>
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            to="/campaigns"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
-          >
-            <ArrowLeftIcon className="w-4 h-4 mr-1" />
-            Back to Campaigns
-          </Link>
+    <AppShell pageLabel={campaign.name.toUpperCase()}>
+      <div className="as-canvas">
+        <Link to="/campaigns" className="cmp-detail-back">
+          <BackArrowIcon />
+          Back to Campaigns
+        </Link>
 
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {campaign.name}
-                </h1>
-                <Badge variant={statusVariant}>
-                  {campaign.status}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">
-                Created on{' '}
-                {new Date(campaign.created_at).toLocaleDateString('en-US', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {campaign.status === 'draft' && (
-                <>
-                  {approvableVariants.length > 0 && (
-                    <Button
-                      variant="secondary"
-                      leftIcon={<CheckCircle2Icon className="w-4 h-4" />}
-                      onClick={handleApproveAll}
-                      disabled={approveVariantMutation.isPending}
-                    >
-                      Approve All
-                    </Button>
-                  )}
-                  <Button
-                    variant="primary"
-                    leftIcon={<PlayIcon className="w-4 h-4" />}
-                    onClick={handleRunCampaign}
-                    disabled={runCampaignMutation.isPending || approvedVariants.length === 0}
+        <div className="as-page-head">
+          <div>
+            <span className="as-eyebrow">— CAMPAIGN</span>
+            <h1 style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {campaign.name}
+              <span className={`cmp-status ${campaign.status}`}>
+                <span className="d" />
+                {campaign.status}
+              </span>
+            </h1>
+            <p className="cmp-detail-meta">
+              Created{' '}
+              {new Date(campaign.created_at).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+
+          <div className="cmp-detail-actions">
+            {campaign.status === 'draft' && (
+              <>
+                {approvableVariants.length > 0 && (
+                  <button
+                    type="button"
+                    className="as-btn-ghost"
+                    onClick={handleApproveAll}
+                    disabled={approveVariantMutation.isPending}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
                   >
-                    {runCampaignMutation.isPending ? 'Starting…' : 'Run Campaign'}
-                  </Button>
-                </>
-              )}
-              <Button
-                variant="secondary"
-                leftIcon={<EditIcon className="w-4 h-4" />}
-                onClick={() => setShowEditModal(true)}
-              >
-                Edit Campaign
-              </Button>
-              <Button
-                variant="danger"
-                leftIcon={<TrashIcon className="w-4 h-4" />}
-                onClick={() => {
-                  setDeleteError(null);
-                  deleteMutation.reset();
-                  setShowDeleteModal(true);
-                }}
-              >
-                Delete
-              </Button>
-            </div>
+                    <CheckCircle2Icon size={14} />
+                    Approve All
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="as-btn-solid"
+                  onClick={handleRunCampaign}
+                  disabled={runCampaignMutation.isPending || approvedVariants.length === 0}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px' }}
+                >
+                  <PlayIcon size={14} />
+                  {runCampaignMutation.isPending ? 'Starting…' : 'Run Campaign'}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              className="as-btn-ghost"
+              onClick={() => setShowEditModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px' }}
+            >
+              <EditIcon size={14} />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteError(null);
+                deleteMutation.reset();
+                setShowDeleteModal(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                background: 'transparent',
+                border: '1px solid rgba(185,28,28,0.35)',
+                color: 'var(--as-danger)',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              <TrashIcon size={14} />
+              Delete
+            </button>
           </div>
         </div>
 
@@ -481,8 +400,7 @@ export function CampaignDetailPage() {
           <HeroKpiGrid hero={analyticsSummary.hero} />
         ) : (
           <AnalyticsEmptyState
-            className="mb-8"
-            title="Performance metrics aren’t available yet"
+            title="Performance metrics aren't available yet"
             description={
               <p>
                 Reach, CTR, spend, and regional breakdown will show here once live analytics are connected for this
@@ -492,84 +410,67 @@ export function CampaignDetailPage() {
           />
         )}
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-border">
-          <div className="flex gap-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`pb-4 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.key
-                    ? 'border-foreground text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        <div className="stg-tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`stg-tab${activeTab === tab.key ? ' on' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Tab content */}
         {activeTab === 'variants' && (
           <>
             {isVariantsLoading && (
-              <div className="flex items-center justify-center py-14 text-muted-foreground">
-                <Loader2Icon className="w-6 h-6 animate-spin mr-2" />
-                <span className="text-sm">Loading ad variants...</span>
+              <div className="prd-state" style={{ padding: '48px 0' }}>
+                <Loader2Icon size={20} style={{ animation: 'as-spin 0.8s linear infinite' }} />
+                <p>Loading ad variants…</p>
               </div>
             )}
 
             {!isVariantsLoading && isVariantsError && (
-              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="cmp-detail-error">
                 Failed to load ad variants: {(variantsError as Error)?.message}
               </div>
             )}
 
             {!isVariantsLoading && !isVariantsError && completedVariants.length === 0 && (
-              <Card variant="elevated" padding="lg">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                    <PackageIcon className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground">
-                      No approved ad variants yet
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Approve a plan in the Generate flow to create variants for this campaign.
-                      Once created and approved, they will appear here.
+              <div className="cmp-detail-empty">
+                <h2>No approved ad variants yet</h2>
+                <p>
+                  Approve a plan in the Generate flow to create variants for this campaign.
+                  Once created and approved, they will appear here.
+                </p>
+
+                <div style={{ marginTop: 20 }}>
+                  <div className="stg-section-head">Attached products</div>
+                  {isProductsLoading ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--as-ink-2)', marginTop: 12 }}>
+                      <Loader2Icon size={14} style={{ animation: 'as-spin 0.8s linear infinite' }} />
+                      Loading products…
+                    </div>
+                  ) : attachedProducts.length > 0 ? (
+                    <AttachedProducts products={attachedProducts} />
+                  ) : (
+                    <p style={{ marginTop: 12 }}>
+                      {productContextText
+                        ? `Attached product context: ${productContextText}`
+                        : 'No attached products were found for this campaign.'}
                     </p>
-                  </div>
+                  )}
                 </div>
-
-                <div className="mb-3">
-                  <h3 className="text-sm font-semibold text-foreground">Attached products</h3>
-                </div>
-
-                {isProductsLoading ? (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Loader2Icon className="w-4 h-4 animate-spin mr-2" />
-                    Loading products...
-                  </div>
-                ) : attachedProducts.length > 0 ? (
-                  <AttachedProducts products={attachedProducts} />
-                ) : (
-                  <div className="rounded border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
-                    {productContextText
-                      ? `Attached product context: ${productContextText}`
-                      : 'No attached products were found for this campaign.'}
-                  </div>
-                )}
-              </Card>
+              </div>
             )}
 
             {!isVariantsLoading && !isVariantsError && completedVariants.length > 0 && (
               <AdVariantsGrid
                 variants={completedVariants}
-                onApprove={(id) => approveVariantMutation.mutate(id)}
-                onUnapprove={(id) => unapproveVariantMutation.mutate(id)}
+                onApprove={(variantId) => approveVariantMutation.mutate(variantId)}
+                onUnapprove={(variantId) => unapproveVariantMutation.mutate(variantId)}
               />
             )}
           </>
@@ -595,31 +496,31 @@ export function CampaignDetailPage() {
             }
           />
         )}
+      </div>
 
-        {/* Modals */}
-        {showEditModal && (
-          <EditCampaignModal
-            initial={editInitial}
-            onClose={() => setShowEditModal(false)}
-            onSave={handleEditSave}
-            isSaving={editMutation.isPending}
-            error={
-              editMutation.isError
-                ? (editMutation.error as Error).message
-                : null
-            }
-          />
-        )}
+      {showEditModal && (
+        <EditCampaignModal
+          initial={editInitial}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleEditSave}
+          isSaving={editMutation.isPending}
+          error={
+            editMutation.isError
+              ? (editMutation.error as Error).message
+              : null
+          }
+        />
+      )}
 
-        {showDeleteModal && campaign && (
-          <DeleteCampaignModal
-            campaignNames={[campaign.name]}
-            isLoading={deleteMutation.isPending}
-            error={deleteError}
-            onClose={closeDeleteModal}
-            onConfirm={handleDelete}
-          />
-        )}
-    </DashboardLayout>
+      {showDeleteModal && campaign && (
+        <DeleteCampaignModal
+          campaignNames={[campaign.name]}
+          isLoading={deleteMutation.isPending}
+          error={deleteError}
+          onClose={closeDeleteModal}
+          onConfirm={handleDelete}
+        />
+      )}
+    </AppShell>
   );
 }

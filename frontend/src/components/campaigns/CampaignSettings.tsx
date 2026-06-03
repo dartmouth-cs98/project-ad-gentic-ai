@@ -1,11 +1,6 @@
 import { useState } from 'react';
-import { Card } from '../ui/Card';
-import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
 import { CheckIcon, Loader2Icon } from 'lucide-react';
 import { CAMPAIGN_PLATFORM_OPTIONS } from '../../constants/campaigns';
-
-// ---------- Types ----------
 
 export interface SettingsFormData {
   name: string;
@@ -23,8 +18,6 @@ interface CampaignSettingsProps {
   error?: string | null;
 }
 
-// ---------- Component ----------
-
 export function CampaignSettings({ initial, onSave, isSaving = false, error = null }: CampaignSettingsProps) {
   const [form, setForm] = useState<SettingsFormData>(initial);
 
@@ -38,106 +31,110 @@ export function CampaignSettings({ initial, onSave, isSaving = false, error = nu
   };
 
   return (
-    <Card variant="elevated" padding="lg" className="max-w-2xl">
-      <h3 className="font-semibold text-slate-900 mb-6">Campaign Settings</h3>
-      <div className="space-y-6">
-        <Input
-          label="Campaign Name"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
+    <div className="stg-section" style={{ maxWidth: 640 }}>
+      <div className="stg-section-head">Campaign Settings</div>
+      <div className="stg-section-sub">Update campaign name, status, platforms, and schedule.</div>
 
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Status
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setForm({ ...form, status: 'active' })}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                form.status === 'active'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                  : 'border-slate-200 text-slate-600 hover:border-slate-300'
-              }`}
-            >
-              Active
-            </button>
-            <button
-              onClick={() => setForm({ ...form, status: 'paused' })}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                form.status === 'paused'
-                  ? 'border-amber-500 bg-amber-50 text-amber-700'
-                  : 'border-slate-200 text-slate-600 hover:border-slate-300'
-              }`}
-            >
-              Paused
-            </button>
-          </div>
+          <label className="stg-label" htmlFor="cmp-settings-name">Campaign Name</label>
+          <input
+            id="cmp-settings-name"
+            className="stg-input"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Target Platforms
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {CAMPAIGN_PLATFORM_OPTIONS.map((platform) => (
+          <label className="stg-label">Status</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {(['active', 'paused'] as const).map((status) => (
               <button
-                key={platform.id}
+                key={status}
                 type="button"
-                onClick={() => togglePlatform(platform.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition-all ${
-                  form.platforms.includes(platform.id)
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                }`}
+                onClick={() => setForm({ ...form, status })}
+                className={`as-pill${form.status === status ? ' on' : ''}`}
+                style={{ border: '1px solid var(--as-rule)', textTransform: 'capitalize' }}
               >
-                {form.platforms.includes(platform.id) && (
-                  <CheckIcon className="w-3.5 h-3.5" />
-                )}
-                {platform.label}
+                {status}
               </button>
             ))}
           </div>
         </div>
 
-        <Input
-          label="Daily Budget ($)"
-          type="number"
-          value={form.budget}
-          onChange={(e) => setForm({ ...form, budget: e.target.value })}
-        />
+        <div>
+          <label className="stg-label">Target Platforms</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {CAMPAIGN_PLATFORM_OPTIONS.map((platform) => {
+              const selected = form.platforms.includes(platform.id);
+              return (
+                <button
+                  key={platform.id}
+                  type="button"
+                  onClick={() => togglePlatform(platform.id)}
+                  className={`as-pill${selected ? ' on' : ''}`}
+                  style={{ border: '1px solid var(--as-rule)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {selected && <CheckIcon size={12} />}
+                  {platform.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Start Date"
-            type="date"
-            value={form.startDate}
-            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+        <div>
+          <label className="stg-label" htmlFor="cmp-settings-budget">Daily Budget ($)</label>
+          <input
+            id="cmp-settings-budget"
+            className="stg-input"
+            type="number"
+            value={form.budget}
+            onChange={(e) => setForm({ ...form, budget: e.target.value })}
           />
-          <Input
-            label="End Date"
-            type="date"
-            value={form.endDate}
-            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div>
+            <label className="stg-label" htmlFor="cmp-settings-start">Start Date</label>
+            <input
+              id="cmp-settings-start"
+              className="stg-input"
+              type="date"
+              value={form.startDate}
+              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="stg-label" htmlFor="cmp-settings-end">End Date</label>
+            <input
+              id="cmp-settings-end"
+              className="stg-input"
+              type="date"
+              value={form.endDate}
+              onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+            />
+          </div>
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-            {error}
-          </p>
+          <div className="stg-toast err">{error}</div>
         )}
 
-        <div className="pt-4 border-t border-slate-100">
-          <Button
+        <div style={{ paddingTop: 8, borderTop: '1px solid var(--as-rule)' }}>
+          <button
+            type="button"
+            className="as-btn-solid"
             onClick={() => onSave?.(form)}
             disabled={isSaving}
-            leftIcon={isSaving ? <Loader2Icon className="w-4 h-4 animate-spin" /> : undefined}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px' }}
           >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
+            {isSaving && <Loader2Icon size={14} style={{ animation: 'as-spin 0.8s linear infinite' }} />}
+            {isSaving ? 'Saving…' : 'Save Changes'}
+          </button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

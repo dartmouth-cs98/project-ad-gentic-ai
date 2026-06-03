@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   XIcon,
   CheckIcon,
@@ -20,10 +21,13 @@ const regions = [
   { id: 'global', label: 'Global' },
 ];
 
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
-const labelClass = 'block text-sm font-medium mb-1.5';
-
-// ---------- Product Selector ----------
+const GOAL_OPTIONS = [
+  { value: 'awareness', label: 'Brand Awareness' },
+  { value: 'leads', label: 'Lead Generation' },
+  { value: 'sales', label: 'Direct Sales' },
+  { value: 'engagement', label: 'Engagement' },
+  { value: 'other', label: 'Other' },
+];
 
 function ProductSelector({
   businessClientId,
@@ -61,29 +65,32 @@ function ProductSelector({
 
   if (selectedProduct) {
     return (
-      <div>
-        <label className={labelClass}>Product <span className="text-red-500">*</span></label>
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded">
+      <div className="as-field">
+        <label className="as-field-label">
+          Product <span className="as-field-required">*</span>
+        </label>
+        <div className="cmp-product-selected">
           {selectedProduct.image_urls[0] ? (
-            <img src={selectedProduct.image_urls[0]} alt={selectedProduct.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+            <img src={selectedProduct.image_urls[0]} alt={selectedProduct.name} />
           ) : (
-            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-              <ImageIcon className="w-4 h-4 text-muted-foreground" />
+            <div className="cmp-product-selected-thumb">
+              <ImageIcon size={16} />
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{selectedProduct.name}</p>
+          <div className="cmp-product-selected-meta">
+            <div className="cmp-product-selected-name">{selectedProduct.name}</div>
             {selectedProduct.description && (
-              <p className="text-xs text-muted-foreground truncate">{selectedProduct.description}</p>
+              <div className="cmp-product-selected-desc">{selectedProduct.description}</div>
             )}
           </div>
           <button
             type="button"
             onClick={() => !disabled && onSelect(null)}
             disabled={disabled}
-            className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
+            className="as-modal-close"
+            aria-label="Clear product"
           >
-            <XIcon className="w-4 h-4" />
+            <XIcon size={14} />
           </button>
         </div>
       </div>
@@ -91,55 +98,56 @@ function ProductSelector({
   }
 
   return (
-    <div ref={containerRef} className="relative">
-      <label className={labelClass}>Product <span className="text-red-500">*</span></label>
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+    <div ref={containerRef} className="as-field" style={{ position: 'relative' }}>
+      <label className="as-field-label">
+        Product <span className="as-field-required">*</span>
+      </label>
+      <div className="cmp-product-search-wrap">
+        <SearchIcon size={14} />
         <input
           type="text"
-          placeholder="Search your products..."
+          className={`as-input${error ? ' as-input-error' : ''}`}
+          placeholder="Search your products…"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
           onFocus={() => setIsOpen(true)}
           disabled={disabled}
-          className={`${inputClass} pl-9 ${error ? 'border-red-500/50' : ''}`}
         />
       </div>
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {error && <span className="as-field-error">{error}</span>}
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded shadow-lg max-h-52 overflow-y-auto">
+        <div className="cmp-product-dropdown">
           {isLoading && (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-              <Loader2Icon className="w-4 h-4 animate-spin" /> Loading products...
+            <div className="cmp-product-empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Loader2Icon size={14} style={{ animation: 'as-spin 0.8s linear infinite' }} />
+              Loading products…
             </div>
           )}
           {!isLoading && filtered.length === 0 && (
-            <div className="flex flex-col items-center gap-1 px-4 py-4 text-center">
-              <PackageIcon className="w-5 h-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {products.length === 0 ? 'No products yet. Add one on the Products page.' : 'No products match your search.'}
-              </p>
+            <div className="cmp-product-empty">
+              <PackageIcon size={18} style={{ margin: '0 auto 8px', display: 'block', color: 'var(--as-ink-3)' }} />
+              {products.length === 0 ? 'No products yet. Add one on the Products page.' : 'No products match your search.'}
             </div>
           )}
           {!isLoading && filtered.map((product) => (
             <button
               key={product.id}
               type="button"
+              className="cmp-product-option"
               onClick={() => { onSelect(product); setQuery(''); setIsOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors text-left"
             >
               {product.image_urls[0] ? (
-                <img src={product.image_urls[0]} alt={product.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                <img src={product.image_urls[0]} alt={product.name} />
               ) : (
-                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                <div className="cmp-product-selected-thumb" style={{ width: 32, height: 32 }}>
+                  <ImageIcon size={14} />
                 </div>
               )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{product.name}</p>
+              <div className="cmp-product-selected-meta">
+                <div className="cmp-product-selected-name">{product.name}</div>
                 {product.description && (
-                  <p className="text-xs text-muted-foreground truncate">{product.description}</p>
+                  <div className="cmp-product-selected-desc">{product.description}</div>
                 )}
               </div>
             </button>
@@ -150,19 +158,14 @@ function ProductSelector({
   );
 }
 
-// ---------- Main Modal ----------
-
 interface CreateCampaignModalProps {
-  /** Positive business client id; parent must not render the modal until this is set. */
   businessClientId: number;
   onClose: () => void;
-  /** Optional: called with the created Campaign so the parent can navigate into the generate flow. */
   onCreated?: (campaign: Campaign) => void;
 }
 
 export function CreateCampaignModal({ businessClientId, onClose, onCreated }: CreateCampaignModalProps) {
   const createMutation = useCreateCampaign();
-  const autofillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [customGoal, setCustomGoal] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -176,15 +179,6 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
   });
 
   const isCreating = createMutation.isPending;
-
-  useEffect(() => {
-    return () => {
-      if (autofillTimeoutRef.current !== null) {
-        clearTimeout(autofillTimeoutRef.current);
-        autofillTimeoutRef.current = null;
-      }
-    };
-  }, []);
 
   const togglePlatform = (platformId: string) => {
     setNewCampaign({
@@ -214,8 +208,6 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
       },
       {
         onSuccess: (campaign) => {
-          // Close the modal first, then hand the new campaign to the parent
-          // so it can optionally jump straight into the generate flow
           onClose();
           onCreated?.(campaign);
         },
@@ -223,71 +215,98 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => !isCreating && onClose()} />
-
-      <div className="relative w-full max-w-lg bg-card border border-border rounded max-h-[90vh] overflow-y-auto text-foreground">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">Create New Campaign</h2>
-          <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground">
-            <XIcon className="w-4 h-4" />
+  const modal = (
+    <div className="as-modal-overlay" onClick={() => !isCreating && onClose()}>
+      <div
+        role="dialog"
+        aria-labelledby="create-campaign-title"
+        className="as-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="as-modal-head">
+          <div>
+            <div className="as-modal-eyebrow">— NEW · CAMPAIGN</div>
+            <div className="as-modal-title" id="create-campaign-title">Create Campaign</div>
+          </div>
+          <button type="button" className="as-modal-close" onClick={onClose} disabled={isCreating} aria-label="Close">
+            <XIcon size={14} />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div>
-            <label className={labelClass}>Campaign Name <span className="text-red-500">*</span></label>
+        <div className="as-modal-body">
+          <div className="as-field">
+            <label className="as-field-label" htmlFor="create-campaign-name">
+              Campaign name <span className="as-field-required">*</span>
+            </label>
             <input
-              className={inputClass}
-              placeholder="e.g., Summer Sale 2026"
+              id="create-campaign-name"
+              className="as-input"
+              placeholder="e.g. Summer Sale 2026"
               value={newCampaign.name}
               onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
               disabled={isCreating}
             />
-            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+            {errors.name && <span className="as-field-error">{errors.name}</span>}
           </div>
 
           <ProductSelector
             businessClientId={businessClientId}
             selectedProduct={selectedProduct}
-            onSelect={(p) => { setSelectedProduct(p); setErrors((prev) => { const { product: _, ...rest } = prev; return rest; }); }}
+            onSelect={(p) => {
+              setSelectedProduct(p);
+              setErrors((prev) => {
+                const { product: _, ...rest } = prev;
+                return rest;
+              });
+            }}
             error={errors.product}
             disabled={isCreating}
           />
 
-          <div>
-            <label className={labelClass}>Target Audience <span className="text-red-500">*</span></label>
+          <div className="as-field">
+            <label className="as-field-label" htmlFor="create-campaign-audience">
+              Target audience <span className="as-field-required">*</span>
+            </label>
             <textarea
-              className={`${inputClass} resize-none`}
+              id="create-campaign-audience"
+              className="as-textarea"
               rows={3}
-              placeholder="Describe who you want to reach..."
+              placeholder="Describe who you want to reach…"
               value={newCampaign.targetAudience}
               onChange={(e) => setNewCampaign({ ...newCampaign, targetAudience: e.target.value })}
               disabled={isCreating}
             />
-            {errors.targetAudience && <p className="text-xs text-red-500 mt-1">{errors.targetAudience}</p>}
+            {errors.targetAudience && <span className="as-field-error">{errors.targetAudience}</span>}
           </div>
 
-          <div>
-            <label className={labelClass}>Campaign Goal</label>
-            <select
-              className={inputClass}
-              value={newCampaign.goal}
-              onChange={(e) => setNewCampaign({ ...newCampaign, goal: e.target.value })}
-              disabled={isCreating}
-            >
-              <option value="">Select goal</option>
-              <option value="awareness">Brand Awareness</option>
-              <option value="leads">Lead Generation</option>
-              <option value="sales">Direct Sales</option>
-              <option value="engagement">Engagement</option>
-              <option value="other">Other</option>
-            </select>
+          <div className="as-field">
+            <label className="as-field-label">Campaign goal</label>
+            <div className="as-chip-group">
+              {GOAL_OPTIONS.map((g) => (
+                <button
+                  key={g.value}
+                  type="button"
+                  className={`as-chip${newCampaign.goal === g.value ? ' on' : ''}`}
+                  onClick={() => {
+                    if (newCampaign.goal === g.value) {
+                      setNewCampaign({ ...newCampaign, goal: '' });
+                      if (g.value === 'other') setCustomGoal('');
+                    } else {
+                      setNewCampaign({ ...newCampaign, goal: g.value });
+                    }
+                  }}
+                  disabled={isCreating}
+                >
+                  {newCampaign.goal === g.value && <CheckIcon size={12} />}
+                  {g.label}
+                </button>
+              ))}
+            </div>
             {newCampaign.goal === 'other' && (
               <input
-                className={`${inputClass} mt-2`}
-                placeholder="Describe your specific goal..."
+                className="as-input"
+                style={{ marginTop: 8 }}
+                placeholder="Describe your specific goal…"
                 value={customGoal}
                 onChange={(e) => setCustomGoal(e.target.value)}
                 disabled={isCreating}
@@ -295,32 +314,29 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
             )}
           </div>
 
-          <div>
-            <label className={labelClass}>Target Platforms</label>
-            <div className="flex flex-wrap gap-2">
+          <div className="as-field">
+            <label className="as-field-label">Target platforms</label>
+            <div className="as-chip-group">
               {CAMPAIGN_PLATFORM_OPTIONS.map((platform) => (
                 <button
                   key={platform.id}
                   type="button"
+                  className={`as-chip${newCampaign.platforms.includes(platform.id) ? ' on' : ''}`}
                   onClick={() => togglePlatform(platform.id)}
                   disabled={isCreating}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm transition-colors disabled:opacity-50 ${
-                    newCampaign.platforms.includes(platform.id)
-                      ? 'border-primary bg-primary/10 text-foreground'
-                      : 'border-border text-muted-foreground hover:border-foreground/30'
-                  }`}
                 >
-                  {newCampaign.platforms.includes(platform.id) && <CheckIcon className="w-3.5 h-3.5 text-primary" />}
+                  {newCampaign.platforms.includes(platform.id) && <CheckIcon size={12} />}
                   {platform.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
-            <label className={labelClass}>Target Region</label>
+          <div className="as-field">
+            <label className="as-field-label" htmlFor="create-campaign-region">Target region</label>
             <select
-              className={inputClass}
+              id="create-campaign-region"
+              className="as-select"
               value={newCampaign.region}
               onChange={(e) => setNewCampaign({ ...newCampaign, region: e.target.value })}
               disabled={isCreating}
@@ -329,27 +345,39 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
               {regions.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
             </select>
           </div>
+
+          {createMutation.isError && (
+            <div className="stg-toast err">{(createMutation.error as Error).message}</div>
+          )}
         </div>
 
-        {createMutation.isError && (
-          <div className="mx-6 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
-            {(createMutation.error as Error).message}
-          </div>
-        )}
-
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} disabled={isCreating} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+        <div className="as-modal-foot">
+          <button type="button" className="as-btn-ghost" onClick={onClose} disabled={isCreating} style={{ padding: '8px 16px' }}>
             Cancel
           </button>
           <button
+            type="button"
+            className="as-btn-solid"
             onClick={handleCreateCampaign}
             disabled={isCreating}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 18px' }}
           >
-            {isCreating ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Creating...</> : <><PlusIcon className="w-4 h-4" /> Create Campaign</>}
+            {isCreating ? (
+              <>
+                <Loader2Icon size={14} style={{ animation: 'as-spin 0.8s linear infinite' }} />
+                Creating…
+              </>
+            ) : (
+              <>
+                <PlusIcon size={14} />
+                Create Campaign
+              </>
+            )}
           </button>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

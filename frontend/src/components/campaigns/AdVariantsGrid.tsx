@@ -1,20 +1,9 @@
 import { useState } from 'react';
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { FilmIcon, FileTextIcon, CheckCircle2Icon, XIcon } from 'lucide-react';
+import { CheckCircle2Icon, XIcon } from 'lucide-react';
 import type { AdVariant } from '../../types';
 import { useGroupedVariants } from '../../hooks/useGroupedVariants';
 import { VariantGroupSection } from '../shared/VariantGroupSection';
-
-function parseScript(meta: string | null): string | null {
-  if (!meta) return null;
-  try {
-    const parsed = JSON.parse(meta) as { script?: string };
-    return parsed.script ?? null;
-  } catch {
-    return null;
-  }
-}
+import { AdVariantCard } from '../generate/AdVariantCard';
 
 interface AdVariantsGridProps {
   variants: AdVariant[];
@@ -65,50 +54,51 @@ export function AdVariantsGrid({ variants, onApprove, onUnapprove }: AdVariantsG
   const unapprovedSelected = variants.filter((v) => selectedIds.has(v.id) && !v.is_approved);
 
   return (
-    <div className="space-y-4">
-      {/* Action bar — always visible */}
-      <div className="flex items-center justify-between px-1 py-2 border-b border-border">
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 cursor-pointer">
+    <div>
+      <div className="cmp-variants-bar">
+        <div className="cmp-variants-bar-left">
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={allSelected}
               onChange={selectAll}
-              className="w-3.5 h-3.5 rounded accent-blue-600"
+              className="cmp-check"
             />
           </label>
-          <span className="text-sm text-muted-foreground">
+          <span>
             {selectedIds.size > 0
               ? `${selectedIds.size} variant${selectedIds.size > 1 ? 's' : ''} selected`
               : 'Select variants to approve'}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="cmp-variants-bar-actions">
           {onApprove && (
             <button
+              type="button"
               onClick={handleApproveSelected}
               disabled={unapprovedSelected.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-emerald-700"
+              className="as-btn-solid"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 12 }}
             >
-              <CheckCircle2Icon className="w-3.5 h-3.5" />
+              <CheckCircle2Icon size={13} />
               {allSelected ? 'Approve All' : 'Approve Selected'}
             </button>
           )}
           {selectedIds.size > 0 && (
             <button
+              type="button"
               onClick={clearSelection}
-              className="p-1 rounded hover:bg-muted transition-colors"
+              className="as-icon-btn"
               aria-label="Clear selection"
             >
-              <XIcon className="w-4 h-4 text-muted-foreground" />
+              <XIcon size={14} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Grouped grid */}
-      <div className="space-y-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {groups.map((group) => {
           const approvedCount = group.variants.filter((v) => v.is_approved).length;
           return (
@@ -119,16 +109,37 @@ export function AdVariantsGrid({ variants, onApprove, onUnapprove }: AdVariantsG
               approvedCount={approvedCount}
               totalCount={group.variants.length}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="gen-variants-grid">
                 {group.variants.map((variant) => (
-                  <VariantCard
-                    key={variant.id}
-                    variant={variant}
-                    isSelected={selectedIds.has(variant.id)}
-                    onToggle={toggleSelect}
-                    onApprove={onApprove}
-                    onUnapprove={onUnapprove}
-                  />
+                  <div key={variant.id}>
+                    <AdVariantCard
+                      variant={variant}
+                      isSelected={selectedIds.has(variant.id)}
+                      onToggle={() => toggleSelect(variant.id)}
+                    />
+                    {(onApprove || onUnapprove) && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '8px 2px 0' }}>
+                        {variant.is_approved && onUnapprove ? (
+                          <button
+                            type="button"
+                            onClick={() => onUnapprove(variant.id)}
+                            className="as-btn-ghost sm"
+                          >
+                            Unapprove
+                          </button>
+                        ) : !variant.is_approved && onApprove ? (
+                          <button
+                            type="button"
+                            onClick={() => onApprove(variant.id)}
+                            className="as-btn-solid"
+                            style={{ padding: '5px 12px', fontSize: 12 }}
+                          >
+                            Approve
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </VariantGroupSection>
@@ -136,109 +147,5 @@ export function AdVariantsGrid({ variants, onApprove, onUnapprove }: AdVariantsG
         })}
       </div>
     </div>
-  );
-}
-
-interface VariantCardProps {
-  variant: AdVariant;
-  isSelected: boolean;
-  onToggle: (id: number) => void;
-  onApprove?: (id: number) => void;
-  onUnapprove?: (id: number) => void;
-}
-
-function VariantCard({ variant, isSelected, onToggle, onApprove, onUnapprove }: VariantCardProps) {
-  const script = parseScript(variant.meta);
-
-  return (
-    <Card
-      variant="elevated"
-      padding="none"
-      className={`overflow-hidden cursor-pointer transition-all ${
-        isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-border'
-      }`}
-      onClick={() => onToggle(variant.id)}
-    >
-      <div className="relative w-full aspect-video bg-black">
-        {variant.media_url ? (
-          <video
-            src={variant.media_url}
-            className="w-full h-full object-contain object-center bg-black"
-            controls
-            preload="metadata"
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400">
-            <FilmIcon className="w-8 h-8" />
-            <p className="text-sm">No video URL available</p>
-          </div>
-        )}
-
-        {/* Approval badge */}
-        <div className="absolute top-3 left-3">
-          <Badge variant={variant.is_approved ? 'success' : 'warning'}>
-            {variant.is_approved ? 'Approved' : 'Pending Approval'}
-          </Badge>
-        </div>
-
-        {/* Selection checkbox */}
-        <div
-          className="absolute top-3 right-3 z-10"
-          onClick={(e) => { e.stopPropagation(); onToggle(variant.id); }}
-        >
-          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-            isSelected
-              ? 'bg-blue-500 border-blue-500'
-              : 'bg-black/40 border-white/60 hover:border-white'
-          }`}>
-            {isSelected && <CheckCircle2Icon className="w-3 h-3 text-white" />}
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-2.5">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">
-            Variant #{variant.id}
-          </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">v{variant.version_number}</span>
-            {variant.is_approved && onUnapprove ? (
-              <button
-                onClick={(e) => { e.stopPropagation(); onUnapprove(variant.id); }}
-                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-              >
-                Unapprove
-              </button>
-            ) : !variant.is_approved && onApprove ? (
-              <button
-                onClick={(e) => { e.stopPropagation(); onApprove(variant.id); }}
-                className="text-xs text-emerald-600 hover:text-emerald-700 underline underline-offset-2 transition-colors"
-              >
-                Approve
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          Generated {new Date(variant.created_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        </div>
-
-        {script && (
-          <div className="flex items-start gap-2 rounded-lg bg-muted/50 border border-border p-3">
-            <FileTextIcon className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <p className="text-xs leading-relaxed text-muted-foreground line-clamp-3">
-              {script}
-            </p>
-          </div>
-        )}
-      </div>
-    </Card>
   );
 }

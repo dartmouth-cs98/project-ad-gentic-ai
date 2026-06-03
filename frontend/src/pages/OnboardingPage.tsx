@@ -83,6 +83,7 @@ export function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [autofillError, setAutofillError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
     industry: '',
@@ -155,18 +156,33 @@ export function OnboardingPage() {
   const selectAllItems = (allIds: string[], currentSelection: string[]) =>
     currentSelection.length === allIds.length ? [] : [...allIds];
 
-  const handleAIAutofill = () => {
+  const handleAIAutofill = async () => {
+    const site = formData.website.trim();
+    if (!site) return;
+    setAutofillError(null);
     setIsAutoFilling(true);
-    setTimeout(() => {
-      setFormData({
-        ...formData,
-        productDescription:
-          'We offer an AI-powered advertising platform that generates psychologically-targeted ad variants for small and medium businesses. Our tool analyzes audience segments and creates personalized creative across Meta, TikTok, YouTube, and more.',
-        targetCustomer:
-          'Marketing managers and founders at SMBs (10-200 employees) who spend $1K-$20K/month on digital ads and want to improve ROAS without hiring a creative agency. They value data-driven decisions and are frustrated with generic ad templates.',
-      });
+    try {
+      const { analyzeBrandUrlForOnboarding, brandPreviewToOnboardingFields } = await import(
+        '../utils/brandImportOnboarding'
+      );
+      const preview = await analyzeBrandUrlForOnboarding(site);
+      const { productDescription, targetCustomer } = brandPreviewToOnboardingFields(preview);
+      if (!productDescription && !targetCustomer) {
+        setAutofillError('Could not extract product details from that website. Try editing the fields manually.');
+        return;
+      }
+      setFormData((prev) => ({
+        ...prev,
+        productDescription: productDescription || prev.productDescription,
+        targetCustomer: targetCustomer || prev.targetCustomer,
+      }));
+    } catch (e) {
+      setAutofillError(
+        e instanceof Error ? e.message : 'Could not analyze your website. Check the URL and try again.',
+      );
+    } finally {
       setIsAutoFilling(false);
-    }, 2000);
+    }
   };
 
   const MultiSelectGrid = ({
@@ -307,6 +323,10 @@ export function OnboardingPage() {
                   <><SparklesIcon className="w-4 h-4 text-blue-600" /> Auto-fill from {formData.website.replace(/^https?:\/\//, '').split('/')[0] || 'your website'}</>
                 )}
               </button>
+            )}
+
+            {autofillError && (
+              <p className="text-sm text-red-600">{autofillError}</p>
             )}
 
             <div>

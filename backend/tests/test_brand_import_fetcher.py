@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -164,6 +165,9 @@ async def test_fetch_follows_canonical_host_links_after_redirect():
     )
 
     with patch(
+        "services.brand_import.url_validation._resolve_hostname_ips",
+        return_value=[ipaddress.ip_address("93.184.216.34")],
+    ), patch(
         "services.brand_import.fetcher.brand_import_max_pages",
         return_value=5,
     ), patch(

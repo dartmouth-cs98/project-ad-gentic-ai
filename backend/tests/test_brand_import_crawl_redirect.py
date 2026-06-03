@@ -115,6 +115,9 @@ async def test_fetch_skips_offsite_redirect_on_internal_link():
     )
 
     with patch(
+        "services.brand_import.url_validation._resolve_hostname_ips",
+        return_value=[ipaddress.ip_address("93.184.216.34")],
+    ), patch(
         "services.brand_import.fetcher.brand_import_max_pages",
         return_value=5,
     ), patch(
@@ -216,3 +219,47 @@ async def test_fetch_skips_discovered_links_with_disallowed_ports():
     }
     assert client.stream.call_count == 2
     assert not any(":25" in call.args[1] for call in client.stream.call_args_list)
+
+
+@pytest.mark.asyncio
+async def test_fetch_continues_when_internal_link_raises_brand_import_url_error():
+    from services.brand_import.url_validation import BrandImportUrlError, ValidatedUrl
+
+    home_html = (
+        '<html><body>'
+        '<a href="https://www.example.com/products/bad">Bad redirect</a>'
+        "</body></html>"
+    )
+
+    def _stream_side_effect(method: str, url: str) -> _StreamContext:
+        if url == "https://www.example.com/products/bad":
+            raise BrandImportUrlError("Connection resolved to a non-public address")
+        return _StreamContext(_html_stream_response(url=url, html=home_html))
+
+    client = AsyncMock()
+    client.stream = MagicMock(side_effect=_stream_side_effect)
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=None)
+
+    validated = ValidatedUrl(
+        original="https://www.example.com",
+        normalized="https://www.example.com/",
+        hostname="www.example.com",
+    )
+
+    with patch(
+        "services.brand_import.url_validation._resolve_hostname_ips",
+        return_value=[ipaddress.ip_address("93.184.216.34")],
+    ), patch(
+        "services.brand_import.fetcher.brand_import_max_pages",
+        return_value=5,
+    ), patch(
+        "services.brand_import.fetcher.brand_import_http_client",
+        return_value=client,
+    ):
+        result = await fetch_site_pages(validated)
+
+    assert len(result.pages) == 1
+    assert result.pages[0].url == "https://www.example.com/"
+    assert any("Failed to fetch https://www.example.com/products/bad" in w for w in result.warnings)
+    assert client.stream.call_count == 2

@@ -22,6 +22,7 @@ from services.brand_import.content_extractor import (
 )
 from services.brand_import.safe_http import brand_import_http_client, read_limited_response_body
 from services.brand_import.url_validation import (
+    BrandImportUrlError,
     ValidatedUrl,
     normalize_crawl_url,
     redirect_allowed_for_crawl,
@@ -104,6 +105,9 @@ async def fetch_site_pages(validated: ValidatedUrl) -> FetchResult:
                         html = body.decode(response.encoding or "utf-8", errors="replace")
                     except Exception:
                         html = body.decode("utf-8", errors="replace")
+            except BrandImportUrlError as exc:
+                warnings.append(f"Failed to fetch {request_url}: {exc}")
+                continue
             except httpx.HTTPError as exc:
                 warnings.append(f"Failed to fetch {request_url}: {exc}")
                 continue

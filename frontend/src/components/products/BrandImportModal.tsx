@@ -21,7 +21,7 @@ function XIcon() {
 type Props = {
   initialUrl?: string;
   onClose: () => void;
-  onApplied: () => void;
+  onApplied: (notice?: string) => void;
 };
 
 export function BrandImportModal({ initialUrl = '', onClose, onApplied }: Props) {
@@ -102,17 +102,15 @@ export function BrandImportModal({ initialUrl = '', onClose, onApplied }: Props)
         selected_images,
         merge_onboarding_traits: false,
       });
-      const imageWarnings = result.products_created.flatMap((p) =>
-        p.image_errors.map((err) => `${p.name}: ${err}`),
+      const imageFailureCount = result.products_created.reduce(
+        (count, product) => count + product.image_errors.length,
+        0,
       );
-      if (imageWarnings.length > 0) {
-        setError(
-          `Import saved, but some images failed (${imageWarnings.length}). Check products and upload images manually.`,
-        );
-        onApplied();
-        return;
-      }
-      onApplied();
+      onApplied(
+        imageFailureCount > 0
+          ? `Import saved, but ${imageFailureCount} image(s) failed. Check products and upload images manually.`
+          : undefined,
+      );
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Apply failed');

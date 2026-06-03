@@ -450,6 +450,7 @@ export function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -518,6 +519,20 @@ export function ProductsPage() {
               </button>
             </div>
           </div>
+
+          {importNotice && (
+            <div className="prd-upload-banner" style={{ justifyContent: 'space-between' }}>
+              <span>{importNotice}</span>
+              <button
+                type="button"
+                className="as-btn-ghost"
+                style={{ fontSize: 12, padding: '4px 8px' }}
+                onClick={() => setImportNotice(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* Upload banner */}
           {uploadMutation.isPending && (
@@ -624,7 +639,11 @@ export function ProductsPage() {
       {showImportModal && (
         <BrandImportModal
           onClose={() => setShowImportModal(false)}
-          onApplied={() => queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY })}
+          onApplied={(notice) => {
+            queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+            if (notice) setImportNotice(notice);
+            setShowImportModal(false);
+          }}
         />
       )}
       {productToDelete && (

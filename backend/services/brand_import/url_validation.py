@@ -36,6 +36,14 @@ def _is_blocked_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
 _NON_PUBLIC_ADDRESS_MSG = "non-public address"
 
 
+def _safe_parsed_port(parsed) -> int | None:
+    """Return parsed port or None; malformed/out-of-range ports raise BrandImportUrlError."""
+    try:
+        return parsed.port
+    except ValueError as exc:
+        raise BrandImportUrlError("URL port is invalid") from exc
+
+
 def validate_connected_ip(ip_str: str) -> None:
     """Reject TCP peers that are not globally routable."""
     try:
@@ -82,6 +90,10 @@ def validate_public_http_url(raw: str) -> ValidatedUrl:
     if parsed.username or parsed.password:
         raise BrandImportUrlError("URLs with embedded credentials are not allowed")
 
+    port = _safe_parsed_port(parsed)
+    if port is not None and port not in (80, 443, 8080, 8443):
+        raise BrandImportUrlError(f"URL port {port} is not allowed")
+
     # Block literal IPs in URL (re-checked after DNS below).
     try:
         literal = ipaddress.ip_address(hostname)
@@ -93,10 +105,6 @@ def validate_public_http_url(raw: str) -> ValidatedUrl:
     for addr in _resolve_hostname_ips(hostname):
         if _is_blocked_ip(addr):
             raise BrandImportUrlError(f"URL resolves to a {_NON_PUBLIC_ADDRESS_MSG}")
-
-    port = parsed.port
-    if port is not None and port not in (80, 443, 8080, 8443):
-        raise BrandImportUrlError(f"URL port {port} is not allowed")
 
     path = parsed.path or "/"
     normalized = urlunparse(

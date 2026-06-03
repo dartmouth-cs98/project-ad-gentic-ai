@@ -72,6 +72,21 @@ def test_normalize_crawl_url_rejects_disallowed_port():
     assert normalize_crawl_url("http://example.com:9999/") is None
 
 
+def test_validate_public_http_url_rejects_malformed_port():
+    with pytest.raises(BrandImportUrlError, match="invalid"):
+        validate_public_http_url("https://example.com:abc/path")
+
+    with pytest.raises(BrandImportUrlError, match="invalid"):
+        validate_public_http_url("https://example.com:99999/path")
+
+
+def test_normalize_crawl_url_rejects_malformed_port():
+    from services.brand_import.url_validation import normalize_crawl_url
+
+    assert normalize_crawl_url("https://example.com:abc/path") is None
+    assert normalize_crawl_url("https://example.com:99999/path") is None
+
+
 def test_normalize_crawl_url_returns_normalized_allowed_url():
     from services.brand_import.url_validation import normalize_crawl_url
 

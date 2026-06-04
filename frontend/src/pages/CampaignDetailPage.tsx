@@ -1,21 +1,13 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
+import { AppShell } from '../components/layout/AppShell';
 import {
-  ArrowLeftIcon,
   BarChart3Icon,
   UsersIcon,
   GlobeIcon,
   PackageIcon,
-  EditIcon,
-  TrashIcon,
   Loader2Icon,
   AlertCircleIcon,
-  CheckCircle2Icon,
-  PlayIcon,
 } from 'lucide-react';
 
 import { AdVariantsGrid } from '../components/campaigns/AdVariantsGrid';
@@ -23,7 +15,6 @@ import { CampaignAnalytics } from '../components/campaigns/CampaignAnalytics';
 import { CampaignSettings } from '../components/campaigns/CampaignSettings';
 import { EditCampaignModal } from '../components/campaigns/EditCampaignModal';
 import { DeleteCampaignModal } from '../components/campaigns/DeleteCampaignModal';
-import { statusColors } from '../components/campaigns/CampaignGridCard';
 
 import type { EditFormData } from '../components/campaigns/EditCampaignModal';
 import type { SettingsFormData } from '../components/campaigns/CampaignSettings';
@@ -34,49 +25,13 @@ import { useCampaignMetrics } from '../hooks/useCampaignMetrics';
 import { useUser } from '../contexts/UserContext';
 import { useProducts } from '../hooks/useProducts';
 import type { CampaignStatus, Product, CampaignAnalyticsSummary } from '../types';
-import { HERO_ICON_STYLES, normalizeCampaignHeroIcon, getHeroIconStyles } from '../lib/campaignHeroIcon';
+import { HERO_ICON_STYLES, normalizeCampaignHeroIcon } from '../lib/campaignHeroIcon';
 
-// ---------- Analytics helpers (live data only; empty state when API omits summary) ----------
 
-function heroBadgeClass(style: 'positive' | 'neutral' | 'muted'): string {
-  if (style === 'positive') {
-    return 'text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full';
-  }
-  if (style === 'neutral') {
-    return 'text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full';
-  }
-  return 'text-xs font-medium text-muted-foreground bg-muted/80 px-2 py-1 rounded-full';
-}
-
-function resolveAnalyticsSummary(campaign: { analytics_summary?: CampaignAnalyticsSummary | null }): CampaignAnalyticsSummary | null {
-  const s = campaign.analytics_summary;
-  if (!s) return null;
-  if (!Array.isArray(s.hero) || s.hero.length === 0) return null;
-  if (!Array.isArray(s.metrics) || s.metrics.length === 0) return null;
-  if (!Array.isArray(s.personas) || s.personas.length === 0) return null;
-  return {
-    ...s,
-    hero: s.hero.map((kpi) => ({
-      ...kpi,
-      icon: normalizeCampaignHeroIcon(kpi?.icon),
-    })),
-  };
-}
-
-function MousePointerClickIcon({ className }: { className?: string }) {
+function MousePointerClickIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m9 9 5 12 1.8-5.2L21 14Z" />
       <path d="M7.2 2.2 8 5.1" />
       <path d="m5.1 8-2.9-.8" />
@@ -86,75 +41,103 @@ function MousePointerClickIcon({ className }: { className?: string }) {
   );
 }
 
+function SpinnerSvg() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+      width={16} height={16} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+    </svg>
+  );
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"
+      width={11} height={11}>
+      <path d="M8 2L4 6l4 4" />
+    </svg>
+  );
+}
+
 function renderHeroIcon(icon: unknown) {
   const resolved = normalizeCampaignHeroIcon(icon);
-  const { iconClass } = HERO_ICON_STYLES[resolved];
+  const sz = { width: 16, height: 16 };
   switch (resolved) {
-    case 'users':
-      return <UsersIcon className={iconClass} />;
-    case 'pointer':
-      return <MousePointerClickIcon className={iconClass} />;
-    case 'chart':
-      return <BarChart3Icon className={iconClass} />;
-    case 'globe':
-      return <GlobeIcon className={iconClass} />;
+    case 'users':   return <UsersIcon {...sz} />;
+    case 'pointer': return <MousePointerClickIcon />;
+    case 'chart':   return <BarChart3Icon {...sz} />;
+    case 'globe':   return <GlobeIcon {...sz} />;
   }
 }
 
 function HeroKpiGrid({ hero }: { hero: CampaignAnalyticsSummary['hero'] }) {
   return (
-    <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
+    <div className="cdp-kpi-strip">
       {hero.map((kpi, index) => {
-        const wrap = getHeroIconStyles(kpi.icon).wrap;
+        const resolved = normalizeCampaignHeroIcon(kpi?.icon);
+        void HERO_ICON_STYLES[resolved];
         return (
-          <Card key={`${kpi.label}-${index}`} variant="elevated" padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-2 rounded ${wrap}`}>{renderHeroIcon(kpi.icon)}</div>
-              {kpi.badge != null ? (
-                <span className={heroBadgeClass(kpi.badgeStyle)}>{kpi.badge}</span>
-              ) : null}
-            </div>
-            <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
-            <p className="text-sm text-muted-foreground">{kpi.label}</p>
-          </Card>
+          <div key={`${kpi.label}-${index}`} className="cdp-kpi-cell">
+            <div className="cdp-kpi-icon-wrap">{renderHeroIcon(kpi.icon)}</div>
+            <div className="cdp-kpi-value">{kpi.value}</div>
+            <div className="cdp-kpi-label">{kpi.label}</div>
+            {kpi.badge != null && (
+              <div className={`cdp-kpi-badge${kpi.badgeStyle === 'positive' ? '' : ' muted'}`}>
+                {kpi.badge}
+              </div>
+            )}
+          </div>
         );
       })}
     </div>
   );
 }
 
-function AnalyticsEmptyState({
-  title,
-  description,
-  className = '',
-}: {
-  title: string;
-  description: ReactNode;
-  className?: string;
-}) {
+function AnalyticsEmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <Card variant="elevated" padding="lg" className={className}>
-      <div className="flex flex-col sm:flex-row items-start gap-4">
-        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-          <BarChart3Icon className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <div className="text-sm text-muted-foreground mt-1 space-y-2">{description}</div>
-        </div>
+    <div className="cdp-empty-panel">
+      <div className="cdp-empty-icon">
+        <BarChart3Icon width={18} height={18} />
       </div>
-    </Card>
+      <div>
+        <div className="cdp-empty-h">{title}</div>
+        <div className="cdp-empty-desc">{description}</div>
+      </div>
+    </div>
   );
 }
+
+function AttachedProducts({ products }: { products: Product[] }) {
+  return (
+    <div className="cdp-products-grid">
+      {products.map((product) => (
+        <div key={product.id} className="cdp-product-cell">
+          {product.image_urls[0] ? (
+            <img src={product.image_urls[0]} alt={product.name} className="cdp-product-thumb" />
+          ) : (
+            <div className="cdp-product-thumb-empty">
+              <PackageIcon width={16} height={16} />
+            </div>
+          )}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="cdp-product-name">{product.name}</div>
+            {product.description && (
+              <div className="cdp-product-desc">{product.description}</div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 function parseProductIds(raw: string | null): number[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((v) => Number(v))
-      .filter((n) => Number.isFinite(n));
+    return parsed.map((v) => Number(v)).filter((n) => Number.isFinite(n));
   } catch {
     return [];
   }
@@ -185,41 +168,21 @@ function parseProductContext(raw: string | null): string | null {
   }
 }
 
-function AttachedProducts({ products }: { products: Product[] }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {products.map((product) => (
-        <Card key={product.id} padding="md">
-          <div className="flex items-start gap-3">
-            {product.image_urls[0] ? (
-              <img
-                src={product.image_urls[0]}
-                alt={product.name}
-                className="w-12 h-12 rounded object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                <PackageIcon className="w-5 h-5 text-muted-foreground" />
-              </div>
-            )}
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-foreground truncate">
-                {product.name}
-              </h3>
-              {product.description && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {product.description}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
+function resolveAnalyticsSummary(campaign: { analytics_summary?: CampaignAnalyticsSummary | null }): CampaignAnalyticsSummary | null {
+  const s = campaign.analytics_summary;
+  if (!s) return null;
+  if (!Array.isArray(s.hero) || s.hero.length === 0) return null;
+  if (!Array.isArray(s.metrics) || s.metrics.length === 0) return null;
+  if (!Array.isArray(s.personas) || s.personas.length === 0) return null;
+  return {
+    ...s,
+    hero: s.hero.map((kpi) => ({
+      ...kpi,
+      icon: normalizeCampaignHeroIcon(kpi?.icon),
+    })),
+  };
 }
 
-// ---------- Component ----------
 
 export function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -242,7 +205,6 @@ export function CampaignDetailPage() {
     !!campaign?.meta_campaign_id,
   );
 
-  // Two separate mutation instances — one for the edit modal, one for the settings tab
   const editMutation = useUpdateCampaign();
   const settingsMutation = useUpdateCampaign();
   const deleteMutation = useDeleteCampaign();
@@ -255,8 +217,6 @@ export function CampaignDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Update the browser tab title with the campaign name so the address bar
-  // (e.g. Arc's breadcrumb bar) shows the name instead of the raw numeric ID
   useEffect(() => {
     if (campaign?.name) {
       document.title = `${campaign.name} — Ad-gentic AI`;
@@ -271,8 +231,6 @@ export function CampaignDetailPage() {
     { key: 'analytics' as const, label: 'Analytics' },
     { key: 'settings' as const, label: 'Settings' },
   ];
-
-  // ---------- Handlers ----------
 
   const handleEditSave = (data: EditFormData) => {
     editMutation.mutate(
@@ -314,54 +272,44 @@ export function CampaignDetailPage() {
     deleteMutation.mutate(campaignId, {
       onSuccess: () => navigate('/campaigns'),
       onError: (err) => {
-        setDeleteError(
-          err instanceof Error ? err.message : 'Failed to delete campaign.',
-        );
+        setDeleteError(err instanceof Error ? err.message : 'Failed to delete campaign.');
       },
     });
   };
 
-  // ---------- Loading state ----------
-
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center text-muted-foreground">
-            <Loader2Icon className="w-8 h-8 animate-spin mb-3" />
-            <p className="text-sm">Loading campaign...</p>
+      <AppShell>
+        <div style={{ display: 'flex', minHeight: '60vh', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--as-ink-3)' }}>
+            <Loader2Icon width={28} height={28} style={{ animation: 'as-spin 0.8s linear infinite' }} />
+            <span style={{ fontFamily: 'Geist Mono, monospace', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              Loading campaign…
+            </span>
           </div>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
-
-  // ---------- Error state ----------
 
   if (isError || !campaign) {
     return (
-      <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <AlertCircleIcon className="w-7 h-7 text-red-500" />
+      <AppShell>
+        <div style={{ display: 'flex', minHeight: '60vh', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, background: 'rgba(200,60,60,0.08)', border: '1px solid rgba(200,60,60,0.2)', display: 'grid', placeItems: 'center' }}>
+              <AlertCircleIcon width={20} height={20} style={{ color: '#c44' }} />
             </div>
-            <h2 className="text-lg font-semibold text-foreground mb-1">
-              Campaign not found
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {(error as Error)?.message}
-            </p>
-            <Link to="/campaigns" className="text-muted-foreground text-sm hover:text-foreground">
-              Back to campaigns
+            <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--as-ink)' }}>Campaign not found</div>
+            <div style={{ fontSize: 13, color: 'var(--as-ink-2)' }}>{(error as Error)?.message}</div>
+            <Link to="/campaigns" className="cdp-back" style={{ marginBottom: 0, marginTop: 4 }}>
+              ← Back to campaigns
             </Link>
           </div>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
-
-  // ---------- Derived values ----------
 
   const editInitial: EditFormData = {
     name: campaign.name,
@@ -380,7 +328,6 @@ export function CampaignDetailPage() {
     endDate: campaign.end_date ?? '',
   };
 
-  const statusVariant = statusColors[campaign.status as keyof typeof statusColors] ?? 'default';
   const attachedProductIds = parseProductIds(campaign.product_ids);
   const attachedProducts = attachedProductIds
     .map((productId) => products.find((p) => p.id === productId))
@@ -397,172 +344,168 @@ export function CampaignDetailPage() {
   const handleRunCampaign = () => {
     runCampaignMutation.mutate(campaignId);
   };
+
   const analyticsSummary = resolveAnalyticsSummary(campaign);
 
-  // ---------- Render ----------
-
   return (
-    <DashboardLayout>
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            to="/campaigns"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
-          >
-            <ArrowLeftIcon className="w-4 h-4 mr-1" />
-            Back to Campaigns
-          </Link>
+    <AppShell>
+      <div className="as-canvas">
 
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {campaign.name}
-                </h1>
-                <Badge variant={statusVariant}>
-                  {campaign.status}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">
-                Created on{' '}
-                {new Date(campaign.created_at).toLocaleDateString('en-US', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </p>
+        {/* Back nav */}
+        <Link to="/campaigns" className="cdp-back">
+          <ChevronLeftIcon />
+          Back to Campaigns
+        </Link>
+
+        {/* Page header */}
+        <div className="as-page-head">
+          <div>
+            <span className="as-eyebrow">— CAMPAIGN</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <h1 style={{ marginBottom: 0 }}>{campaign.name}</h1>
+              <span className={`cmp-status ${campaign.status}`}>
+                <span className="d" />
+                {campaign.status}
+              </span>
             </div>
-            <div className="flex items-center gap-3">
-              {campaign.status === 'draft' && (
-                <>
-                  {approvableVariants.length > 0 && (
-                    <Button
-                      variant="secondary"
-                      leftIcon={<CheckCircle2Icon className="w-4 h-4" />}
-                      onClick={handleApproveAll}
-                      disabled={approveVariantMutation.isPending}
-                    >
-                      Approve All
-                    </Button>
-                  )}
-                  <Button
-                    variant="primary"
-                    leftIcon={<PlayIcon className="w-4 h-4" />}
-                    onClick={handleRunCampaign}
-                    disabled={runCampaignMutation.isPending || approvedVariants.length === 0}
+            <p style={{ fontSize: 13, color: 'var(--as-ink-2)', marginTop: 8 }}>
+              Created{' '}
+              {new Date(campaign.created_at).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {campaign.status === 'draft' && (
+              <>
+                {approvableVariants.length > 0 && (
+                  <button
+                    className="as-btn-ghost"
+                    onClick={handleApproveAll}
+                    disabled={approveVariantMutation.isPending}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px' }}
                   >
-                    {runCampaignMutation.isPending ? 'Starting…' : 'Run Campaign'}
-                  </Button>
-                </>
-              )}
-              <Button
-                variant="secondary"
-                leftIcon={<EditIcon className="w-4 h-4" />}
-                onClick={() => setShowEditModal(true)}
-              >
-                Edit Campaign
-              </Button>
-              <Button
-                variant="danger"
-                leftIcon={<TrashIcon className="w-4 h-4" />}
-                onClick={() => {
-                  setDeleteError(null);
-                  deleteMutation.reset();
-                  setShowDeleteModal(true);
-                }}
-              >
-                Delete
-              </Button>
-            </div>
+                    Approve All
+                  </button>
+                )}
+                <button
+                  className="as-btn-solid"
+                  onClick={handleRunCampaign}
+                  disabled={runCampaignMutation.isPending || approvedVariants.length === 0}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
+                >
+                  {runCampaignMutation.isPending
+                    ? <><SpinnerSvg /> Starting…</>
+                    : 'Run Campaign'}
+                </button>
+              </>
+            )}
+            <button
+              className="as-btn-ghost"
+              onClick={() => setShowEditModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px' }}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => { setDeleteError(null); deleteMutation.reset(); setShowDeleteModal(true); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '9px 16px',
+                background: 'none',
+                border: '1px solid rgba(200,60,60,0.4)',
+                color: '#c44',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(200,60,60,0.06)'; e.currentTarget.style.borderColor = '#c44'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'rgba(200,60,60,0.4)'; }}
+            >
+              Delete
+            </button>
           </div>
         </div>
 
+        {/* KPI strip or empty analytics */}
         {analyticsSummary ? (
           <HeroKpiGrid hero={analyticsSummary.hero} />
         ) : (
           <AnalyticsEmptyState
-            className="mb-8"
-            title="Performance metrics aren’t available yet"
-            description={
-              <p>
-                Reach, CTR, spend, and regional breakdown will show here once live analytics are connected for this
-                campaign.
-              </p>
-            }
+            title="Performance metrics aren't available yet"
+            description="Reach, CTR, spend, and regional breakdown will show here once live analytics are connected for this campaign."
           />
         )}
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-border">
-          <div className="flex gap-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`pb-4 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.key
-                    ? 'border-foreground text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        <div className="cdp-tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`cdp-tab${activeTab === tab.key ? ' on' : ''}`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Tab content */}
+        {/* Tab: Ad Variants */}
         {activeTab === 'variants' && (
           <>
             {isVariantsLoading && (
-              <div className="flex items-center justify-center py-14 text-muted-foreground">
-                <Loader2Icon className="w-6 h-6 animate-spin mr-2" />
-                <span className="text-sm">Loading ad variants...</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '56px 0', color: 'var(--as-ink-3)' }}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                  width={18} height={18} style={{ animation: 'as-spin 0.8s linear infinite', marginRight: 10 }}>
+                  <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+                </svg>
+                <span style={{ fontFamily: 'Geist Mono, monospace', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Loading ad variants…
+                </span>
               </div>
             )}
 
             {!isVariantsLoading && isVariantsError && (
-              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="cdp-error-bar">
                 Failed to load ad variants: {(variantsError as Error)?.message}
               </div>
             )}
 
             {!isVariantsLoading && !isVariantsError && completedVariants.length === 0 && (
-              <Card variant="elevated" padding="lg">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                    <PackageIcon className="w-6 h-6 text-muted-foreground" />
+              <div className="cdp-variants-empty">
+                <div className="cdp-variants-empty-top">
+                  <div className="cdp-empty-icon">
+                    <PackageIcon width={18} height={18} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-foreground">
-                      No approved ad variants yet
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <div className="cdp-empty-h">No approved ad variants yet</div>
+                    <div className="cdp-empty-desc">
                       Approve a plan in the Generate flow to create variants for this campaign.
                       Once created and approved, they will appear here.
-                    </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mb-3">
-                  <h3 className="text-sm font-semibold text-foreground">Attached products</h3>
-                </div>
+                <div className="cdp-section-h">Attached Products</div>
 
                 {isProductsLoading ? (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Loader2Icon className="w-4 h-4 animate-spin mr-2" />
-                    Loading products...
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--as-ink-3)' }}>
+                    <SpinnerSvg /> Loading products…
                   </div>
                 ) : attachedProducts.length > 0 ? (
                   <AttachedProducts products={attachedProducts} />
                 ) : (
-                  <div className="rounded border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
+                  <div className="cdp-context-note">
                     {productContextText
                       ? `Attached product context: ${productContextText}`
                       : 'No attached products were found for this campaign.'}
                   </div>
                 )}
-              </Card>
+              </div>
             )}
 
             {!isVariantsLoading && !isVariantsError && completedVariants.length > 0 && (
@@ -575,6 +518,7 @@ export function CampaignDetailPage() {
           </>
         )}
 
+        {/* Tab: Analytics */}
         {activeTab === 'analytics' && (
           <CampaignAnalytics
             data={metricsData ?? null}
@@ -582,6 +526,7 @@ export function CampaignDetailPage() {
           />
         )}
 
+        {/* Tab: Settings */}
         {activeTab === 'settings' && (
           <CampaignSettings
             key={campaign.updated_at}
@@ -596,30 +541,28 @@ export function CampaignDetailPage() {
           />
         )}
 
-        {/* Modals */}
-        {showEditModal && (
-          <EditCampaignModal
-            initial={editInitial}
-            onClose={() => setShowEditModal(false)}
-            onSave={handleEditSave}
-            isSaving={editMutation.isPending}
-            error={
-              editMutation.isError
-                ? (editMutation.error as Error).message
-                : null
-            }
-          />
-        )}
+      </div>
 
-        {showDeleteModal && campaign && (
-          <DeleteCampaignModal
-            campaignNames={[campaign.name]}
-            isLoading={deleteMutation.isPending}
-            error={deleteError}
-            onClose={closeDeleteModal}
-            onConfirm={handleDelete}
-          />
-        )}
-    </DashboardLayout>
+      {/* Modals */}
+      {showEditModal && (
+        <EditCampaignModal
+          initial={editInitial}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleEditSave}
+          isSaving={editMutation.isPending}
+          error={editMutation.isError ? (editMutation.error as Error).message : null}
+        />
+      )}
+
+      {showDeleteModal && campaign && (
+        <DeleteCampaignModal
+          campaignNames={[campaign.name]}
+          isLoading={deleteMutation.isPending}
+          error={deleteError}
+          onClose={closeDeleteModal}
+          onConfirm={handleDelete}
+        />
+      )}
+    </AppShell>
   );
 }

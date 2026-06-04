@@ -1,12 +1,6 @@
 import { useState } from 'react';
-import { Card } from '../ui/Card';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
-import { Textarea } from '../ui/Textarea';
-import { Button } from '../ui/Button';
-import { XIcon, Loader2Icon } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
-// ---------- Types ----------
 
 export interface EditFormData {
   name: string;
@@ -24,7 +18,23 @@ interface EditCampaignModalProps {
   error?: string | null;
 }
 
-// ---------- Component ----------
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+      width={13} height={13} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+    </svg>
+  );
+}
+
 
 export function EditCampaignModal({
   initial,
@@ -35,94 +45,105 @@ export function EditCampaignModal({
 }: EditCampaignModalProps) {
   const [form, setForm] = useState<EditFormData>(initial);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  const modal = (
+    <div className="as-modal-overlay" onClick={() => !isSaving && onClose()}>
       <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-        onClick={() => !isSaving && onClose()}
-      />
-      <Card
-        variant="elevated"
-        padding="lg"
-        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        role="dialog"
+        aria-labelledby="edit-campaign-title"
+        className="as-modal"
+        style={{ width: 'min(560px, 100%)' }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-slate-900">
-            Edit Campaign
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-100"
-            disabled={isSaving}
-          >
-            <XIcon className="w-5 h-5 text-slate-500" />
+        <div className="as-modal-head">
+          <div>
+            <div className="as-modal-eyebrow">— CAMPAIGN</div>
+            <div className="as-modal-title" id="edit-campaign-title">Edit Campaign</div>
+          </div>
+          <button className="as-modal-close" onClick={onClose} disabled={isSaving}>
+            <XIcon />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <Input
-            label="Campaign Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-
-          <div>
-            <Select
-              label="Campaign Goal"
-              options={[
-                { value: 'awareness', label: 'Brand Awareness' },
-                { value: 'leads', label: 'Lead Generation' },
-                { value: 'sales', label: 'Direct Sales' },
-                { value: 'engagement', label: 'Engagement' },
-                { value: 'other', label: 'Other' },
-              ]}
-              value={form.goal}
-              onChange={(e) => setForm({ ...form, goal: e.target.value })}
+        <div className="as-modal-body">
+          <div className="as-field">
+            <label className="as-field-label">
+              Campaign Name <span className="as-field-required">*</span>
+            </label>
+            <input
+              className="as-input"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              disabled={isSaving}
             />
+          </div>
+
+          <div className="as-field">
+            <label className="as-field-label">Campaign Goal</label>
+            <div className="as-select-wrap">
+              <select
+                className="as-select"
+                value={form.goal}
+                onChange={(e) => setForm({ ...form, goal: e.target.value })}
+                disabled={isSaving}
+              >
+                <option value="">Select goal</option>
+                <option value="awareness">Brand Awareness</option>
+                <option value="leads">Lead Generation</option>
+                <option value="sales">Direct Sales</option>
+                <option value="engagement">Engagement</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
             {form.goal === 'other' && (
-              <div className="mt-2">
-                <Textarea
-                  label="Custom Goal"
-                  placeholder="Describe your specific goal..."
-                  rows={3}
-                  value={form.customGoal}
-                  onChange={(e) =>
-                    setForm({ ...form, customGoal: e.target.value })
-                  }
-                />
-              </div>
+              <textarea
+                className="as-textarea"
+                style={{ marginTop: 8 }}
+                placeholder="Describe your specific goal…"
+                value={form.customGoal}
+                onChange={(e) => setForm({ ...form, customGoal: e.target.value })}
+                disabled={isSaving}
+              />
             )}
           </div>
 
-          <Textarea
-            label="Target Audience"
-            rows={3}
-            value={form.targetAudience}
-            onChange={(e) =>
-              setForm({ ...form, targetAudience: e.target.value })
-            }
-          />
+          <div className="as-field">
+            <label className="as-field-label">Target Audience</label>
+            <textarea
+              className="as-textarea"
+              rows={3}
+              value={form.targetAudience}
+              onChange={(e) => setForm({ ...form, targetAudience: e.target.value })}
+              disabled={isSaving}
+            />
+          </div>
+
+          {error && (
+            <p style={{ fontSize: 13, color: '#c44', margin: 0 }} role="alert">{error}</p>
+          )}
         </div>
 
-        {error && (
-          <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        <div className="flex justify-end gap-3 mt-6">
-          <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+        <div className="as-modal-foot">
+          <button
+            className="as-btn-ghost"
+            onClick={onClose}
+            disabled={isSaving}
+            style={{ padding: '8px 16px' }}
+          >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
+            type="button"
+            className="as-btn-solid"
             onClick={() => onSave(form)}
             disabled={isSaving}
-            leftIcon={isSaving ? <Loader2Icon className="w-4 h-4 animate-spin" /> : undefined}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 18px' }}
           >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
+            {isSaving ? <><SpinnerIcon /> Saving…</> : 'Save Changes'}
+          </button>
         </div>
-      </Card>
+      </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

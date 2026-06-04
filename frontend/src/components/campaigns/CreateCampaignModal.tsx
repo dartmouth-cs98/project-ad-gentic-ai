@@ -1,13 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  XIcon,
-  CheckIcon,
-  Loader2Icon,
-  PlusIcon,
-  SearchIcon,
-  PackageIcon,
-  ImageIcon,
-} from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useCreateCampaign } from '../../hooks/useCampaigns';
 import { useProducts } from '../../hooks/useProducts';
 import type { Product, Campaign } from '../../types';
@@ -20,10 +12,50 @@ const regions = [
   { id: 'global', label: 'Global' },
 ];
 
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50';
-const labelClass = 'block text-sm font-medium mb-1.5';
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
 
-// ---------- Product Selector ----------
+function SpinnerIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+      width={13} height={13} style={{ animation: 'as-spin 0.8s linear infinite' }}>
+      <circle cx="8" cy="8" r="6" strokeDasharray="18 8" />
+    </svg>
+  );
+}
+
+function SearchSvg() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" width={12} height={12}>
+      <circle cx="5.5" cy="5.5" r="4" />
+      <path d="M9 9l3.5 3.5" />
+    </svg>
+  );
+}
+
+function PackageSvg() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width={18} height={18}>
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </svg>
+  );
+}
+
+function CheckSvg() {
+  return (
+    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" width={10} height={10}>
+      <path d="M2 5l2.5 2.5L8 3" />
+    </svg>
+  );
+}
+
 
 function ProductSelector({
   businessClientId,
@@ -61,29 +93,41 @@ function ProductSelector({
 
   if (selectedProduct) {
     return (
-      <div>
-        <label className={labelClass}>Product <span className="text-red-500">*</span></label>
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded">
+      <div className="as-field">
+        <label className="as-field-label">
+          Product <span className="as-field-required">*</span>
+        </label>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px',
+          background: 'var(--as-paper)',
+          border: '1px solid var(--as-rule)',
+        }}>
           {selectedProduct.image_urls[0] ? (
-            <img src={selectedProduct.image_urls[0]} alt={selectedProduct.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+            <img src={selectedProduct.image_urls[0]} alt={selectedProduct.name}
+              style={{ width: 32, height: 32, objectFit: 'cover', flexShrink: 0 }} />
           ) : (
-            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-              <ImageIcon className="w-4 h-4 text-muted-foreground" />
+            <div style={{ width: 32, height: 32, background: 'var(--as-paper-2)', display: 'grid', placeItems: 'center', flexShrink: 0, color: 'var(--as-ink-3)' }}>
+              <PackageSvg />
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{selectedProduct.name}</p>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--as-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {selectedProduct.name}
+            </div>
             {selectedProduct.description && (
-              <p className="text-xs text-muted-foreground truncate">{selectedProduct.description}</p>
+              <div style={{ fontSize: 11, color: 'var(--as-ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                {selectedProduct.description}
+              </div>
             )}
           </div>
           <button
             type="button"
             onClick={() => !disabled && onSelect(null)}
             disabled={disabled}
-            className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--as-ink-3)', display: 'grid', placeItems: 'center', padding: 4 }}
           >
-            <XIcon className="w-4 h-4" />
+            <XIcon />
           </button>
         </div>
       </div>
@@ -91,35 +135,51 @@ function ProductSelector({
   }
 
   return (
-    <div ref={containerRef} className="relative">
-      <label className={labelClass}>Product <span className="text-red-500">*</span></label>
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+    <div ref={containerRef} className="as-field" style={{ position: 'relative' }}>
+      <label className="as-field-label">
+        Product <span className="as-field-required">*</span>
+      </label>
+      <div style={{ position: 'relative' }}>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--as-ink-3)', pointerEvents: 'none' }}>
+          <SearchSvg />
+        </span>
         <input
           type="text"
-          placeholder="Search your products..."
+          className="as-input"
+          placeholder="Search your products…"
+          style={{ paddingLeft: 32, borderColor: error ? 'rgba(200,60,60,0.5)' : undefined }}
           value={query}
           onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
           onFocus={() => setIsOpen(true)}
           disabled={disabled}
-          className={`${inputClass} pl-9 ${error ? 'border-red-500/50' : ''}`}
         />
       </div>
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {error && <div className="as-field-error">{error}</div>}
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded shadow-lg max-h-52 overflow-y-auto">
+        <div style={{
+          position: 'absolute',
+          zIndex: 100,
+          top: '100%',
+          left: 0,
+          right: 0,
+          marginTop: 2,
+          background: 'var(--as-bg)',
+          border: '1px solid var(--as-rule-strong)',
+          maxHeight: 200,
+          overflowY: 'auto',
+        }}>
           {isLoading && (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-              <Loader2Icon className="w-4 h-4 animate-spin" /> Loading products...
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', fontSize: 13, color: 'var(--as-ink-3)' }}>
+              <SpinnerIcon /> Loading products…
             </div>
           )}
           {!isLoading && filtered.length === 0 && (
-            <div className="flex flex-col items-center gap-1 px-4 py-4 text-center">
-              <PackageIcon className="w-5 h-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '16px 14px', textAlign: 'center', color: 'var(--as-ink-3)' }}>
+              <PackageSvg />
+              <span style={{ fontSize: 12 }}>
                 {products.length === 0 ? 'No products yet. Add one on the Products page.' : 'No products match your search.'}
-              </p>
+              </span>
             </div>
           )}
           {!isLoading && filtered.map((product) => (
@@ -127,19 +187,39 @@ function ProductSelector({
               key={product.id}
               type="button"
               onClick={() => { onSelect(product); setQuery(''); setIsOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors text-left"
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 14px',
+                background: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--as-rule)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontFamily: 'inherit',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--as-paper)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
             >
               {product.image_urls[0] ? (
-                <img src={product.image_urls[0]} alt={product.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                <img src={product.image_urls[0]} alt={product.name}
+                  style={{ width: 28, height: 28, objectFit: 'cover', flexShrink: 0 }} />
               ) : (
-                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                <div style={{ width: 28, height: 28, background: 'var(--as-paper-2)', display: 'grid', placeItems: 'center', flexShrink: 0, color: 'var(--as-ink-3)' }}>
+                  <PackageSvg />
                 </div>
               )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{product.name}</p>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--as-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {product.name}
+                </div>
                 {product.description && (
-                  <p className="text-xs text-muted-foreground truncate">{product.description}</p>
+                  <div style={{ fontSize: 11, color: 'var(--as-ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+                    {product.description}
+                  </div>
                 )}
               </div>
             </button>
@@ -150,13 +230,10 @@ function ProductSelector({
   );
 }
 
-// ---------- Main Modal ----------
 
 interface CreateCampaignModalProps {
-  /** Positive business client id; parent must not render the modal until this is set. */
   businessClientId: number;
   onClose: () => void;
-  /** Optional: called with the created Campaign so the parent can navigate into the generate flow. */
   onCreated?: (campaign: Campaign) => void;
 }
 
@@ -195,7 +272,7 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
     });
   };
 
-  const handleCreateCampaign = () => {
+  const handleCreate = () => {
     const newErrors: Record<string, string> = {};
     if (!newCampaign.name) newErrors.name = 'Campaign name is required';
     if (!selectedProduct) newErrors.product = 'Please select a product';
@@ -214,8 +291,6 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
       },
       {
         onSuccess: (campaign) => {
-          // Close the modal first, then hand the new campaign to the parent
-          // so it can optionally jump straight into the generate flow
           onClose();
           onCreated?.(campaign);
         },
@@ -223,71 +298,92 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => !isCreating && onClose()} />
-
-      <div className="relative w-full max-w-lg bg-card border border-border rounded max-h-[90vh] overflow-y-auto text-foreground">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold">Create New Campaign</h2>
-          <button onClick={onClose} disabled={isCreating} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground">
-            <XIcon className="w-4 h-4" />
+  const modal = (
+    <div className="as-modal-overlay" onClick={() => !isCreating && onClose()}>
+      <div
+        role="dialog"
+        aria-labelledby="create-campaign-title"
+        className="as-modal"
+        style={{ width: 'min(600px, 100%)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="as-modal-head">
+          <div>
+            <div className="as-modal-eyebrow">— NEW</div>
+            <div className="as-modal-title" id="create-campaign-title">Create Campaign</div>
+          </div>
+          <button className="as-modal-close" onClick={onClose} disabled={isCreating}>
+            <XIcon />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div>
-            <label className={labelClass}>Campaign Name <span className="text-red-500">*</span></label>
+        <div className="as-modal-body">
+          {/* Campaign name */}
+          <div className="as-field">
+            <label className="as-field-label">
+              Campaign Name <span className="as-field-required">*</span>
+            </label>
             <input
-              className={inputClass}
+              className="as-input"
               placeholder="e.g., Summer Sale 2026"
               value={newCampaign.name}
               onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
               disabled={isCreating}
             />
-            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+            {errors.name && <div className="as-field-error">{errors.name}</div>}
           </div>
 
+          {/* Product */}
           <ProductSelector
             businessClientId={businessClientId}
             selectedProduct={selectedProduct}
-            onSelect={(p) => { setSelectedProduct(p); setErrors((prev) => { const { product: _, ...rest } = prev; return rest; }); }}
+            onSelect={(p) => {
+              setSelectedProduct(p);
+              setErrors((prev) => { const { product: _, ...rest } = prev; return rest; });
+            }}
             error={errors.product}
             disabled={isCreating}
           />
 
-          <div>
-            <label className={labelClass}>Target Audience <span className="text-red-500">*</span></label>
+          {/* Target audience */}
+          <div className="as-field">
+            <label className="as-field-label">
+              Target Audience <span className="as-field-required">*</span>
+            </label>
             <textarea
-              className={`${inputClass} resize-none`}
+              className="as-textarea"
               rows={3}
-              placeholder="Describe who you want to reach..."
+              placeholder="Describe who you want to reach…"
               value={newCampaign.targetAudience}
               onChange={(e) => setNewCampaign({ ...newCampaign, targetAudience: e.target.value })}
               disabled={isCreating}
             />
-            {errors.targetAudience && <p className="text-xs text-red-500 mt-1">{errors.targetAudience}</p>}
+            {errors.targetAudience && <div className="as-field-error">{errors.targetAudience}</div>}
           </div>
 
-          <div>
-            <label className={labelClass}>Campaign Goal</label>
-            <select
-              className={inputClass}
-              value={newCampaign.goal}
-              onChange={(e) => setNewCampaign({ ...newCampaign, goal: e.target.value })}
-              disabled={isCreating}
-            >
-              <option value="">Select goal</option>
-              <option value="awareness">Brand Awareness</option>
-              <option value="leads">Lead Generation</option>
-              <option value="sales">Direct Sales</option>
-              <option value="engagement">Engagement</option>
-              <option value="other">Other</option>
-            </select>
+          {/* Campaign goal */}
+          <div className="as-field">
+            <label className="as-field-label">Campaign Goal</label>
+            <div className="as-select-wrap">
+              <select
+                className="as-select"
+                value={newCampaign.goal}
+                onChange={(e) => setNewCampaign({ ...newCampaign, goal: e.target.value })}
+                disabled={isCreating}
+              >
+                <option value="">Select goal</option>
+                <option value="awareness">Brand Awareness</option>
+                <option value="leads">Lead Generation</option>
+                <option value="sales">Direct Sales</option>
+                <option value="engagement">Engagement</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
             {newCampaign.goal === 'other' && (
               <input
-                className={`${inputClass} mt-2`}
-                placeholder="Describe your specific goal..."
+                className="as-input"
+                style={{ marginTop: 8 }}
+                placeholder="Describe your specific goal…"
                 value={customGoal}
                 onChange={(e) => setCustomGoal(e.target.value)}
                 disabled={isCreating}
@@ -295,61 +391,70 @@ export function CreateCampaignModal({ businessClientId, onClose, onCreated }: Cr
             )}
           </div>
 
-          <div>
-            <label className={labelClass}>Target Platforms</label>
-            <div className="flex flex-wrap gap-2">
+          {/* Target platforms */}
+          <div className="as-field">
+            <label className="as-field-label">Target Platforms</label>
+            <div className="as-chip-group">
               {CAMPAIGN_PLATFORM_OPTIONS.map((platform) => (
                 <button
                   key={platform.id}
                   type="button"
                   onClick={() => togglePlatform(platform.id)}
                   disabled={isCreating}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm transition-colors disabled:opacity-50 ${
-                    newCampaign.platforms.includes(platform.id)
-                      ? 'border-primary bg-primary/10 text-foreground'
-                      : 'border-border text-muted-foreground hover:border-foreground/30'
-                  }`}
+                  className={`as-chip${newCampaign.platforms.includes(platform.id) ? ' on' : ''}`}
                 >
-                  {newCampaign.platforms.includes(platform.id) && <CheckIcon className="w-3.5 h-3.5 text-primary" />}
+                  {newCampaign.platforms.includes(platform.id) && <CheckSvg />}
                   {platform.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
-            <label className={labelClass}>Target Region</label>
-            <select
-              className={inputClass}
-              value={newCampaign.region}
-              onChange={(e) => setNewCampaign({ ...newCampaign, region: e.target.value })}
-              disabled={isCreating}
-            >
-              <option value="">Select region</option>
-              {regions.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-            </select>
+          {/* Region */}
+          <div className="as-field">
+            <label className="as-field-label">Target Region</label>
+            <div className="as-select-wrap">
+              <select
+                className="as-select"
+                value={newCampaign.region}
+                onChange={(e) => setNewCampaign({ ...newCampaign, region: e.target.value })}
+                disabled={isCreating}
+              >
+                <option value="">Select region</option>
+                {regions.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+              </select>
+            </div>
           </div>
+
+          {createMutation.isError && (
+            <p style={{ fontSize: 13, color: '#c44', margin: 0 }} role="alert">
+              {(createMutation.error as Error).message}
+            </p>
+          )}
         </div>
 
-        {createMutation.isError && (
-          <div className="mx-6 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
-            {(createMutation.error as Error).message}
-          </div>
-        )}
-
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} disabled={isCreating} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+        <div className="as-modal-foot">
+          <button
+            className="as-btn-ghost"
+            onClick={onClose}
+            disabled={isCreating}
+            style={{ padding: '8px 16px' }}
+          >
             Cancel
           </button>
           <button
-            onClick={handleCreateCampaign}
+            type="button"
+            className="as-btn-solid"
+            onClick={handleCreate}
             disabled={isCreating}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 18px' }}
           >
-            {isCreating ? <><Loader2Icon className="w-4 h-4 animate-spin" /> Creating...</> : <><PlusIcon className="w-4 h-4" /> Create Campaign</>}
+            {isCreating ? <><SpinnerIcon /> Creating…</> : 'Create Campaign'}
           </button>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

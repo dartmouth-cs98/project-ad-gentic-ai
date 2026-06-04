@@ -1,0 +1,26 @@
+{
+  "name": "project-ad-gentic-ai",
+  "version": "1.0.0",
+  "description": "> AI-powered growth engine for business owners to generate, deploy, and track high-converting social ads.",
+  "homepage": "https://github.com/dartmouth-cs98/project-ad-gentic-ai#readme",
+  "bugs": {
+    "url": "https://github.com/dartmouth-cs98/project-ad-gentic-ai/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dartmouth-cs98/project-ad-gentic-ai.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.3.0",
+    "typescript-eslint": "^8.55.0"
+  }
+}

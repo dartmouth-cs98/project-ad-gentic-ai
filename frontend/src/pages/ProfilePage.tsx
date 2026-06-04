@@ -1,15 +1,6 @@
-import React, { useState } from 'react';
-import { Sidebar } from '../components/layout/Sidebar';
-import { useSidebar } from '../contexts/SidebarContext';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Select } from '../components/ui/Select';
-import { useCompany } from '../contexts/CompanyContext';
-import { useUser } from '../contexts/UserContext';
-import { useNavigate } from 'react-router-dom';
-import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { useState, useEffect, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   BuildingIcon,
   BriefcaseIcon,
@@ -20,354 +11,375 @@ import {
   ShieldIcon,
   UsersIcon,
   LogOutIcon,
-} from
-  'lucide-react';
+  Loader2Icon,
+} from 'lucide-react';
+import { AppShell } from '../components/layout/AppShell';
+import { useCompany } from '../contexts/CompanyContext';
+import { useUser } from '../contexts/UserContext';
+
+const INVITE_ROLES = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'editor', label: 'Editor' },
+  { value: 'viewer', label: 'Viewer' },
+];
+
+const STATIC_TEAM = [
+  { name: 'Sarah Chen', email: 'sarah@acme.inc', role: 'Editor', isMe: false },
+  { name: 'Mike Ross', email: 'mike@acme.inc', role: 'Viewer', isMe: false },
+];
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" width={11} height={11}>
+      <path d="M2 2l8 8M10 2L2 10" />
+    </svg>
+  );
+}
+
+function SignOutModal({
+  onConfirm,
+  onClose,
+  isLoading,
+}: {
+  onConfirm: () => void;
+  onClose: () => void;
+  isLoading: boolean;
+}) {
+  const modal = (
+    <div className="as-modal-overlay" onClick={() => !isLoading && onClose()}>
+      <div
+        role="alertdialog"
+        aria-labelledby="sign-out-title"
+        className="as-modal sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="as-modal-head">
+          <div>
+            <div className="as-modal-eyebrow">— SESSION</div>
+            <div className="as-modal-title" id="sign-out-title">Sign out?</div>
+          </div>
+          <button type="button" className="as-modal-close" onClick={onClose} disabled={isLoading}>
+            <XIcon />
+          </button>
+        </div>
+        <div className="as-modal-body">
+          <p style={{ fontSize: 14, color: 'var(--as-ink-2)', lineHeight: 1.55, margin: 0 }}>
+            You&apos;ll be returned to the sign-in page.
+          </p>
+        </div>
+        <div className="as-modal-foot">
+          <button type="button" className="as-btn-ghost" onClick={onClose} disabled={isLoading} style={{ padding: '8px 16px' }}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isLoading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '8px 18px',
+              background: isLoading ? 'var(--as-rule)' : 'var(--as-ink)',
+              color: isLoading ? 'var(--as-ink-3)' : 'var(--as-bg)',
+              border: 'none',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {isLoading && <Loader2Icon size={13} style={{ animation: 'as-spin 0.8s linear infinite' }} />}
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+  return createPortal(modal, document.body);
+}
+
 export function ProfilePage() {
-  const { collapsed } = useSidebar();
   const { profile, updateProfile } = useCompany();
   const { logout } = useUser();
   const navigate = useNavigate();
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState(profile);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('viewer');
+  const [showInviteSuccess, setShowInviteSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditForm(profile);
+    }
+  }, [profile, isEditing]);
 
   const handleSignOut = () => {
     setSigningOut(true);
     setConfirmOpen(false);
     setTimeout(() => { logout(); navigate('/sign-in'); }, 1000);
   };
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState(profile);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('viewer');
-  const [showInviteSuccess, setShowInviteSuccess] = useState(false);
+
   const handleSave = () => {
     updateProfile(editForm);
     setIsEditing(false);
   };
-  const handleInvite = (e: React.FormEvent) => {
+
+  const handleInvite = (e: FormEvent) => {
     e.preventDefault();
     if (!inviteEmail) return;
     setShowInviteSuccess(true);
     setInviteEmail('');
     setTimeout(() => setShowInviteSuccess(false), 3000);
   };
+
+  const members = [
+    { name: profile.userName, email: profile.email, role: 'Admin', isMe: true },
+    ...STATIC_TEAM,
+  ];
+
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-
-      <main className={`${collapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1 p-8`}>
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Company Profile
-              </h1>
-              <p className="text-muted-foreground">
-                Manage your company identity and team members.
-              </p>
+    <AppShell pageLabel="PROFILE">
+      <div className="as-canvas">
+        <div className="as-page-head">
+          <div>
+            <span className="as-eyebrow">— COMPANY</span>
+            <h1>Company Profile</h1>
+            <p style={{ fontSize: 14, color: 'var(--as-ink-2)', marginTop: 8 }}>
+              Manage your company identity and team members.
+            </p>
+          </div>
+          {!isEditing ? (
+            <button
+              type="button"
+              className="as-btn-solid"
+              onClick={() => setIsEditing(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
+            >
+              <Edit2Icon size={14} />
+              Edit Profile
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="as-btn-ghost"
+                onClick={() => { setEditForm(profile); setIsEditing(false); }}
+                style={{ padding: '9px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="as-btn-solid"
+                onClick={handleSave}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
+              >
+                <CheckIcon size={14} />
+                Save Changes
+              </button>
             </div>
-            {!isEditing ?
-              <Button
-                onClick={() => setIsEditing(true)}
-                leftIcon={<Edit2Icon className="w-4 h-4" />}>
+          )}
+        </div>
 
-                Edit Profile
-              </Button> :
-
-              <div className="flex gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setEditForm(profile);
-                    setIsEditing(false);
-                  }}>
-
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  leftIcon={<CheckIcon className="w-4 h-4" />}>
-
-                  Save Changes
-                </Button>
+        <div className="prf-grid">
+          <div className="prf-main">
+            {/* Company identity */}
+            <div className="stg-section">
+              <div className="prf-section-head">
+                <div className="prf-section-title">
+                  <BuildingIcon size={16} style={{ color: 'var(--as-ink-2)' }} />
+                  Company Identity
+                </div>
               </div>
-            }
+
+              <div className="prf-field-grid">
+                <div>
+                  <label className="stg-label" htmlFor="prf-company-name">Company Name</label>
+                  {isEditing ? (
+                    <input
+                      id="prf-company-name"
+                      className="stg-input"
+                      value={editForm.companyName}
+                      onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
+                    />
+                  ) : (
+                    <div className="prf-value">{profile.companyName}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="stg-label" htmlFor="prf-industry">Industry</label>
+                  {isEditing ? (
+                    <input
+                      id="prf-industry"
+                      className="stg-input"
+                      value={editForm.industry}
+                      onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })}
+                    />
+                  ) : (
+                    <div className="prf-value">{profile.industry}</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <label className="stg-label" htmlFor="prf-primary-product">Primary Product</label>
+                {isEditing ? (
+                  <input
+                    id="prf-primary-product"
+                    className="stg-input"
+                    value={editForm.primaryProduct}
+                    onChange={(e) => setEditForm({ ...editForm, primaryProduct: e.target.value })}
+                  />
+                ) : (
+                  <div className="prf-value">{profile.primaryProduct}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Team members */}
+            <div className="stg-section">
+              <div className="prf-section-head">
+                <div className="prf-section-title">
+                  <UsersIcon size={16} style={{ color: 'var(--as-ink-2)' }} />
+                  Team Members
+                </div>
+                <span className="prf-member-count">3 Active</span>
+              </div>
+
+              <form onSubmit={handleInvite} className="prf-invite-box">
+                <h3>Invite New Member</h3>
+                <div className="prf-invite-row">
+                  <input
+                    type="email"
+                    className="stg-input"
+                    placeholder="colleague@company.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                  <select
+                    className="as-select"
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    style={{ width: 120, flexShrink: 0, padding: '9px 12px' }}
+                  >
+                    {INVITE_ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    className="as-btn-solid"
+                    disabled={!inviteEmail}
+                    style={{ padding: '9px 16px', whiteSpace: 'nowrap' }}
+                  >
+                    Send Invite
+                  </button>
+                </div>
+                {showInviteSuccess && (
+                  <div className="prf-invite-success">
+                    <CheckIcon size={13} />
+                    Invitation sent successfully
+                  </div>
+                )}
+              </form>
+
+              <div style={{ border: '1px solid var(--as-rule)' }}>
+                <table className="as-table prf-team-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map((member, i) => (
+                      <tr key={i}>
+                        <td>
+                          <div style={{ fontWeight: 500, color: 'var(--as-ink)' }}>
+                            {member.name}{member.isMe ? ' (You)' : ''}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--as-ink-3)', marginTop: 2 }}>{member.email}</div>
+                        </td>
+                        <td>
+                          <span className={`prf-role-tag${member.role === 'Admin' ? ' admin' : ''}`}>
+                            {member.role}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          {!member.isMe && (
+                            <button
+                              type="button"
+                              className="cmp-row-btn danger"
+                              aria-label={`Remove ${member.name}`}
+                            >
+                              <TrashIcon size={13} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-8">
-            {/* Main Company Info */}
-            <div className="col-span-2 space-y-8">
-              <Card variant="elevated" padding="lg">
-                <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
-                  <BuildingIcon className="w-5 h-5 text-muted-foreground" />
-                  Company Identity
-                </h2>
-
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1.5">
-                        Company Name
-                      </label>
-                      {isEditing ?
-                        <Input
-                          value={editForm.companyName}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              companyName: e.target.value
-                            })
-                          } /> :
-
-
-                        <div className="text-lg font-medium text-foreground py-2">
-                          {profile.companyName}
-                        </div>
-                      }
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1.5">
-                        Industry
-                      </label>
-                      {isEditing ?
-                        <Input
-                          value={editForm.industry}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              industry: e.target.value
-                            })
-                          } /> :
-
-
-                        <div className="text-lg font-medium text-foreground py-2">
-                          {profile.industry}
-                        </div>
-                      }
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">
-                      Primary Product
-                    </label>
-                    {isEditing ?
-                      <Input
-                        value={editForm.primaryProduct}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            primaryProduct: e.target.value
-                          })
-                        } /> :
-
-
-                      <div className="text-lg font-medium text-foreground py-2">
-                        {profile.primaryProduct}
-                      </div>
-                    }
-                  </div>
+          <div className="prf-side">
+            <div className="prf-security">
+              <div className="prf-security-head">
+                <div className="prf-security-icon">
+                  <ShieldIcon size={18} />
                 </div>
-              </Card>
-
-              {/* Team Members */}
-              <Card variant="elevated" padding="lg">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <UsersIcon className="w-5 h-5 text-muted-foreground" />
-                    Team Members
-                  </h2>
-                  <Badge variant="info">{3} Active Members</Badge>
+                <div>
+                  <div className="prf-security-title">Enterprise Security</div>
+                  <div className="prf-security-sub">Active &amp; Monitored</div>
                 </div>
-
-                {/* Invite Form */}
-                <form
-                  onSubmit={handleInvite}
-                  className="bg-background p-4 rounded border border-border mb-8">
-
-                  <h3 className="text-sm font-semibold text-foreground mb-3">
-                    Invite New Member
-                  </h3>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <Input
-                        placeholder="colleague@company.com"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        className="bg-white" />
-
-                    </div>
-                    <div className="w-40">
-                      <Select
-                        options={[
-                          {
-                            value: 'admin',
-                            label: 'Admin'
-                          },
-                          {
-                            value: 'editor',
-                            label: 'Editor'
-                          },
-                          {
-                            value: 'viewer',
-                            label: 'Viewer'
-                          }]
-                        }
-                        value={inviteRole}
-                        onChange={(e) => setInviteRole(e.target.value)}
-                        className="bg-white" />
-
-                    </div>
-                    <Button disabled={!inviteEmail}>Send Invite</Button>
-                  </div>
-                  {showInviteSuccess &&
-                    <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600 animate-in fade-in slide-in-from-top-1">
-                      <CheckIcon className="w-4 h-4" />
-                      Invitation sent successfully!
-                    </div>
-                  }
-                </form>
-
-                {/* Team Table */}
-                <div className="overflow-hidden rounded border border-border">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-background text-muted-foreground">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">Name</th>
-                        <th className="px-4 py-3 font-medium">Role</th>
-                        <th className="px-4 py-3 font-medium text-right">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {[
-                        {
-                          name: profile.userName,
-                          email: profile.email,
-                          role: 'Admin',
-                          isMe: true
-                        },
-                        {
-                          name: 'Sarah Chen',
-                          email: 'sarah@acme.inc',
-                          role: 'Editor',
-                          isMe: false
-                        },
-                        {
-                          name: 'Mike Ross',
-                          email: 'mike@acme.inc',
-                          role: 'Viewer',
-                          isMe: false
-                        }].
-                        map((member, i) =>
-                          <tr key={i} className="hover:bg-background">
-                            <td className="px-4 py-3">
-                              <div className="font-medium text-foreground">
-                                {member.name} {member.isMe && '(You)'}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {member.email}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <Badge
-                                variant={
-                                  member.role === 'Admin' ? 'info' : 'default'
-                                }>
-
-                                {member.role}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              {!member.isMe &&
-                                <button className="text-muted-foreground hover:text-red-600 transition-colors">
-                                  <TrashIcon className="w-4 h-4" />
-                                </button>
-                              }
-                            </td>
-                          </tr>
-                        )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+              </div>
+              <ul className="prf-security-list">
+                <li><CheckIcon size={14} /> SSO Enabled</li>
+                <li><CheckIcon size={14} /> 2FA Enforced</li>
+                <li><CheckIcon size={14} /> Audit Logs Active</li>
+              </ul>
             </div>
 
-            {/* Sidebar Info */}
-            <div className="space-y-6">
-              <Card
-                variant="default"
-                padding="md"
-                className="bg-primary text-primary-foreground border-none">
-
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded bg-white/20 flex items-center justify-center">
-                    <ShieldIcon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Enterprise Security</h3>
-                    <p className="text-xs text-white/80">Active & Monitored</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm text-white/90">
-                  <div className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4" /> SSO Enabled
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4" /> 2FA Enforced
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckIcon className="w-4 h-4" /> Audit Logs Active
-                  </div>
-                </div>
-              </Card>
-
-              <Card variant="elevated" padding="md">
-                <h3 className="font-semibold text-foreground mb-4">
-                  Quick Actions
-                </h3>
-                <div className="space-y-2">
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-start"
-                    leftIcon={<PackageIcon className="w-4 h-4" />}>
-
-                    Manage Subscription
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-start"
-                    leftIcon={<BriefcaseIcon className="w-4 h-4" />}>
-
-                    View Invoices
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                    leftIcon={<LogOutIcon className={`w-4 h-4 ${signingOut ? 'animate-spin' : ''}`} />}
-                    onClick={() => setConfirmOpen(true)}
-                    disabled={signingOut}>
-
-                    {signingOut ? 'Signing out...' : 'Sign Out'}
-                  </Button>
-                </div>
-              </Card>
+            <div className="stg-section" style={{ padding: 16 }}>
+              <div className="stg-section-head" style={{ marginBottom: 14 }}>Quick Actions</div>
+              <div className="prf-actions">
+                <Link to="/settings" className="prf-action-btn">
+                  <PackageIcon size={15} />
+                  Manage Subscription
+                </Link>
+                <Link to="/settings" className="prf-action-btn">
+                  <BriefcaseIcon size={15} />
+                  View Invoices
+                </Link>
+                <button
+                  type="button"
+                  className="prf-action-btn danger"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={signingOut}
+                >
+                  <LogOutIcon size={15} className={signingOut ? 'as-spin' : undefined} />
+                  {signingOut ? 'Signing out…' : 'Sign Out'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       {confirmOpen && (
-        <ConfirmDialog
-          title="Sign out?"
-          description="You'll be returned to the sign-in page."
-          confirmLabel="Sign out"
+        <SignOutModal
           onConfirm={handleSignOut}
-          onCancel={() => setConfirmOpen(false)}
+          onClose={() => setConfirmOpen(false)}
           isLoading={signingOut}
         />
       )}
-    </div>);
-
+    </AppShell>
+  );
 }

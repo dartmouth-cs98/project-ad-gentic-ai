@@ -41,6 +41,12 @@ from workers.ad_job_worker.script_video import (
 from workers.script_creation_worker.worker import generate_ad_script
 from workers.ad_video_generation_worker.worker import generate_ad_video_for_script
 from workers.script_moderation_worker.worker import evaluate_script
+from services.sync_labs.config import (
+    should_run_sync_lipsync,
+    sync_lipsync_env_skip_reason,
+    sync_lipsync_skip_reason,
+)
+from services.sync_labs.lipsync_pipeline import lipsync_ad_video
 from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import BlobClient, ContentSettings
 
@@ -170,8 +176,8 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
                 generation_preferences=generation_preferences,
                 moderation_feedback=verdict.feedback,
             )
-        provider = await resolve_video_provider_for_script(script)
-        script, provider, clip_seconds = await align_script_with_video_provider(
+        provider, provider_decision = await resolve_video_provider_for_script(script)
+        aligned_script, provider, clip_seconds = await align_script_with_video_provider(
             script,
             provider,
             product_name=product_name,
@@ -185,23 +191,26 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
             campaign_product_context=campaign.product_context or "",
             generation_preferences=generation_preferences,
         )
+        if aligned_script != script:
+            _, provider_decision = await resolve_video_provider_for_script(aligned_script)
+        script = aligned_script
+        variant_meta: dict = {
+            "script": script,
+            "video_provider": provider,
+            "clip_seconds": clip_seconds,
+            "lip_sync_risk": bool(provider_decision.features.get("lip_sync_risk")),
+            "primary_failure_mode": provider_decision.primary_failure_mode,
+        }
         update_ad_variant(
             db,
             ad_variant_id,
-            AdVariantUpdate(
-                meta=json.dumps(
-                    {
-                        "script": script,
-                        "video_provider": provider,
-                        "clip_seconds": clip_seconds,
-                    }
-                )
-            ),
+            AdVariantUpdate(meta=json.dumps(variant_meta)),
         )
         logger.info(
-            "Finished generating ad script (provider=%s, clip_seconds=%s)",
+            "Finished generating ad script (provider=%s, clip_seconds=%s, lip_sync_risk=%s)",
             provider,
             clip_seconds,
+            variant_meta["lip_sync_risk"],
         )
 
         logger.info("Generating ad video")
@@ -213,6 +222,28 @@ async def execute_ad_job(campaign_id: int, product_id: int, consumer_id: int, ve
             provider=provider,
         )
         logger.info("Finished generating ad video")
+        if should_run_sync_lipsync(variant_meta):
+            logger.info("Running Sync Labs lip sync")
+            ad_video_bytes, lipsync_meta = await lipsync_ad_video(
+                ad_video_bytes, variant_id=ad_variant_id
+            )
+            variant_meta["lipsync"] = lipsync_meta
+            update_ad_variant(
+                db,
+                ad_variant_id,
+                AdVariantUpdate(meta=json.dumps(variant_meta)),
+            )
+            logger.info("Finished Sync Labs lip sync")
+        else:
+            skip = sync_lipsync_skip_reason(variant_meta)
+            if skip:
+                logger.info("Skipping Sync Labs lip sync: %s", skip)
+            env_skip = sync_lipsync_env_skip_reason()
+            if variant_meta.get("lip_sync_risk") and env_skip:
+                logger.warning(
+                    "lip_sync_risk is true but Sync lipsync will not run: %s",
+                    env_skip,
+                )
         blob_client = BlobClient.from_connection_string(
             conn_str=os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip(),
             container_name="ad-videos",

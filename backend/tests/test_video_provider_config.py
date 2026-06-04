@@ -48,10 +48,26 @@ def test_choose_video_provider_skips_grok_when_veo_disabled():
     )
 
     with patch.dict("os.environ", {"VEO_GENERATION_ENABLED": "false"}, clear=False):
-        decision = choose_video_provider_with_reason(
-            "Founder on camera: Hi, I'm the CEO and this product changed my life."
-        )
+        grok = type(
+            "_Grok",
+            (),
+            {
+                "provider": "veo",
+                "confidence": 0.91,
+                "reason": "mocked",
+                "primary_failure_mode": "bad_lipsync",
+                "features": {"lip_sync_risk": True},
+            },
+        )()
+
+        with patch(
+            "workers.ad_video_generation_worker.provider_selection._classify_script_with_grok",
+            return_value=grok,
+        ):
+            decision = choose_video_provider_with_reason(
+                "Founder on camera: Hi, I'm the CEO and this product changed my life."
+            )
 
     assert decision.provider == "sora"
-    assert "VEO_GENERATION_ENABLED" in decision.reason
+    assert "Veo generation disabled" in decision.reason
     assert decision.fallback_used is False

@@ -2,7 +2,6 @@
 
 import json
 import os
-import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -11,8 +10,6 @@ from sqlalchemy.orm import Session
 from azure.storage.blob import (
     BlobClient,
     BlobSasPermissions,
-    ContainerClient,
-    ContentSettings,
     generate_blob_sas,
 )
 
@@ -26,21 +23,18 @@ from crud.product import (
     update_product,
     delete_product,
 )
+from services.storage.product_images import (
+    ALLOWED_IMAGE_TYPES,
+    CONTAINER_NAME,
+    MAX_IMAGES_PER_PRODUCT,
+    ensure_product_images_container,
+    upload_product_image_bytes,
+)
 from utils.product_image_names import parse_product_image_entries
 
 router = APIRouter()
 
-CONTAINER_NAME = "product-images"
 SAS_EXPIRY_HOURS = 1
-MAX_IMAGES_PER_PRODUCT = 5
-
-ALLOWED_IMAGE_TYPES = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-    "image/gif": ".gif",
-}
-MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def _parse_conn_str(conn_str: str) -> tuple[str, str]:
@@ -76,16 +70,6 @@ def _sign_product(product) -> ProductResponse:
         for url, name in zip(resp.image_urls, resp.image_names)
     ]
     return resp
-
-
-def _get_container(conn_str: str) -> ContainerClient:
-    container = ContainerClient.from_connection_string(
-        conn_str=conn_str,
-        container_name=CONTAINER_NAME,
-    )
-    if not container.exists():
-        container.create_container()
-    return container
 
 
 # ---------- CRUD routes ----------
@@ -185,7 +169,7 @@ async def upload_product_images(
     if not conn_str:
         raise HTTPException(status_code=500, detail="Storage not configured.")
 
-    _get_container(conn_str)
+    ensure_product_images_container(conn_str)
 
     new_urls: list[str] = []
     new_names: list[str] = []
@@ -198,26 +182,11 @@ async def upload_product_images(
                 detail=f"Unsupported image type '{content_type}' for file '{file.filename}'. Allowed: {', '.join(ALLOWED_IMAGE_TYPES.keys())}",
             )
         image_bytes = await file.read()
-        if len(image_bytes) > MAX_IMAGE_SIZE:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File '{file.filename}' exceeds 10 MB limit.",
-            )
-
-        ext = ALLOWED_IMAGE_TYPES[content_type]
-        blob_name = f"{uuid.uuid4().hex}{ext}"
-
-        blob_client = BlobClient.from_connection_string(
-            conn_str=conn_str,
-            container_name=CONTAINER_NAME,
-            blob_name=blob_name,
-        )
-        blob_client.upload_blob(
-            image_bytes,
-            overwrite=True,
-            content_settings=ContentSettings(content_type=content_type),
-        )
-        new_urls.append(blob_client.url)
+        try:
+            blob_url, blob_name = upload_product_image_bytes(image_bytes, content_type)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        new_urls.append(blob_url)
         new_names.append(blob_name)
 
     updated = update_product(

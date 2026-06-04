@@ -69,7 +69,7 @@ interface NotificationSetting {
 
 const initialIntegrations: Integration[] = [
   { id: 'meta', name: 'Meta (Facebook/Instagram)', description: 'Publish and manage ads across Facebook and Instagram.', icon: 'M', color: '#1877F2', connected: false },
-  { id: 'tiktok', name: 'TikTok Ads', description: 'Create and deploy short-form video ad campaigns.', icon: 'T', color: '#010101', connected: false, comingSoon: true },
+  { id: 'tiktok', name: 'TikTok Ads', description: 'Create and deploy short-form video ad campaigns.', icon: 'T', color: '#010101', connected: false },
   { id: 'youtube', name: 'YouTube Ads', description: 'Run video ads and bumper campaigns on YouTube.', icon: 'Y', color: '#FF0000', connected: false, comingSoon: true },
   { id: 'linkedin', name: 'LinkedIn Ads', description: 'Target professionals with sponsored content and InMail.', icon: 'in', color: '#0A66C2', connected: false, comingSoon: true },
   { id: 'google', name: 'Google Ads', description: 'Search, display, and Performance Max campaigns.', icon: 'G', color: '#34A853', connected: false, comingSoon: true },
@@ -199,6 +199,11 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('billing');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [oauthFeedback, setOauthFeedback] = useState<
+    { kind: 'connected'; platform: string }
+    | { kind: 'error'; reason: string }
+    | null
+  >(null);
 
   // Brand — persisted per user email
   const brandKey = `brand-settings-${profile.email}`;
@@ -249,13 +254,40 @@ export function SettingsPage() {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     if (tab && TABS.some((t) => t.key === tab)) setActiveTab(tab as TabKey);
-    if (params.get('connected')) {
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+    const connectedPlatform = params.get('connected');
+    const errorReason = params.get('error');
+    if (connectedPlatform) {
+      setOauthFeedback({ kind: 'connected', platform: connectedPlatform });
+      setTimeout(() => setOauthFeedback(null), 4000);
+    } else if (errorReason) {
+      setOauthFeedback({ kind: 'error', reason: errorReason });
+      setTimeout(() => setOauthFeedback(null), 6000);
+    }
+    if (connectedPlatform || errorReason) {
       params.delete('connected');
+      params.delete('error');
       navigate(`${location.pathname}${params.toString() ? `?${params}` : ''}`, { replace: true });
     }
   }, [location.pathname, location.search, navigate]);
+
+  const platformDisplayName = (platform: string): string => {
+    if (platform === 'instagram') return 'Meta';
+    if (platform === 'tiktok') return 'TikTok';
+    return platform;
+  };
+
+  const oauthErrorMessage = (reason: string): string => {
+    switch (reason) {
+      case 'oauth_failed':
+        return 'We couldn’t complete the connection. Try again, or check your account permissions.';
+      case 'oauth_missing_params':
+        return 'The provider returned an incomplete response. Try connecting again.';
+      case 'oauth_no_advertisers':
+        return 'No advertiser accounts were granted. Re-authorize and pick at least one ad account.';
+      default:
+        return 'Connection failed. Please try again.';
+    }
+  };
 
   const handleUpgrade = (plan: 'basic' | 'premium' | 'enterprise') => {
     setShowSuccess(true);
@@ -302,6 +334,41 @@ export function SettingsPage() {
               <h1>Settings & Billing</h1>
             </div>
           </div>
+
+          {/* OAuth feedback toast (top-right) — editorial style */}
+          {oauthFeedback && (
+            <div
+              role="status"
+              style={{
+                position: 'fixed', top: 20, right: 20, zIndex: 1000, maxWidth: 380,
+                padding: '12px 16px',
+                border: `1px solid ${oauthFeedback.kind === 'connected' ? 'var(--as-rule-strong)' : 'rgba(185,28,28,0.45)'}`,
+                background: 'var(--as-bg)',
+                fontSize: 13,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              }}
+            >
+              {oauthFeedback.kind === 'connected' ? (
+                <>
+                  <div style={{ fontWeight: 600, color: 'var(--as-ink)' }}>
+                    {platformDisplayName(oauthFeedback.platform)} connected
+                  </div>
+                  <div style={{ color: 'var(--as-ink-2)', marginTop: 2 }}>
+                    You can now publish campaigns to {platformDisplayName(oauthFeedback.platform)}.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 600, color: 'var(--as-danger, #b91c1c)' }}>
+                    Connection failed
+                  </div>
+                  <div style={{ color: 'var(--as-ink-2)', marginTop: 2 }}>
+                    {oauthErrorMessage(oauthFeedback.reason)}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Tab bar */}
           <div className="stg-tabs">
@@ -667,7 +734,12 @@ export function SettingsPage() {
                         <button
                           className="as-btn-ghost"
                           style={{ padding: '5px 12px', fontSize: 11 }}
-                          onClick={() => { if (int.id === 'meta') connectMeta.mutate({ platform: 'instagram' }); }}
+                          onClick={() => {
+                            const platform = integrationPlatformMap[int.id];
+                            if (platform && (int.id === 'meta' || int.id === 'tiktok')) {
+                              connectMeta.mutate({ platform });
+                            }
+                          }}
                         >
                           Connect
                         </button>

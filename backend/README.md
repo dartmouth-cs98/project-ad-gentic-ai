@@ -29,6 +29,14 @@ All services run on **port 8000** with different route prefixes:
 
 Script creation is a pipeline step (no HTTP); use `workers.script_creation_worker.generate_script(data)` from code.
 
+## Sync Labs lip sync (optional)
+
+When `SYNC_LIPSYNC_ENABLED=true`, `SYNC_API_KEY` is set, and the video provider classifier marks `lip_sync_risk` on the variant meta, the ad job demuxes the Sora/Veo MP4 (requires **ffmpeg** on the host) and post-processes via [Sync Generate API](https://sync.so/docs/api-reference/api/generate-api/create) (`sync-3` by default). Sync failures fail the ad job (no raw-video fallback).
+
+Local ffmpeg: `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux). Docker image includes ffmpeg.
+
+See `backend/.env.example` for `SYNC_*` variables and `exec-plans/2026-05-25-sync-labs-lipsync-pipeline.md`.
+
 ## Testing Hello Endpoints
 
 ```bash

@@ -137,6 +137,20 @@ class TestBuildScriptPrompt:
         assert "#FF00AA" in out
         assert "Brief here." in out
 
+    def test_ai_video_first_guidance_without_lip_sync_model_framing(self):
+        out = _build_script_prompt(
+            product_name="X",
+            product_description="Y",
+            consumer_profile_text="Z",
+            campaign_brief="",
+        )
+        assert "Shot design for I2V" in out
+        assert "product-in-hand" in out
+        assert "Voiceover plus visual story" in out
+        assert "Do not constrain shots for lip-sync quality" in out
+        assert "lip-sync models" not in out.lower()
+        assert "fairly frontal" not in out
+
     def test_includes_time_bucketed_beats(self):
         out = _build_script_prompt(
             product_name="X",

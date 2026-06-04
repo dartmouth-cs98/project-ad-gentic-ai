@@ -147,10 +147,12 @@ def _build_script_prompt(
     AI-generated video production (hard rules — the finished clip is rendered by an image-to-video model such as OpenAI Sora or Google Veo from a product reference frame, not a film crew):
     - You will receive a reference image of the product; Beat 1 may open on that pack shot, but transition into the story within Beat 1 — do not script a static product slide for the whole spot.
     - One beat = one continuous shot in one place: no hard cuts, montages, split screens, or "cut to" between unrelated locations inside a single beat.
-    - Keep motion simple and legible: one primary action per beat (reach, open, pour, react, walk, turn, reveal). Avoid crowds, fight scenes, sports plays, dexterous hand tricks, mirror reflections, or whip pans that reverse direction.
-    - Favor stable framing: single focal subject, medium or close shots, consistent lighting and wardrobe for the whole clip; avoid morphing identities, costume changes, or heavy VFX.
-    - If someone speaks on camera, keep their face visible and fairly frontal with minimal occlusion — lip-sync models struggle with profile faces, hats, and hands over the mouth.
-    - Do not script split dialogue between multiple speakers at once, phone screens with readable UI, microscopic detail, or brand mascots / copyrighted characters.
+    - Shot design for I2V: single clear focal subject per beat; medium or close framing; slow, simple camera (static with subject motion, gentle push-in, or light handheld drift). Same room, lighting direction, and wardrobe within a beat — no morphing identities, costume changes, or heavy VFX mid-beat.
+    - Motion the model handles well: one primary action per beat (reach, open, pour, react, smile, reveal product, walk a few steps, turn to camera). Prefer product-in-hand, reaction, demonstration, and expressive performance over complex choreography.
+    - Avoid: crowds, fight scenes, sports plays, dexterous hand tricks, mirror reflections, whip pans, hard cuts inside a beat, split dialogue between multiple speakers talking at once, phone screens with readable UI, microscopic detail, or brand mascots / copyrighted characters.
+    - Dialogue vs voiceover: on-camera lines are fine when the concept needs them — script natural performance and timing, not a rigid talking-head for lip-sync. Voiceover plus visual story (B-roll, POV, product moments) is often the most reliable pattern when the brief allows.
+    - Visual craft: strong opening visual in Beat 1 (respect the silent hook window); clear emotional progression across beats; creator-native formats (POV, reaction, day-in-the-life) through action and setting, not on-screen text.
+    - Do not constrain shots for lip-sync quality; focus on simple, legible visuals and performance that image-to-video models can render. Spoken dialogue timing must still fit the audio-safe timeline below.
 
     Product Name: {product_name}
     Product Description: {product_description or 'Not provided'}

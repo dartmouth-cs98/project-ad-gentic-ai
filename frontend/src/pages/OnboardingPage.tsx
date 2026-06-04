@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Logo } from '../components/ui/Logo';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRightIcon,
   ArrowLeftIcon,
   CheckIcon,
   UploadIcon,
   Loader2Icon,
-  SparklesIcon
+  SparklesIcon,
 } from 'lucide-react';
 import { saveOnboarding } from '../api/auth';
+import '../landing.css';
+
+const STEP_LABELS = ['Company', 'Product', 'Goals', 'Strategy'];
 
 const industries = [
   { value: 'saas', label: 'SaaS / Software' },
@@ -74,15 +76,95 @@ const currentTools = [
   { id: 'other', label: 'Other' },
 ];
 
-const inputClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20';
-const selectClass = 'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-foreground/20';
-const labelClass = 'block text-sm font-medium mb-1.5';
+function OnboardingBrand({ currentStep }: { currentStep: number }) {
+  return (
+    <div className="lp-auth-brand">
+      <div>
+        <Link to="/" className="lp-auth-brand-link">
+          <span className="lp-auth-brand-icon" />
+          <span className="lp-auth-brand-word">ADGENTIC</span>
+        </Link>
+        <h2 className="lp-auth-brand-headline">
+          Set up your<br />workspace.
+        </h2>
+        <p className="lp-auth-brand-sub">
+          A few details help us tailor ad generation, personas, and campaign defaults to your business.
+        </p>
+      </div>
+      <ol className="lp-onboard-steps">
+        {STEP_LABELS.map((label, i) => {
+          const stepNum = i + 1;
+          const state = stepNum < currentStep ? 'done' : stepNum === currentStep ? 'on' : '';
+          return (
+            <li key={label} className={`lp-onboard-step-item${state ? ` ${state}` : ''}`}>
+              <span className="n">{stepNum < currentStep ? '✓' : stepNum}</span>
+              {label}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function StepHead({ title, description, optional }: { title: string; description: string; optional?: boolean }) {
+  return (
+    <div className="lp-onboard-step-head">
+      <h2>
+        {title}
+        {optional && <span className="optional"> (optional)</span>}
+      </h2>
+      <p>{description}</p>
+    </div>
+  );
+}
+
+function MultiSelectGrid({
+  items,
+  selected,
+  onToggle,
+  onSelectAll,
+}: {
+  items: { id: string; label: string }[];
+  selected: string[];
+  onToggle: (id: string) => void;
+  onSelectAll: () => void;
+}) {
+  return (
+    <div>
+      <div className="lp-onboard-check-toolbar">
+        <button type="button" onClick={onSelectAll}>
+          {selected.length === items.length ? 'Deselect all' : 'Select all'}
+        </button>
+      </div>
+      <div className="lp-onboard-check-grid">
+        {items.map((item) => {
+          const active = selected.includes(item.id);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onToggle(item.id)}
+              className={`lp-onboard-check${active ? ' on' : ''}`}
+            >
+              <span className="lp-onboard-check-box">
+                {active && <CheckIcon size={10} strokeWidth={2.5} />}
+              </span>
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function OnboardingPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [autofillError, setAutofillError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     companyName: '',
     industry: '',
@@ -155,103 +237,72 @@ export function OnboardingPage() {
   const selectAllItems = (allIds: string[], currentSelection: string[]) =>
     currentSelection.length === allIds.length ? [] : [...allIds];
 
-  const handleAIAutofill = () => {
+  const handleAIAutofill = async () => {
+    const site = formData.website.trim();
+    if (!site) return;
+    setAutofillError(null);
     setIsAutoFilling(true);
-    setTimeout(() => {
-      setFormData({
-        ...formData,
-        productDescription:
-          'We offer an AI-powered advertising platform that generates psychologically-targeted ad variants for small and medium businesses. Our tool analyzes audience segments and creates personalized creative across Meta, TikTok, YouTube, and more.',
-        targetCustomer:
-          'Marketing managers and founders at SMBs (10-200 employees) who spend $1K-$20K/month on digital ads and want to improve ROAS without hiring a creative agency. They value data-driven decisions and are frustrated with generic ad templates.',
-      });
+    try {
+      const { analyzeBrandUrlForOnboarding, brandPreviewToOnboardingFields } = await import(
+        '../utils/brandImportOnboarding'
+      );
+      const preview = await analyzeBrandUrlForOnboarding(site);
+      const { productDescription, targetCustomer } = brandPreviewToOnboardingFields(preview);
+      if (!productDescription && !targetCustomer) {
+        setAutofillError('Could not extract product details from that website. Try editing the fields manually.');
+        return;
+      }
+      setFormData((prev) => ({
+        ...prev,
+        productDescription: productDescription || prev.productDescription,
+        targetCustomer: targetCustomer || prev.targetCustomer,
+      }));
+    } catch (e) {
+      setAutofillError(
+        e instanceof Error ? e.message : 'Could not analyze your website. Check the URL and try again.',
+      );
+    } finally {
       setIsAutoFilling(false);
-    }, 2000);
+    }
   };
-
-  const MultiSelectGrid = ({
-    items,
-    selected,
-    onToggle,
-    onSelectAll,
-  }: {
-    items: { id: string; label: string }[];
-    selected: string[];
-    onToggle: (id: string) => void;
-    onSelectAll: () => void;
-  }) => (
-    <div>
-      <div className="flex justify-end mb-2">
-        <button
-          type="button"
-          onClick={onSelectAll}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {selected.length === items.length ? 'Deselect all' : 'Select all'}
-        </button>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {items.map((item) => {
-          const active = selected.includes(item.id);
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onToggle(item.id)}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm text-left transition-colors ${
-                active
-                  ? 'border-blue-600 bg-blue-600/10 text-foreground'
-                  : 'border-border hover:border-foreground/30 text-muted-foreground'
-              }`}
-            >
-              <div className={`w-4 h-4 rounded flex-shrink-0 flex items-center justify-center border transition-colors ${active ? 'bg-blue-600 border-blue-600' : 'border-border'}`}>
-                {active && <CheckIcon className="w-3 h-3 text-white" />}
-              </div>
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">Tell us about your company</h2>
-              <p className="text-sm text-muted-foreground">This helps us personalize your ad generation experience.</p>
-            </div>
+          <div className="lp-onboard-fields">
+            <StepHead
+              title="Tell us about your company"
+              description="This helps us personalize your ad generation experience."
+            />
 
-            <div>
-              <label className={labelClass}>Company Logo</label>
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-lg border border-dashed border-border flex items-center justify-center hover:border-foreground/30 transition-colors cursor-pointer">
-                  <UploadIcon className="w-4 h-4 text-muted-foreground" />
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Company Logo</label>
+              <div className="lp-onboard-upload">
+                <div className="lp-onboard-upload-box" role="button" tabIndex={0} aria-label="Upload logo">
+                  <UploadIcon size={16} />
                 </div>
-                <div>
-                  <p className="text-sm">Upload your logo</p>
-                  <p className="text-xs text-muted-foreground">PNG, SVG, or JPG — max 2MB</p>
+                <div className="lp-onboard-upload-meta">
+                  <p>Upload your logo</p>
+                  <p>PNG, SVG, or JPG — max 2MB</p>
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className={labelClass}>Company Name <span className="text-red-500">*</span></label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Company Name *</label>
               <input
-                className={inputClass}
+                className="lp-auth-input"
                 placeholder="Acme Inc."
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
               />
             </div>
 
-            <div>
-              <label className={labelClass}>Industry</label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Industry</label>
               <select
-                className={selectClass}
+                className="lp-auth-input"
                 value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
               >
@@ -260,10 +311,10 @@ export function OnboardingPage() {
               </select>
             </div>
 
-            <div>
-              <label className={labelClass}>Company Size</label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Company Size</label>
               <select
-                className={selectClass}
+                className="lp-auth-input"
                 value={formData.companySize}
                 onChange={(e) => setFormData({ ...formData, companySize: e.target.value })}
               >
@@ -272,62 +323,65 @@ export function OnboardingPage() {
               </select>
             </div>
 
-            <div>
-              <label className={labelClass}>Website URL</label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Website URL</label>
               <input
-                className={inputClass}
+                className="lp-auth-input"
                 placeholder="https://yourcompany.com"
                 value={formData.website}
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground mt-1.5">
-                We'll use your website to auto-populate product details in the next step.
-              </p>
+              <p className="lp-auth-hint">We&apos;ll use your website to auto-populate product details in the next step.</p>
             </div>
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">What do you offer?</h2>
-              <p className="text-sm text-muted-foreground">Help our AI understand your product or service.</p>
-            </div>
+          <div className="lp-onboard-fields">
+            <StepHead
+              title="What do you offer?"
+              description="Help our AI understand your product or service."
+            />
 
             {formData.website && (
               <button
+                type="button"
                 onClick={handleAIAutofill}
                 disabled={isAutoFilling}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors disabled:opacity-50"
+                className="lp-onboard-autofill"
               >
                 {isAutoFilling ? (
-                  <><Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" /> Analyzing your website...</>
+                  <><Loader2Icon size={16} className="lp-auth-spinner" /> Analyzing your website…</>
                 ) : (
-                  <><SparklesIcon className="w-4 h-4 text-blue-600" /> Auto-fill from {formData.website.replace(/^https?:\/\//, '').split('/')[0] || 'your website'}</>
+                  <><SparklesIcon size={16} /> Auto-fill from {formData.website.replace(/^https?:\/\//, '').split('/')[0] || 'your website'}</>
                 )}
               </button>
             )}
 
-            <div>
-              <label className={labelClass}>What do you sell?</label>
+            {autofillError && <div className="lp-auth-banner error">{autofillError}</div>}
+
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">What do you sell?</label>
               <textarea
-                className={`${inputClass} resize-none`}
+                className="lp-auth-input"
                 rows={4}
-                placeholder="e.g., We sell a project management tool for remote teams that helps track tasks, deadlines, and team communication in one place..."
+                placeholder="e.g., We sell a project management tool for remote teams…"
                 value={formData.productDescription}
                 onChange={(e) => setFormData({ ...formData, productDescription: e.target.value })}
+                style={{ resize: 'vertical', minHeight: 96 }}
               />
             </div>
 
-            <div>
-              <label className={labelClass}>Who is your target customer?</label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Who is your target customer?</label>
               <textarea
-                className={`${inputClass} resize-none`}
+                className="lp-auth-input"
                 rows={4}
-                placeholder="e.g., Marketing managers at mid-size companies (50-500 employees) who spend $5K+/month on ads and want better ROI without hiring an agency..."
+                placeholder="e.g., Marketing managers at mid-size companies…"
                 value={formData.targetCustomer}
                 onChange={(e) => setFormData({ ...formData, targetCustomer: e.target.value })}
+                style={{ resize: 'vertical', minHeight: 96 }}
               />
             </div>
           </div>
@@ -335,16 +389,16 @@ export function OnboardingPage() {
 
       case 3:
         return (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">Your marketing goals</h2>
-              <p className="text-sm text-muted-foreground">Tell us what you want to achieve with your ads.</p>
-            </div>
+          <div className="lp-onboard-fields">
+            <StepHead
+              title="Your marketing goals"
+              description="Tell us what you want to achieve with your ads."
+            />
 
-            <div>
-              <label className={labelClass}>Primary Goal <span className="text-red-500">*</span></label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Primary Goal *</label>
               <select
-                className={selectClass}
+                className="lp-auth-input"
                 value={formData.primaryGoal}
                 onChange={(e) => setFormData({ ...formData, primaryGoal: e.target.value })}
               >
@@ -354,54 +408,56 @@ export function OnboardingPage() {
             </div>
 
             {formData.primaryGoal === 'other' && (
-              <div>
-                <label className={labelClass}>Custom Goal</label>
+              <div className="lp-auth-field">
+                <label className="lp-auth-label">Custom Goal</label>
                 <textarea
-                  className={`${inputClass} resize-none`}
+                  className="lp-auth-input"
                   rows={3}
-                  placeholder="Describe your specific goal in detail..."
+                  placeholder="Describe your specific goal in detail…"
                   value={formData.customGoal}
                   onChange={(e) => setFormData({ ...formData, customGoal: e.target.value })}
+                  style={{ resize: 'vertical' }}
                 />
               </div>
             )}
 
-            <div>
-              <label className={labelClass}>Target Platforms <span className="text-red-500">*</span></label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Target Platforms *</label>
               <MultiSelectGrid
                 items={platforms}
                 selected={formData.targetPlatforms}
                 onToggle={(id) => setFormData({ ...formData, targetPlatforms: toggleArrayItem(formData.targetPlatforms, id) })}
                 onSelectAll={() => setFormData({ ...formData, targetPlatforms: selectAllItems(platforms.map((p) => p.id), formData.targetPlatforms) })}
               />
-              <p className="text-xs text-muted-foreground mt-2">We'll optimize ad formats and dimensions for your selected platforms.</p>
+              <p className="lp-auth-hint">We&apos;ll optimize ad formats and dimensions for your selected platforms.</p>
             </div>
 
-            <div>
-              <label className={labelClass}>Target Regions <span className="text-red-500">*</span></label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Target Regions *</label>
               <MultiSelectGrid
                 items={regions}
                 selected={formData.targetRegions}
                 onToggle={(id) => setFormData({ ...formData, targetRegions: toggleArrayItem(formData.targetRegions, id) })}
                 onSelectAll={() => setFormData({ ...formData, targetRegions: selectAllItems(regions.map((r) => r.id), formData.targetRegions) })}
               />
-              <p className="text-xs text-muted-foreground mt-2">Ad copy and imagery will be tailored to cultural preferences in these regions.</p>
+              <p className="lp-auth-hint">Ad copy and imagery will be tailored to cultural preferences in these regions.</p>
             </div>
           </div>
         );
 
       case 4:
         return (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">Current strategy <span className="text-muted-foreground font-normal text-base">(optional)</span></h2>
-              <p className="text-sm text-muted-foreground">This helps us understand where you're starting from.</p>
-            </div>
+          <div className="lp-onboard-fields">
+            <StepHead
+              title="Current strategy"
+              description="This helps us understand where you're starting from."
+              optional
+            />
 
-            <div>
-              <label className={labelClass}>Monthly Ad Spend</label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Monthly Ad Spend</label>
               <select
-                className={selectClass}
+                className="lp-auth-input"
                 value={formData.adSpend}
                 onChange={(e) => setFormData({ ...formData, adSpend: e.target.value })}
               >
@@ -410,8 +466,8 @@ export function OnboardingPage() {
               </select>
             </div>
 
-            <div>
-              <label className={labelClass}>Current Tools</label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Current Tools</label>
               <MultiSelectGrid
                 items={currentTools}
                 selected={formData.currentTools}
@@ -419,10 +475,10 @@ export function OnboardingPage() {
                 onSelectAll={() => setFormData({ ...formData, currentTools: selectAllItems(currentTools.map((t) => t.id), formData.currentTools) })}
               />
               {formData.currentTools.includes('other') && (
-                <div className="mt-3">
-                  <label className={labelClass}>Other Tools</label>
+                <div style={{ marginTop: 12 }}>
+                  <label className="lp-auth-label">Other Tools</label>
                   <input
-                    className={inputClass}
+                    className="lp-auth-input"
                     placeholder="What other tools do you use?"
                     value={formData.otherTools || ''}
                     onChange={(e) => setFormData({ ...formData, otherTools: e.target.value })}
@@ -431,14 +487,15 @@ export function OnboardingPage() {
               )}
             </div>
 
-            <div>
-              <label className={labelClass}>Biggest Marketing Challenge</label>
+            <div className="lp-auth-field">
+              <label className="lp-auth-label">Biggest Marketing Challenge</label>
               <textarea
-                className={`${inputClass} resize-none`}
+                className="lp-auth-input"
                 rows={3}
-                placeholder="What's the biggest challenge you face with advertising today? e.g., low click-through rates, high cost per acquisition, difficulty creating engaging creative..."
+                placeholder="What's the biggest challenge you face with advertising today?"
                 value={formData.biggestChallenge}
                 onChange={(e) => setFormData({ ...formData, biggestChallenge: e.target.value })}
+                style={{ resize: 'vertical' }}
               />
             </div>
           </div>
@@ -449,58 +506,50 @@ export function OnboardingPage() {
     }
   };
 
+  const progressPct = Math.round((currentStep / totalSteps) * 100);
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
-        <div className="flex justify-center mb-8">
-          <Logo size="md" />
-        </div>
+    <div className="landing-page lp-auth-layout">
+      <OnboardingBrand currentStep={currentStep} />
 
-        {/* Progress */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Step {currentStep} of {totalSteps}</span>
-            <span className="text-sm text-muted-foreground">{Math.round((currentStep / totalSteps) * 100)}% complete</span>
+      <div className="lp-auth-main">
+        <div className="lp-onboard-wrap">
+          <div className="lp-onboard-progress">
+            <div className="lp-onboard-progress-meta">
+              <span>Step {currentStep} of {totalSteps}</span>
+              <span>{progressPct}% complete</span>
+            </div>
+            <div className="lp-onboard-progress-track">
+              <div className="lp-onboard-progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
           </div>
-          <div className="h-1 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-600 transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
-        </div>
 
-        <div className="bg-card border border-border rounded-xl p-8">
           {renderStep()}
 
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+          <div className="lp-onboard-foot">
             <div>
               {currentStep > 1 && (
-                <button
-                  onClick={handleBack}
-                  className="flex items-center gap-1.5 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ArrowLeftIcon className="w-4 h-4" />
+                <button type="button" onClick={handleBack} className="lp-auth-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <ArrowLeftIcon size={14} />
                   Back
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="lp-onboard-foot-actions">
               {(currentStep === 2 || currentStep === 4) && (
-                <button
-                  onClick={handleSkip}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <button type="button" onClick={handleSkip} className="lp-auth-secondary">
                   Skip
                 </button>
               )}
               <button
+                type="button"
                 onClick={handleNext}
                 disabled={!isStepValid()}
-                className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-40"
+                className="lp-auth-submit"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, width: 'auto', padding: '11px 20px' }}
               >
                 {currentStep === totalSteps ? 'Complete Setup' : 'Continue'}
-                <ArrowRightIcon className="w-4 h-4" />
+                <ArrowRightIcon size={14} />
               </button>
             </div>
           </div>

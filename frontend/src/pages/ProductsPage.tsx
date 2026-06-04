@@ -1,14 +1,17 @@
 // ProductsPage — Swiss/Linear editorial theme
 import { useState, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '../components/layout/AppShell';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { BrandImportModal } from '../components/products/BrandImportModal';
 import {
   useProducts,
   useCreateProduct,
   useDeleteProduct,
   useUploadProductImages,
   useDeleteProductImage,
+  PRODUCTS_KEY,
 } from '../hooks/useProducts';
 import type { Product } from '../types';
 
@@ -437,6 +440,7 @@ function DeleteProductModal({ product, onClose, onConfirm, isLoading }: {
 export function ProductsPage() {
   const { user } = useUser();
   const businessClientId = user?.client_id;
+  const queryClient = useQueryClient();
 
   const { data: products = [], isLoading, isError, error } = useProducts(businessClientId);
   const deleteMutation = useDeleteProduct();
@@ -445,6 +449,8 @@ export function ProductsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -494,15 +500,39 @@ export function ProductsPage() {
                 )}
               </h1>
             </div>
-            <button
-              className="as-btn-solid"
-              onClick={() => setShowCreateModal(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
-            >
-              <PlusIcon />
-              Add Product
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="as-btn-ghost"
+                onClick={() => setShowImportModal(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 14px' }}
+              >
+                Import from website
+              </button>
+              <button
+                className="as-btn-solid"
+                onClick={() => setShowCreateModal(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px' }}
+              >
+                <PlusIcon />
+                Add Product
+              </button>
+            </div>
           </div>
+
+          {importNotice && (
+            <div className="prd-upload-banner" style={{ justifyContent: 'space-between' }}>
+              <span>{importNotice}</span>
+              <button
+                type="button"
+                className="as-btn-ghost"
+                style={{ fontSize: 12, padding: '4px 8px' }}
+                onClick={() => setImportNotice(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* Upload banner */}
           {uploadMutation.isPending && (
@@ -606,6 +636,16 @@ export function ProductsPage() {
       />
 
       {showCreateModal && <CreateProductModal onClose={() => setShowCreateModal(false)} />}
+      {showImportModal && (
+        <BrandImportModal
+          onClose={() => setShowImportModal(false)}
+          onApplied={(notice) => {
+            queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+            if (notice) setImportNotice(notice);
+            setShowImportModal(false);
+          }}
+        />
+      )}
       {productToDelete && (
         <DeleteProductModal
           product={productToDelete}

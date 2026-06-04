@@ -17,7 +17,10 @@ Pillow>=10.0.0
 scikit-learn>=1.4.0
 numpy>=1.26.0
 httpx>=0.28.1,<1.0.0
+beautifulsoup4>=4.12.0
+trafilatura>=2.0.0
 cryptography>=42.0.0
+syncsdk==0.3.0
 
 # Test dependencies
 pytest>=9.0.0
